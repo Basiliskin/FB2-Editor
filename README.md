@@ -5,13 +5,19 @@
     <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="MIT License"/></a>
     <img src="https://img.shields.io/badge/version-1.0.4-blue.svg" alt="Version 1.0.4"/>
     <a href="https://play.google.com/store/apps/details?id=com.caragulak.fb2editor"><img src="https://img.shields.io/badge/Google%20Play-get%20it%20on-green.svg" alt="Get it on Google Play"/></a>
-    <img src="https://img.shields.io/badge/platform-Android-3DDC84.svg" alt="Android"/>
+    <a href="https://fb2-editor.surge.sh"><img src="https://img.shields.io/badge/web%20demo-try%20it%20online-8A2BE2.svg" alt="Web demo"/></a>
+    <a href="https://arach-telar.surge.sh/"><img src="https://img.shields.io/badge/%E2%9C%A8%20new%20version-play%20the%20next%20iteration-FF1493.svg" alt="New version demo"/></a>
+    <img src="https://img.shields.io/badge/platform-Android%20%26%20Web-3DDC84.svg" alt="Android & Web"/>
     <img src="https://img.shields.io/badge/built%20with-Flutter-02569B.svg" alt="Flutter"/>
   </p>
-  <p><em>Your fiction books, your files, your editor — offline, on your Android device.</em></p>
+  <p><em>Your fiction books, your files, your editor — on your Android device, or right in your browser.</em></p>
 </div>
 
 ---
+
+> ✨ **There's a new version!** The next iteration of FB2 Editor is live at
+> **[arach-telar.surge.sh](https://arach-telar.surge.sh/)** — packed with UI/UX improvements and
+> many bug fixes. Go play with it!
 
 ## Demo
 
@@ -27,6 +33,8 @@
     <td align="center"><img src="resources/screenshots/tablet.png" alt="Tablet layout" width="200"/></td>
   </tr>
 </table>
+
+**No phone handy?** [Try the web build live](https://fb2-editor.surge.sh) — FB2 Editor in your browser, no install required.
 
 ## Features
 
@@ -45,6 +53,16 @@
 ### From Google Play
 
 Install [FB2 Editor from the Play Store](https://play.google.com/store/apps/details?id=com.caragulak.fb2editor).
+
+### In your browser
+
+This repo's web build is deployed at **[fb2-editor.surge.sh](https://fb2-editor.surge.sh)** — just open it and load a book. (For the newer iteration, see the announcement above.) To serve it locally:
+
+```sh
+flutter build web
+```
+
+Deploy your own copy with `tool/deploy_surge.sh <domain>` (needs the `surge` CLI).
 
 ### Build from source
 
