@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:quill_fb2/routes.dart';
 import 'dart:async';
 
@@ -45,11 +46,10 @@ class _StartScreenState extends State<StartScreen> {
   startTime() async {
     try {
       var duration = new Duration(seconds: 1);
-      var status = await Permission.storage.status;
-      if (status == PermissionStatus.denied) {
-        // We didn't ask for permission yet or the permission has been denied before but not permanently.
-        if (await Permission.storage.request().isGranted) {
-          // Either the permission was already granted before or the user just granted it.
+      if (!kIsWeb) {
+        var status = await Permission.storage.status;
+        if (status == PermissionStatus.denied) {
+          await Permission.storage.request();
         }
       }
 

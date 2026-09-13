@@ -25,14 +25,14 @@ stringToBool(value) {
 String getRandomString(int length) => String.fromCharCodes(Iterable.generate(
     length, (_) => _chars.codeUnitAt(_rnd.nextInt(_chars.length))));
 
-safeGet(Map data, String key, dynamic defaultValue) {
+safeGet(dynamic data, String key, dynamic defaultValue) {
   final keys = key.split('.');
   return keys.fold(
           data,
-          (previousValue, element) => previousValue != null &&
-                  (previousValue as Map).containsKey(element)
-              ? previousValue[element]
-              : null) ??
+          (previousValue, element) =>
+              previousValue is Map && previousValue.containsKey(element)
+                  ? previousValue[element]
+                  : null) ??
       defaultValue;
 }
 

@@ -3,6 +3,7 @@
   <h1>FB2 Editor</h1>
   <p>
     <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="MIT License"/></a>
+    <img src="https://img.shields.io/badge/version-1.0.4-blue.svg" alt="Version 1.0.4"/>
     <a href="https://play.google.com/store/apps/details?id=com.caragulak.fb2editor"><img src="https://img.shields.io/badge/Google%20Play-get%20it%20on-green.svg" alt="Get it on Google Play"/></a>
     <img src="https://img.shields.io/badge/platform-Android-3DDC84.svg" alt="Android"/>
     <img src="https://img.shields.io/badge/built%20with-Flutter-02569B.svg" alt="Flutter"/>
@@ -19,6 +20,11 @@
     <td align="center"><img src="resources/demo.gif" alt="FB2 Editor demo" width="420"/></td>
     <td align="center"><img src="resources/screenshots/edit_section.png" alt="Section editor" width="200"/></td>
     <td align="center"><img src="resources/screenshots/book_info.png" alt="Book info" width="200"/></td>
+  </tr>
+  <tr>
+    <td align="center"><img src="resources/screenshots/main_screen.png" alt="Home screen" width="200"/></td>
+    <td align="center"><img src="resources/screenshots/book_sections.png" alt="Section list" width="200"/></td>
+    <td align="center"><img src="resources/screenshots/tablet.png" alt="Tablet layout" width="200"/></td>
   </tr>
 </table>
 

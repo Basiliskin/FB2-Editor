@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 
+import 'package:flutter/foundation.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_archive/flutter_archive.dart';
@@ -9,6 +10,7 @@ import 'package:quill_fb2/models/project.model.dart';
 import 'package:quill_fb2/models/section.model.dart';
 import 'package:quill_fb2/utils/common.dart';
 import 'package:quill_fb2/utils/consts.dart';
+import 'package:quill_fb2/utils/cp1251.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:flutter_file_dialog/flutter_file_dialog.dart';
 import 'fb2.service.dart';
@@ -126,9 +128,11 @@ class AppService {
     String projId = book != null ? book['projectId'] : '';
     ProjectModel model = ProjectModel.fromJson(projectData, projId);
     if (fileInfo != null && book == null) {
-      final path = await _localPath;
-      String currentProjectPath = '$path/${model.projectId}$BOOK_EXT';
-      Map info = await model.getInfo(fileInfo, currentProjectPath);
+      final currentProjectPath = kIsWeb
+          ? fileInfo.path
+          : '${await _localPath}/${model.projectId}$BOOK_EXT';
+      Map info =
+          await model.getInfo(kIsWeb ? null : fileInfo, currentProjectPath);
 
       _workspace["currentProject"] = currentProjectPath;
       if (_workspace["history"].length >= MAX_BOOK_IN_HISTORY)
@@ -215,12 +219,19 @@ class AppService {
   }
 
   init() async {
+    if (kIsWeb) {
+      return;
+    }
     final path = await _workspacePath;
     _workspace = await loadJsonFile(path, DEFAULT_WORKSPACE);
   }
 
-  Future<File> save() async {
+  Future<File?> save() async {
     _workspace["updatedAt"] = DateTime.now();
+
+    if (kIsWeb) {
+      return null;
+    }
 
     final path = await _workspacePath;
     final file = File(path);
@@ -289,13 +300,27 @@ class AppService {
   openFile(Map extensionNames) async {
     FilePickerResult? result = await FilePicker.platform.pickFiles(
       type: FileType.any,
+      withData: kIsWeb,
       // allowedExtensions: [extensionName],
     );
     if (result != null) {
       final file = result.files.first;
-      final ext = file.extension;
+      final ext = file.extension?.toLowerCase();
       if (extensionNames[ext]) {
         try {
+          if (kIsWeb) {
+            final bytes = file.bytes;
+            if (bytes == null || ext != 'fb2') {
+              return null;
+            }
+            String text;
+            try {
+              text = utf8.decode(bytes, allowMalformed: false);
+            } catch (_) {
+              text = decodeCp1251(bytes);
+            }
+            return FileInfo(text, file.name);
+          }
           // final name = file.name;
           final path = file.path;
           // final size = file.size;

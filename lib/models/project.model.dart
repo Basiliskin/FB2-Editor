@@ -207,9 +207,14 @@ class ProjectModel {
   ProjectModel(json, [String projId = '']) {
     projectId = projId.isNotEmpty ? projId : getRandomString(16);
     bookTitle = safeGet(json, 'bodyTitle', '');
-    final description = safeGet(json, 'description.description', {});
-    final title = safeGet(description, 'title-info', {});
-    final document = safeGet(description, 'document-info', {});
+    final descriptionValue = safeGet(json, 'description.description', {});
+    final description =
+        descriptionValue is Map ? descriptionValue : <dynamic, dynamic>{};
+    final titleValue = safeGet(description, 'title-info', {});
+    final title = titleValue is Map ? titleValue : <dynamic, dynamic>{};
+    final documentValue = safeGet(description, 'document-info', {});
+    final document =
+        documentValue is Map ? documentValue : <dynamic, dynamic>{};
     final sections = safeGet(json, 'sections', []);
     final resources = safeGet(json, 'resources', []);
     binaryResource = BinaryResources(resources);
