@@ -11,6 +11,7 @@ import 'package:quill_fb2/models/section.model.dart';
 import 'package:quill_fb2/utils/common.dart';
 import 'package:quill_fb2/utils/consts.dart';
 import 'package:quill_fb2/utils/cp1251.dart';
+import 'package:quill_fb2/utils/file_download.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:flutter_file_dialog/flutter_file_dialog.dart';
 import 'fb2.service.dart';
@@ -75,6 +76,10 @@ class AppService {
   }
 
   exportProject(ProjectModel model) async {
+    if (kIsWeb) {
+      await downloadFile('${model.projectId}$BOOK_EXT', model.getBookXml());
+      return;
+    }
     final path = await _localPath;
     String currentProjectPath = '$path/${model.projectId}$BOOK_EXT';
     final params = SaveFileDialogParams(sourceFilePath: currentProjectPath);
@@ -83,6 +88,17 @@ class AppService {
   }
 
   saveProject(ProjectModel model) async {
+    if (kIsWeb) {
+      final currentProjectPath = '${model.projectId}$BOOK_EXT';
+      final info = await model.getInfo(null, currentProjectPath);
+      final filtered = _workspace["history"]
+          .where((i) => i['projectId'] != model.projectId)
+          .toList();
+      _workspace["history"] = [...filtered, info];
+      await save();
+      await downloadFile(currentProjectPath, model.getBookXml());
+      return;
+    }
     final path = await _localPath;
     String currentProjectPath = '$path/${model.projectId}$BOOK_EXT';
     Map info = await model.getInfo(null, currentProjectPath);
