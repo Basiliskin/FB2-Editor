@@ -11,6 +11,7 @@ import 'package:flutter_quill/flutter_quill.dart';
 // import 'package:flutter_quill/widgets/editor.dart';
 import 'package:quill_fb2/models/project.model.dart';
 import 'package:quill_fb2/models/section.model.dart';
+import 'package:quill_fb2/pages/help_page.dart';
 import 'package:quill_fb2/services/app.service.dart';
 import 'package:quill_fb2/utils/common.dart';
 import 'package:quill_fb2/utils/consts.dart';
@@ -383,6 +384,10 @@ class _SectionEditorState extends State<SectionEditor>
                   onPressed: () => _navigateBack(context)),
               title: BaseText.Text(trimSpecialChar(widget.section.title)),
               actions: [
+                IconButton(
+                    tooltip: tr(widget.service, 'Help', 'Справка'),
+                    icon: const Icon(Icons.help_outline),
+                    onPressed: () => openHelp(context, widget.service)),
                 IconButton(
                     tooltip: widget.service.translate(LangTranslateItems.buttonSave),
                     icon: const Icon(Icons.save_outlined),

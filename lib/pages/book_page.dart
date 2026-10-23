@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:prompt_dialog/prompt_dialog.dart';
 import 'package:quill_fb2/models/project.model.dart';
+import 'package:quill_fb2/pages/help_page.dart';
 import 'package:quill_fb2/models/section.model.dart';
 import 'package:quill_fb2/services/app.service.dart';
 import 'package:quill_fb2/utils/color.utils.dart';
@@ -147,6 +148,10 @@ class _BookPageState extends State<BookPage>
           ),
         ]),
         actions: [
+          IconButton(
+              tooltip: tr(s, 'Help', 'Справка'),
+              icon: const Icon(Icons.help_outline),
+              onPressed: () => openHelp(context, s)),
           IconButton(
               tooltip: tr(s, autoSave ? 'Auto-save: on' : 'Auto-save: off',
                   autoSave ? 'Автосохранение: вкл' : 'Автосохранение: выкл'),

@@ -4,6 +4,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:quill_fb2/pages/book_page.dart';
+import 'package:quill_fb2/pages/help_page.dart';
 import 'package:quill_fb2/pages/settings_page.dart';
 import 'package:quill_fb2/services/app.service.dart';
 import 'package:quill_fb2/utils/common.dart';
@@ -135,7 +136,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         },
         () => Navigator.push(context,
                 MaterialPageRoute(builder: (_) => SettingsScreen(widget.service)))
-            .then((_) => setState(() {})));
+            .then((_) => setState(() {})),
+        openHelp: () => openHelp(context, widget.service));
     return Stack(children: [
       LibraryView(widget.service, actions),
       if (isLoading) ModalRoundedProgressBar(0.95, "Loading"),

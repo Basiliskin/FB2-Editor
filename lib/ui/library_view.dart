@@ -9,7 +9,9 @@ class HomeActions {
   final Future<void> Function(Map) openBook;
   final Future<void> Function(Map) removeBook;
   final VoidCallback openSettings;
-  HomeActions(this.openFile, this.openBook, this.removeBook, this.openSettings);
+  final VoidCallback? openHelp;
+  HomeActions(this.openFile, this.openBook, this.removeBook, this.openSettings,
+      {this.openHelp});
 }
 
 String _date(Map b) {
@@ -90,6 +92,11 @@ class _LibraryViewState extends State<LibraryView> {
                     child: Text(tr(widget.service, 'Your library', 'Ваша библиотека'),
                         style: t.textTheme.headlineMedium
                             ?.copyWith(fontWeight: FontWeight.w700))),
+                if (widget.actions.openHelp != null)
+                  IconButton(
+                      tooltip: tr(widget.service, 'Help', 'Справка'),
+                      icon: const Icon(Icons.help_outline),
+                      onPressed: widget.actions.openHelp),
                 IconButton(
                     tooltip: tr(widget.service, 'Settings', 'Настройки'),
                     icon: const Icon(Icons.settings_outlined),
