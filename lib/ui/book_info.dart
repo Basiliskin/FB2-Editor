@@ -88,7 +88,7 @@ class BookInfoLayout extends StatelessWidget {
                   heroTag: 'story-map-fab',
                   tooltip: tr(k.s, 'Open the story map', 'Открыть карту сюжета'),
                   onPressed: k.onStoryMap,
-                  child: const Icon(Icons.timeline))),
+                  child: const Icon(Icons.hub_outlined))),
       ]),
       sec(tr(k.s, 'Title', 'Название'), [
         k.text(LangTranslateItems.bookTitle, k.title,
