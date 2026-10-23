@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 500">
+<rect width="1024" height="500" fill="#2b1e1a"/>
+<g transform="translate(70 25) scale(4.1)">
+<g fill="#f1e4d0"><rect x="26" y="30" width="11" height="50" rx="2"/><rect x="40" y="38" width="11" height="42" rx="2"/><rect x="54" y="30" width="11" height="50" rx="2"/><rect x="69" y="38" width="11" height="42" rx="2" fill="#e9a23b" transform="rotate(16 74 80)"/></g>
+<rect x="22" y="83" width="64" height="3" rx="1.5" fill="#e9a23b"/>
+<g fill="#2b1e1a"><rect x="26" y="40" width="11" height="2"/><rect x="26" y="45" width="11" height="2"/><rect x="54" y="40" width="11" height="2"/><rect x="54" y="45" width="11" height="2"/></g></g>
+<text x="500" y="250" font-family="Helvetica Neue,Helvetica,Arial,sans-serif" font-weight="700" font-size="96" fill="#f1e4d0">FB2 Editor</text>
+<rect x="504" y="280" width="120" height="6" rx="3" fill="#e9a23b"/>
+<text x="504" y="345" font-family="Helvetica Neue,Helvetica,Arial,sans-serif" font-size="38" fill="#cdbba0">Write and edit FB2 books</text>
+</svg>
