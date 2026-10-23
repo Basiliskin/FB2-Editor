@@ -13,6 +13,7 @@ import 'package:quill_fb2/widgets/forms/book_form.dart';
 import 'package:quill_fb2/widgets/leave_dialog.dart';
 import 'package:quill_fb2/widgets/find_replace_dialog.dart';
 import 'package:quill_fb2/services/open_failure_text.dart';
+import 'package:quill_fb2/widgets/save_export_sheet.dart';
 import 'package:quill_fb2/widgets/section/list.dart';
 import 'package:quill_fb2/ui/widgets.dart';
 
@@ -158,6 +159,25 @@ class _BookPageState extends State<BookPage>
     }
   }
 
+  /// Save and every export format in one place; a label on wide screens, an icon on narrow ones.
+  Widget _saveExportButton(BuildContext context) {
+    final s = widget.service;
+    final label = tr(s, 'Save & export', 'Сохранить и экспорт');
+    void open() => showSaveExportSheet(context, s, widget.book,
+        onSave: () => setChangedString('{}'),
+        onExportFb2: _export,
+        onExportEpub: _exportEpub,
+        onExportTxt: _exportText);
+    if (MediaQuery.sizeOf(context).width < 520) {
+      return IconButton(tooltip: label, icon: const Icon(Icons.ios_share), onPressed: open);
+    }
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 4),
+      child: FilledButton.tonalIcon(
+          icon: const Icon(Icons.ios_share, size: 18), label: Text(label), onPressed: open),
+    );
+  }
+
   Future<void> _leave() async {
     await _flushForms();
     if (await confirmLeave(context, widget.service, widget.book) && mounted) {
@@ -247,21 +267,12 @@ class _BookPageState extends State<BookPage>
                 await s.setSettings({"auto-save": !autoSave});
                 setChangedString('{}');
               }),
-          IconButton(
-              tooltip: s.translate(LangTranslateItems.buttonSave),
-              icon: const Icon(Icons.save_outlined),
-              onPressed: () => setChangedString('{}')),
-          IconButton(
-              tooltip: tr(s, 'Export .fb2', 'Экспорт .fb2'),
-              icon: const Icon(Icons.storage_outlined),
-              onPressed: _export),
+          _saveExportButton(context),
           PopupMenuButton<String>(
               tooltip: tr(s, 'More', 'Ещё'),
               onSelected: (v) => switch (v) {
                     'find' => _findReplace(),
-                    'merge' => _merge(),
-                    'epub' => _exportEpub(),
-                    _ => _exportText(),
+                    _ => _merge(),
                   },
               itemBuilder: (_) => [
                     PopupMenuItem(
@@ -270,12 +281,6 @@ class _BookPageState extends State<BookPage>
                     PopupMenuItem(
                         value: 'merge',
                         child: Text(tr(s, 'Add another book', 'Добавить другую книгу'))),
-                    PopupMenuItem(
-                        value: 'epub',
-                        child: Text(tr(s, 'Export as e-book (.epub)', 'Экспорт в книгу (.epub)'))),
-                    PopupMenuItem(
-                        value: 'txt',
-                        child: Text(tr(s, 'Export as text (.txt)', 'Экспорт в текст (.txt)'))),
                   ]),
         ],
         bottom: TabBar(

@@ -93,8 +93,8 @@ const helpTopics = <HelpTopic>[
   ]),
   HelpTopic(Icons.save_outlined, ('Saving & export', 'Сохранение и экспорт'), [
     (
-      'Save (💾) writes the book to the app\'s private workspace.',
-      'Сохранить (💾) записывает книгу в закрытое рабочее пространство приложения.'
+      '"Save & export" (top right of the book screen) opens one menu: "Save in the app" keeps the book in the app\'s private workspace, and the other entries export a file. It also shows whether you have unsaved changes.',
+      '«Сохранить и экспорт» (справа вверху на экране книги) открывает одно меню: «Сохранить в приложении» хранит книгу в закрытом рабочем пространстве приложения, остальные пункты создают файл. Там же видно, есть ли несохранённые изменения.'
     ),
     (
       'Auto-save (✨ in the book screen, or in Settings) also saves when you leave the editor or put the app in the background. Green means on.',
@@ -105,8 +105,8 @@ const helpTopics = <HelpTopic>[
       'Поиск и замена (лупа со стрелками на экране книги) работают по всей книге: только текст, ссылки и картинки не затрагиваются. «Добавить другую книгу» дописывает главы из файла .fb2, .epub, .zip или .txt после ваших вместе с картинками и сносками; ваша обложка и данные остаются.'
     ),
     (
-      'Export saves a ready .fb2 file where you choose (in the browser it downloads the file). "Export as e-book (.epub)" in the ⋮ menu makes an EPUB for other readers. The file is named "Author - Title.fb2" and always contains your latest edits.',
-      'Экспорт сохраняет готовый файл .fb2 в выбранное место (в браузере файл скачивается). «Экспорт в книгу (.epub)» в меню ⋮ создаёт EPUB для других читалок. Файл называется «Автор - Название.fb2» и всегда содержит последние правки.'
+      'Export writes a ready file where you choose (in the browser it downloads the file): FB2 is the editable book, EPUB is for e-readers, TXT is plain text. The file is named "Author - Title" with its extension and always contains your latest edits.',
+      'Экспорт создаёт готовый файл в выбранном месте (в браузере файл скачивается): FB2 — редактируемая книга, EPUB — для читалок, TXT — простой текст. Файл называется «Автор - Название» с нужным расширением и всегда содержит последние правки.'
     ),
     (
       'Your original file is never changed. Your reader may keep showing the old copy: remove the old book from the reader and add the exported file.',

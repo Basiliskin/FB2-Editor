@@ -35,6 +35,21 @@ class _FakeService extends AppService {
     return exportResult;
   }
 
+  final epubExported = <ProjectModel>[];
+  final textExported = <ProjectModel>[];
+
+  @override
+  Future<String?> exportEpub(ProjectModel model) async {
+    epubExported.add(model);
+    return '/exported/book.epub';
+  }
+
+  @override
+  Future<String?> exportText(ProjectModel model) async {
+    textExported.add(model);
+    return '/exported/book.txt';
+  }
+
   @override
   openFile(Map extensionNames) async {
     if (openThrows != null) throw openThrows!;
@@ -120,16 +135,80 @@ void main() {
     expect(service.saves, greaterThan(0)); // change notification saved the book
   });
 
-  testWidgets('the save button asks the book to be saved', (tester) async {
+  Future<void> openSaveExport(WidgetTester tester) async {
+    await tester.tap(find.text('Save & export'));
+    await tester.pumpAndSettle();
+  }
+
+  testWidgets('Save & export offers saving and every format with its file name',
+      (tester) async {
     await pump(tester);
-    await tester.tap(find.byIcon(Icons.save_outlined));
+    await openSaveExport(tester);
+    expect(find.text('Save in the app'), findsOneWidget);
+    expect(find.text('FB2  ·  Lee Ann - Sample.fb2'), findsOneWidget);
+    expect(find.text('EPUB  ·  Lee Ann - Sample.epub'), findsOneWidget);
+    expect(find.text('TXT  ·  Lee Ann - Sample.txt'), findsOneWidget);
+  });
+
+  testWidgets('Save & export says the book is saved', (tester) async {
+    await pump(tester);
+    service.markSaved(book);
+    await openSaveExport(tester);
+    expect(find.text('Saved in the app'), findsOneWidget);
+    expect(find.text('Unsaved changes'), findsNothing);
+  });
+
+  testWidgets('Save & export warns about unsaved changes', (tester) async {
+    await pump(tester);
+    service.markSaved(book);
+    book.bookTitle = 'Changed';
+    await openSaveExport(tester);
+    expect(find.text('Unsaved changes'), findsOneWidget);
+  });
+
+  testWidgets('"Save in the app" asks the book to be saved', (tester) async {
+    await pump(tester);
+    await openSaveExport(tester);
+    await tester.tap(find.text('Save in the app'));
     await tester.pumpAndSettle();
     expect(service.saves, greaterThan(0));
   });
 
+  testWidgets('the EPUB tile exports an epub and says where', (tester) async {
+    await pump(tester);
+    await openSaveExport(tester);
+    await tester.tap(find.textContaining('EPUB  ·'));
+    await tester.pumpAndSettle();
+    expect(service.epubExported, [book]);
+    expect(find.textContaining('/exported/book.epub'), findsOneWidget);
+  });
+
+  testWidgets('the TXT tile exports plain text', (tester) async {
+    await pump(tester);
+    await openSaveExport(tester);
+    await tester.tap(find.textContaining('TXT  ·'));
+    await tester.pumpAndSettle();
+    expect(service.textExported, [book]);
+    expect(find.textContaining('/exported/book.txt'), findsOneWidget);
+  });
+
+  testWidgets('on a narrow screen Save & export is an icon with a tooltip', (tester) async {
+    tester.view.physicalSize = const Size(400, 800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(MaterialApp(
+        home: BookPage(service, book, StreamController<void>.broadcast())));
+    await tester.pump();
+    expect(find.text('Save & export'), findsNothing);
+    await tester.tap(find.byTooltip('Save & export'));
+    await tester.pumpAndSettle();
+    expect(find.text('Save in the app'), findsOneWidget);
+  });
+
   testWidgets('export reports where the file was saved', (tester) async {
     await pump(tester);
-    await tester.tap(find.byIcon(Icons.storage_outlined));
+    await openSaveExport(tester);
+    await tester.tap(find.textContaining('FB2  ·'));
     await tester.pumpAndSettle();
     expect(service.exported, [book]);
     expect(find.textContaining('/exported/book.fb2'), findsOneWidget);
@@ -138,14 +217,16 @@ void main() {
   testWidgets('a cancelled export shows no message', (tester) async {
     service.exportResult = null;
     await pump(tester);
-    await tester.tap(find.byIcon(Icons.storage_outlined));
+    await openSaveExport(tester);
+    await tester.tap(find.textContaining('FB2  ·'));
     await tester.pumpAndSettle();
     expect(find.textContaining('Exported'), findsNothing);
   });
 
   testWidgets('the export message replaces the "saved" notice', (tester) async {
     await pump(tester);
-    await tester.tap(find.byIcon(Icons.storage_outlined));
+    await openSaveExport(tester);
+    await tester.tap(find.textContaining('FB2  ·'));
     await tester.pumpAndSettle();
     expect(find.textContaining('Exported'), findsOneWidget);
     expect(find.textContaining('Saved in the app'), findsNothing);
@@ -263,7 +344,7 @@ void main() {
     await pump(tester);
     expect(find.byTooltip('Справка'), findsOneWidget);
     expect(find.byTooltip('Автосохранение: выкл'), findsOneWidget);
-    expect(find.byTooltip('Экспорт .fb2'), findsOneWidget);
+    expect(find.text('Сохранить и экспорт'), findsOneWidget);
   });
 
   Future<void> tapMerge(WidgetTester tester) async {
@@ -301,13 +382,13 @@ void main() {
     expect(find.textContaining('read'), findsOneWidget);
   });
 
-  testWidgets('the More menu offers find, merge and text export', (tester) async {
+  testWidgets('the More menu offers find and merge', (tester) async {
     await pump(tester);
     await tester.tap(find.byTooltip('More'));
     await tester.pumpAndSettle();
     expect(find.text('Find and replace'), findsOneWidget);
     expect(find.text('Add another book'), findsOneWidget);
-    expect(find.text('Export as text (.txt)'), findsOneWidget);
+    expect(find.textContaining('Export'), findsNothing); // exporting lives in Save & export
     await tester.tap(find.text('Find and replace'));
     await tester.pumpAndSettle();
     expect(find.text('Replace with'), findsOneWidget);
