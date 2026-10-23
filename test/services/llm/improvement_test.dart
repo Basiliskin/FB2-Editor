@@ -84,6 +84,22 @@ void main() {
     });
   });
 
+  group('chunk', () {
+    test('keeps everything in one request when it fits', () {
+      expect(ImprovementService.chunk(['a', 'b', 'c']), [[0, 1, 2]]);
+    });
+
+    test('splits in order so each request stays under the limit', () {
+      final big = 'x' * 7000;
+      expect(ImprovementService.chunk([big, big, big, 'tail']), [[0], [1], [2, 3]]);
+    });
+
+    test('a single paragraph over the limit cannot be sent', () {
+      expect(() => ImprovementService.chunk(['x' * (ImprovementService.maxChars + 1)]),
+          throwsA(isA<ImprovementException>()));
+    });
+  });
+
   group('Section', () {
     Section s(List<String> p) =>
         Section({'p': p, 'sectionId': 's'}, BinaryResources([]));

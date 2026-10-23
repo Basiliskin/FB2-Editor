@@ -18,7 +18,7 @@ enum ImproveError {
 
 typedef BookInfo = ({String title, String lang, String genre});
 typedef ConfirmSend = Future<bool> Function(
-    Provider provider, int paragraphs, int tokens);
+    Provider provider, int paragraphs, int tokens, int requests);
 
 /// State of the Improve command bar: which paragraphs are chosen, the pending
 /// Suggestions, and the request in flight.
@@ -46,6 +46,9 @@ class ImproveController extends ChangeNotifier {
       : _httpFactory = httpFactory ?? http.Client.new;
 
   bool open = false, busy = false;
+
+  /// Which request of how many is running (0 when idle).
+  int chunk = 0, chunks = 0;
   ImproveError? error;
   String errorDetail = '';
   int start = 0, end = 0;
@@ -151,36 +154,50 @@ class ImproveController extends ChangeNotifier {
     final indexes = eligible;
     final texts = [for (final i in indexes) section.editableText(section.p[i])];
     if (texts.isEmpty) return _fail(ImproveError.nothing);
-    if (ImprovementService.tooLarge(texts)) return _fail(ImproveError.tooLarge);
-    if (!store.isConsented(provider.id)) {
+    final List<List<int>> groups;
+    try {
+      groups = ImprovementService.chunk(texts);
+    } on ImprovementException {
+      return _fail(ImproveError.tooLarge);
+    }
+    // several requests cost more, so that is confirmed every time
+    if (!store.isConsented(provider.id) || groups.length > 1) {
       if (!await confirm(provider, texts.length,
-          ImprovementService.estimateTokens(texts))) {
+          ImprovementService.estimateTokens(texts), groups.length)) {
         return;
       }
       await store.consent(provider.id);
     }
     final mine = ++_run;
-    final client = _client = _httpFactory();
     busy = true;
     error = null;
     suggestions = {};
+    chunks = groups.length;
+    chunk = 0;
     notifyListeners();
+    final client = _client = _httpFactory();
     try {
       final info = bookInfo();
-      final result = await ImprovementService(createLlmClient(provider, client))
-          .improve(
-              texts,
-              instruction,
-              ImprovementContext(
-                  bookTitle: info.title,
-                  language: info.lang,
-                  genre: info.genre,
-                  styleNote: styleNote));
-      if (mine != _run) return;
-      suggestions = {
-        for (var k = 0; k < indexes.length; k++)
-          if (result[k] != texts[k]) indexes[k]: result[k]
-      };
+      final context = ImprovementContext(
+          bookTitle: info.title,
+          language: info.lang,
+          genre: info.genre,
+          styleNote: styleNote);
+      final service = ImprovementService(createLlmClient(provider, client));
+      for (final group in groups) {
+        chunk++;
+        notifyListeners();
+        final part = [for (final k in group) texts[k]];
+        final result = await service.improve(part, instruction, context);
+        if (mine != _run) return;
+        // Suggestions show up as each part arrives, and survive a later failure.
+        suggestions = {
+          ...suggestions,
+          for (var k = 0; k < group.length; k++)
+            if (result[k] != part[k]) indexes[group[k]]: result[k]
+        };
+        notifyListeners();
+      }
       if (suggestions.isEmpty) error = ImproveError.nothing;
     } on LlmException catch (e) {
       if (mine != _run) return;
@@ -199,6 +216,7 @@ class ImproveController extends ChangeNotifier {
       client.close();
       if (mine == _run) {
         busy = false;
+        chunks = chunk = 0;
         notifyListeners();
       }
     }

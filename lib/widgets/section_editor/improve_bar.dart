@@ -27,13 +27,13 @@ String _errorText(AppService s, ImproveController c) {
       return tr(s, 'Nothing to change in the chosen paragraphs',
           'В выбранных абзацах нечего менять');
     case ImproveError.tooLarge:
-      return tr(s, 'Too much text, choose fewer paragraphs',
-          'Слишком много текста, выберите меньше абзацев');
+      return tr(s, 'A single paragraph is too long to send',
+          'Один из абзацев слишком длинный для отправки');
   }
 }
 
 Future<bool> confirmSend(BuildContext context, AppService s, Provider p,
-    int paragraphs, int tokens) async {
+    int paragraphs, int tokens, int requests) async {
   final ok = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
@@ -41,9 +41,11 @@ Future<bool> confirmSend(BuildContext context, AppService s, Provider p,
             content: Text(tr(
                 s,
                 '$paragraphs paragraph(s), about $tokens tokens, will be sent to '
-                    '${p.name} (${p.model}) using your API key. Text is only sent when you ask.',
+                    '${p.name} (${p.model}) using your API key'
+                    '${requests > 1 ? ', in $requests requests' : ''}. Text is only sent when you ask.',
                 '$paragraphs абз., около $tokens токенов, будут отправлены в '
-                    '${p.name} (${p.model}) с вашим API-ключом. Текст уходит только по вашему запросу.')),
+                    '${p.name} (${p.model}) с вашим API-ключом'
+                    '${requests > 1 ? ', $requests запросами' : ''}. Текст уходит только по вашему запросу.')),
             actions: [
               TextButton(
                   onPressed: () => Navigator.pop(context, false),
@@ -82,7 +84,7 @@ class _ImproveBarState extends State<ImproveBar> {
   }
 
   void _ask(String instruction) => _c.ask(
-      instruction, (p, n, t) => confirmSend(context, _s, p, n, t));
+      instruction, (p, n, t, r) => confirmSend(context, _s, p, n, t, r));
 
   Future<void> _editStyleNote() async {
     final saved = await showDialog<String>(
@@ -148,7 +150,15 @@ class _ImproveBarState extends State<ImproveBar> {
                 child: Column(mainAxisSize: MainAxisSize.min, children: [
                   if (_c.busy)
                     Row(children: [
-                      const Expanded(child: LinearProgressIndicator()),
+                      Expanded(
+                          child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                            if (_c.chunks > 1)
+                              Text(tr(_s, 'Part ${_c.chunk} of ${_c.chunks}',
+                                  'Часть ${_c.chunk} из ${_c.chunks}')),
+                            const LinearProgressIndicator(),
+                          ])),
                       TextButton(
                           onPressed: _c.cancel,
                           child: Text(tr(_s, 'Cancel', 'Отмена'))),

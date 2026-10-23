@@ -41,7 +41,7 @@ void main() {
                 return answer(r);
               }));
 
-  Future<bool> yes(Provider p, int n, int t) async => true;
+  Future<bool> yes(Provider p, int n, int t, int r) async => true;
 
   setUp(() async {
     settings = {};
@@ -115,7 +115,7 @@ void main() {
   test('declining the consent prompt sends nothing', () async {
     final c = make((_) => _ok(''));
     await c.toggle(0);
-    await c.ask('x', (p, n, t) async => false);
+    await c.ask('x', (p, n, t, r) async => false);
     expect(sent, isEmpty);
     expect(c.busy, isFalse);
     expect(store.isConsented('p'), isFalse);
@@ -125,7 +125,7 @@ void main() {
     final c = make((_) => _ok('[1] ONE'));
     await c.toggle(0);
     var asked = 0;
-    Future<bool> counting(Provider p, int n, int t) async {
+    Future<bool> counting(Provider p, int n, int t, int r) async {
       asked++;
       return true;
     }
@@ -184,5 +184,83 @@ void main() {
     await c.toggle(0);
     await c.ask('x', yes);
     expect(c.error, ImproveError.nothing);
+  });
+
+  group('batching', () {
+    // three paragraphs of 7000 chars: three requests
+    setUp(() => section.p = [for (var i = 0; i < 3; i++) '<p>${'$i' * 7000}</p>']);
+
+    String upper(http.Request r) {
+      final user = jsonDecode(r.body)['messages'][1]['content'] as String;
+      final m = RegExp(r'\[1\] (.*)').firstMatch(user)!.group(1)!;
+      return '[1] X$m';
+    }
+
+    test('runs the parts in turn and gathers every suggestion', () async {
+      final c = make((r) => _ok(upper(r)));
+      await c.toggle(0);
+      c.selectAll();
+      final seen = <int>[];
+      c.addListener(() => seen.add(c.chunk));
+      await c.ask('x', yes);
+      expect(sent.length, 3);
+      expect(c.suggestions.keys, [0, 1, 2]);
+      expect(seen, containsAllInOrder([1, 2, 3]));
+      expect((c.chunk, c.chunks, c.busy), (0, 0, false));
+    });
+
+    test('asks again for a multi-part run even after consent', () async {
+      final c = make((r) => _ok(upper(r)));
+      await c.toggle(0);
+      c.selectAll();
+      final asked = <int>[];
+      Future<bool> record(Provider p, int n, int t, int r) async {
+        asked.add(r);
+        return true;
+      }
+
+      await c.ask('x', record);
+      await c.ask('x', record);
+      expect(asked, [3, 3]);
+    });
+
+    test('a failure part-way keeps what already arrived', () async {
+      var calls = 0;
+      final c = make((r) => ++calls == 2 ? http.Response('', 429) : _ok(upper(r)));
+      await c.toggle(0);
+      c.selectAll();
+      await c.ask('x', yes);
+      expect(c.suggestions.keys, [0]);
+      expect(c.error, ImproveError.rateLimited);
+      expect(sent.length, 2);
+    });
+
+    test('cancel stops the remaining parts', () async {
+      final gate = Completer<void>();
+      var calls = 0;
+      final c = ImproveController(
+          store: store,
+          section: section,
+          bookId: 'book',
+          bookInfo: () => (title: 'T', lang: 'en', genre: 'prose'),
+          flush: () {},
+          afterApply: () {},
+          httpFactory: () => MockClient((r) async {
+                calls++;
+                await gate.future;
+                return _ok(upper(r));
+              }));
+      await c.toggle(0);
+      c.selectAll();
+      final pending = c.ask('x', yes);
+      while (!c.busy) {
+        await Future<void>.delayed(Duration.zero);
+      }
+      c.cancel();
+      gate.complete();
+      await pending;
+      expect(calls, 1);
+      expect(c.suggestions, isEmpty);
+    });
   });
 }

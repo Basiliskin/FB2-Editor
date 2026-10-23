@@ -54,6 +54,27 @@ class ImprovementService {
   static bool tooLarge(Iterable<String> texts) =>
       texts.fold<int>(0, (n, t) => n + t.length) > maxChars;
 
+  /// Groups paragraph indexes so each request stays under [maxChars]. A single
+  /// paragraph over the limit cannot be sent at all.
+  static List<List<int>> chunk(List<String> texts) {
+    final groups = <List<int>>[];
+    var current = <int>[];
+    var size = 0;
+    for (var i = 0; i < texts.length; i++) {
+      final n = texts[i].length;
+      if (n > maxChars) throw const ImprovementException('too large');
+      if (size + n > maxChars && current.isNotEmpty) {
+        groups.add(current);
+        current = [];
+        size = 0;
+      }
+      current.add(i);
+      size += n;
+    }
+    if (current.isNotEmpty) groups.add(current);
+    return groups;
+  }
+
   static String systemPrompt(ImprovementContext c) => [
         'You are an editor working on a fiction book.',
         if (c.bookTitle.isNotEmpty) 'Book: ${c.bookTitle}.',
