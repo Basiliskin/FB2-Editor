@@ -33,14 +33,14 @@ dependencies:
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.2
   # flutter_quill: ^1.1.4
-  flutter_quill: 11.5.0
-  file_picker: ^5.5.0
+  flutter_quill: 11.6.0
+  file_picker: ^10.3.0
   filesystem_picker: ^4.1.0
   flutter_colorpicker: ^1.1.0
   image_picker: ^1.2.3
   tuple: ^2.0.2
   
-  xml: ^5.0.2
+  xml: ^6.6.1
   xml2json: ^5.0.0
   path_provider: ^2.1.6
   image: ^4.9.2
@@ -48,9 +48,9 @@ dependencies:
   flutter_file_dialog: ^2.3.0
   # bubble_bottom_bar: ^1.2.0
   prompt_dialog: ^1.0.0
-  permission_handler: ^9.2.0
+  permission_handler: ^12.0.1
   intl: ^0.20.2
-  flutter_archive: ^5.0.0
+  flutter_archive: ^6.0.3
 
 dev_dependencies:
   flutter_test:

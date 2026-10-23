@@ -10,6 +10,8 @@ import 'package:quill_fb2/utils/common.dart';
 import 'package:quill_fb2/utils/consts.dart';
 import 'package:quill_fb2/widgets/forms/book_form.dart';
 import 'package:quill_fb2/widgets/section/list.dart';
+import 'package:quill_fb2/prototype/modern_widgets.dart'; // PROTOTYPE
+import 'package:quill_fb2/prototype/prototype_switcher.dart'; // PROTOTYPE
 
 class BookPage extends StatefulWidget {
   final ProjectModel book;
@@ -90,6 +92,114 @@ class _BookPageState extends State<BookPage>
       widget.book.removeSelected(_toDelete);
       _toDelete = {};
     });
+  }
+
+  Future<void> _onFab() async {
+    if (_toDelete.keys.length > 0) {
+      return _removeSelectedSections();
+    }
+    String? title = await prompt(
+      context,
+      title: Text(widget.service.translate(LangTranslateItems.bookPagePromptEnterName)),
+      textOK: Text(widget.service.translate(LangTranslateItems.buttonSave)),
+      textCancel: Text(widget.service.translate(LangTranslateItems.buttonCancel)),
+      autoFocus: true,
+      obscureText: false,
+      obscuringCharacter: '•',
+      textCapitalization: TextCapitalization.words,
+    );
+    if (title != null) {
+      setState(() {
+        widget.book.addSection(title);
+      });
+      setChangedString('{}');
+      final snackBar = SnackBar(
+          content: Text(
+              '$title ${widget.service.translate(LangTranslateItems.messageCreated)}'));
+      ScaffoldMessenger.of(context).showSnackBar(snackBar);
+    }
+  }
+
+  // PROTOTYPE: new design, same actions
+  Widget _modernBuild() {
+    final t = Theme.of(context);
+    final s = widget.service;
+    final book = widget.book;
+    final autoSave = stringToBool(s.getSettings()["auto-save"]) ?? false;
+    return Scaffold(
+      key: _scaffoldKey,
+      appBar: modernAppBar(
+        context,
+        title: Row(children: [
+          ClipRRect(
+              borderRadius: BorderRadius.circular(4),
+              child: Image(
+                  image: s.base64Image(book.getImageBySectionId('cover'), true),
+                  width: 28,
+                  height: 40,
+                  fit: BoxFit.cover)),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text(trimSpecialChar(book.bookTitle, ' '),
+                  maxLines: 1, overflow: TextOverflow.ellipsis, style: t.textTheme.titleMedium),
+              Text(book.getAuthor(), maxLines: 1, overflow: TextOverflow.ellipsis, style: t.textTheme.bodySmall),
+            ]),
+          ),
+        ]),
+        actions: [
+          IconButton(
+              tooltip: tr(s, autoSave ? 'Auto-save: on' : 'Auto-save: off',
+                  autoSave ? 'Автосохранение: вкл' : 'Автосохранение: выкл'),
+              icon: Icon(Icons.auto_awesome, color: autoSave ? Colors.green : null),
+              onPressed: () async {
+                await s.setSettings({"auto-save": !autoSave});
+                setChangedString('{}');
+              }),
+          IconButton(
+              tooltip: s.translate(LangTranslateItems.buttonSave),
+              icon: const Icon(Icons.save_outlined),
+              onPressed: () => setChangedString('{}')),
+          IconButton(
+              tooltip: tr(s, 'Export .fb2', 'Экспорт .fb2'),
+              icon: const Icon(Icons.storage_outlined),
+              onPressed: () async {
+                final filePath = await s.exportProject(book);
+                ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                    content: Text('${book.bookTitle} ${s.translate(LangTranslateItems.messageSaved)}\n$filePath')));
+              }),
+        ],
+        bottom: TabBar(
+          onTap: (_) => setChangedString('{}'),
+          controller: controller,
+          tabs: [
+            Tab(text: s.translate(LangTranslateItems.bookPageInfo)),
+            Tab(text: s.translate(LangTranslateItems.bookPageSection)),
+          ],
+        ),
+      ),
+      body: TabBarView(controller: controller, children: [
+        BookComponent(s, book, changeController!.stream.asBroadcastStream()),
+        SectionList(s, book, changeController!.stream.asBroadcastStream(), _markToDelete),
+      ]),
+      floatingActionButton: AnimatedBuilder(
+        animation: controller,
+        builder: (_, __) {
+          if (controller.index != 1) return const SizedBox.shrink();
+          final deleting = _toDelete.isNotEmpty;
+          return FloatingActionButton.extended(
+            heroTag: 'bookPage',
+            backgroundColor: deleting ? t.colorScheme.error : null,
+            foregroundColor: deleting ? t.colorScheme.onError : null,
+            icon: Icon(deleting ? Icons.delete_outline : Icons.add),
+            label: Text(deleting
+                ? tr(s, 'Delete ${_toDelete.length}', 'Удалить ${_toDelete.length}')
+                : tr(s, 'New section', 'Новый раздел')),
+            onPressed: _onFab,
+          );
+        },
+      ),
+    );
   }
 
   _build() {
@@ -181,6 +291,7 @@ class _BookPageState extends State<BookPage>
 
   @override
   Widget build(BuildContext context) {
+    if (Proto.modern) return _modernBuild();
     Map settings = widget.service.getSettings();
     bool autoSave = stringToBool(settings["auto-save"]) ?? false;
     Color? autoSaveIconColor = autoSave

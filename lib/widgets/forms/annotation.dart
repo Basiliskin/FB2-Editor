@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:quill_fb2/widgets/easy_form_kit/easy_form_kit.dart';
+import 'package:quill_fb2/prototype/prototype_switcher.dart'; // PROTOTYPE
 
 class AnnotationData {
   String name;
@@ -142,6 +143,25 @@ class AnnotationField extends EasyFormGenericField<AnnotationData?> {
 
   @override
   Widget build(BuildContext context) {
+    if (Proto.modern) {
+      // PROTOTYPE: paragraphs as a readable list + one add box
+      return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        for (var i = 0; i < value!.items.length; i++)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Expanded(child: Text(value!.items[i])),
+              IconButton(
+                  tooltip: 'Remove',
+                  visualDensity: VisualDensity.compact,
+                  icon: const Icon(Icons.close, size: 18),
+                  onPressed: () => _removeLabel(i)),
+            ]),
+          ),
+        if (value!.items.isNotEmpty) const Divider(),
+        _ModernAnnotationInput(value!.name, _addLabel),
+      ]);
+    }
     return SingleChildScrollView(
         child: SafeArea(
             child: Container(
@@ -176,4 +196,44 @@ class AnnotationFormField
                 onChange: onChangedHandler);
           },
         );
+}
+
+class _ModernAnnotationInput extends StatefulWidget {
+  final String hint;
+  final Function(String) onAdd;
+  const _ModernAnnotationInput(this.hint, this.onAdd);
+  @override
+  State<_ModernAnnotationInput> createState() => _ModernAnnotationInputState();
+}
+
+class _ModernAnnotationInputState extends State<_ModernAnnotationInput> {
+  final c = TextEditingController();
+  @override
+  void dispose() {
+    c.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+        TextField(
+            controller: c,
+            minLines: 3,
+            maxLines: 6,
+            keyboardType: TextInputType.multiline,
+            decoration: InputDecoration(hintText: widget.hint)),
+        const SizedBox(height: 8),
+        Align(
+          alignment: Alignment.centerRight,
+          child: FilledButton.tonalIcon(
+              icon: const Icon(Icons.add, size: 18),
+              label: const Text('Add'),
+              onPressed: () {
+                if (c.text.trim().isEmpty) return;
+                widget.onAdd(c.text);
+                c.clear();
+              }),
+        ),
+      ]);
 }

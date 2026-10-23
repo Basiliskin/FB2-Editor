@@ -200,10 +200,11 @@ readAsString(file) async {
   // return text;
 }
 
-_cleanElement(p) {
-  if (p is XmlText) return trimSpecialChar(p.outerXml);
+_cleanElement(XmlNode node) {
+  if (node is XmlText) return trimSpecialChar(node.outerXml);
+  final p = node as XmlElement;
   final xml =
-      p.children.where((node) => node is XmlElement).toList().map((elm) {
+      p.children.whereType<XmlElement>().map((elm) {
     return "<${elm.name.qualified}>${trimSpecialChar(elm.innerText)}</${elm.name.qualified}>";
   });
   final temp = xml.length > 0

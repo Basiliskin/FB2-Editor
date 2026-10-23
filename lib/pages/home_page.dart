@@ -10,6 +10,8 @@ import 'package:quill_fb2/utils/common.dart';
 import 'package:quill_fb2/utils/consts.dart';
 import 'package:quill_fb2/widgets/loading.dialog.dart';
 import 'package:intl/intl.dart';
+import 'package:quill_fb2/prototype/home_variants.dart'; // PROTOTYPE
+import 'package:quill_fb2/prototype/prototype_switcher.dart'; // PROTOTYPE
 
 class HomeScreen extends StatefulWidget {
   final AppService service;
@@ -52,6 +54,12 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       isLoading = true;
     });
     final xmlFileInfo = await widget.service.loadBook(project);
+    if (xmlFileInfo == null) {
+      setState(() {
+        isLoading = false;
+      });
+      return;
+    }
     await Future.delayed(Duration(seconds: 1));
     try {
       final json = await widget.service.convertXmlToJson(xmlFileInfo.data);
@@ -80,6 +88,12 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     });
     final xmlFileInfo =
         await widget.service.openFile({'fb2': true, 'zip': true});
+    if (xmlFileInfo == null) {
+      setState(() {
+        isLoading = false;
+      });
+      return;
+    }
     await Future.delayed(Duration(seconds: 1));
     try {
       final json = await widget.service.convertXmlToJson(xmlFileInfo.data);
@@ -111,11 +125,34 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) => ValueListenableBuilder<String>(
+      valueListenable: Proto.variant, // PROTOTYPE
+      builder: (context, _, __) => _buildHome(context));
+
+  Widget _buildHome(BuildContext context) {
     final ModalRoundedProgressBar progressBar =
         ModalRoundedProgressBar(0.95, "Loading");
     List<Widget> stackItems = [];
-    final scaffold = Scaffold(
+    // PROTOTYPE: variants swap only the rendering; loading/open logic is real.
+    final actions = HomeActions(
+        () async => await _loadFile(),
+        (b) async => await _openProject(b),
+        (b) async {
+          await widget.service.removeProject(b);
+          setState(() {});
+        },
+        () => Navigator.push(context,
+                MaterialPageRoute(builder: (_) => SettingsScreen(widget.service)))
+            .then((_) => setState(() {})));
+    final v = Proto.variant.value;
+    final Widget? variantBody = v == 'A'
+        ? HomeVariantA(widget.service, actions)
+        : v == 'B'
+            ? HomeVariantB(widget.service, actions)
+            : v == 'C'
+                ? HomeVariantC(widget.service, actions)
+                : null;
+    final scaffold = variantBody ?? Scaffold(
         appBar: AppBar(
           title: Text(
             widget.service.translate(LangTranslateItems.appTitle),

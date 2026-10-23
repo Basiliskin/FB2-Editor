@@ -14,6 +14,7 @@ import 'package:quill_fb2/utils/cp1251.dart';
 import 'package:quill_fb2/utils/file_download.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:flutter_file_dialog/flutter_file_dialog.dart';
+
 import 'fb2.service.dart';
 
 const bool isProduction = bool.fromEnvironment('dart.vm.product');
@@ -26,12 +27,12 @@ const DEFAULT_WORKSPACE = {
     "image-width": "600",
     "font-size": 12,
     "image-quality": 'best',
-    "language": "eng"
+    "language": "eng",
   },
   "currentProject": "",
   "history": [],
   "createdAt": null,
-  "updatedAt": null
+  "updatedAt": null,
 };
 const DEFAULT_PROJECT = {"createdAt": null, "updatedAt": null, "image": ""};
 const DEFAULT_IMAGE = 'images/book.png';
@@ -61,8 +62,9 @@ class AppService {
   translate(LangTranslateItems name) {
     try {
       final settings = getSettings();
-      Map tranlation =
-          _translationService.getTranslations(settings["language"] ?? "eng");
+      Map tranlation = _translationService.getTranslations(
+        settings["language"] ?? "eng",
+      );
       return tranlation[name] ?? name;
     } catch (e) {
       print(e);
@@ -124,13 +126,15 @@ class AppService {
   }
 
   getSettings() {
-    Map settings = _workspace["workspaceSettings"] ??
+    Map settings =
+        _workspace["workspaceSettings"] ??
         DEFAULT_WORKSPACE["workspaceSettings"];
     return settings;
   }
 
   setSettings(settings) async {
-    Map current = _workspace["workspaceSettings"] ??
+    Map current =
+        _workspace["workspaceSettings"] ??
         DEFAULT_WORKSPACE["workspaceSettings"];
 
     var settingsMap = {};
@@ -147,8 +151,10 @@ class AppService {
       final currentProjectPath = kIsWeb
           ? fileInfo.path
           : '${await _localPath}/${model.projectId}$BOOK_EXT';
-      Map info =
-          await model.getInfo(kIsWeb ? null : fileInfo, currentProjectPath);
+      Map info = await model.getInfo(
+        kIsWeb ? null : fileInfo,
+        currentProjectPath,
+      );
 
       _workspace["currentProject"] = currentProjectPath;
       if (_workspace["history"].length >= MAX_BOOK_IN_HISTORY)
@@ -176,16 +182,16 @@ class AppService {
   handleDeltaInsert(item) {
     bool isEmphasis =
         item.attributes != null && item.attributes.containsKey('italic')
-            ? item.attributes['italic']
-            : false;
+        ? item.attributes['italic']
+        : false;
     bool isStrong =
         item.attributes != null && item.attributes.containsKey('bold')
-            ? item.attributes['bold']
-            : false;
+        ? item.attributes['bold']
+        : false;
     bool isBlockquote =
         item.attributes != null && item.attributes.containsKey('blockquote')
-            ? item.attributes['blockquote']
-            : false;
+        ? item.attributes['blockquote']
+        : false;
     var result = item.value;
     if (isEmphasis && isStrong) {
       result = addXml('emphasis', addXml('strong', item.value));
@@ -221,8 +227,10 @@ class AppService {
         Uint8List _image = decode64Image(base64);
         final img = provider
             ? MemoryImage(_image)
-            : Image.memory(_image,
-                gaplessPlayback: true); // assign it value here
+            : Image.memory(
+                _image,
+                gaplessPlayback: true,
+              ); // assign it value here
         return img;
       } catch (e) {
         print(e);
@@ -300,7 +308,9 @@ class AppService {
       File zipFile = File(filePath);
       final destinationDir = Directory("$appPath/${getRandomString(16)}");
       await ZipFile.extractToDirectory(
-          zipFile: zipFile, destinationDir: destinationDir);
+        zipFile: zipFile,
+        destinationDir: destinationDir,
+      );
       final files = destinationDir.listSync();
       File file = File(files.first.path);
       String text = await readAsString(file); //.readAsString(encoding: utf8);
@@ -340,8 +350,9 @@ class AppService {
           // final name = file.name;
           final path = file.path;
           // final size = file.size;
-          final xml =
-              ext == 'fb2' ? await loadFile(path) : await loadZipFile(path);
+          final xml = ext == 'fb2'
+              ? await loadFile(path)
+              : await loadZipFile(path);
           return xml;
         } catch (e) {
           print(e);

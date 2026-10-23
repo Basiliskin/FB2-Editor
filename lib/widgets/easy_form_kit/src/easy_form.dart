@@ -376,15 +376,19 @@ class EasyFormState extends State<EasyForm> {
     return errorField;
   }
 
+  StreamSubscription<void>? _triggerSub;
+
   @override
   void dispose() {
+    _triggerSub?.cancel();
     super.dispose();
   }
 
   @override
   void initState() {
     super.initState();
-    widget.triggerSave!.listen((event) {
+    _triggerSub = widget.triggerSave!.listen((event) {
+      if (!mounted) return;
       try {
         print('EasyFormState.triggerSave');
         save();

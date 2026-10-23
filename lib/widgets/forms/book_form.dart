@@ -9,6 +9,8 @@ import 'package:quill_fb2/widgets/easy_form_kit/easy_form_kit.dart';
 import 'package:quill_fb2/widgets/forms/image.dart';
 import 'package:quill_fb2/widgets/loading.dialog.dart';
 
+import 'package:quill_fb2/prototype/modern_widgets.dart'; // PROTOTYPE
+import 'package:quill_fb2/prototype/prototype_switcher.dart'; // PROTOTYPE
 import 'annotation.dart';
 import 'label.dart';
 
@@ -32,6 +34,7 @@ class _BookComponentState extends State<BookComponent> {
     });
     widget.book.updateInfo(values);
     await widget.service.saveProject(widget.book);
+    if (!mounted) return;
     final snackBar = SnackBar(
         content: Text(
             '${widget.book.bookTitle} ${widget.service.translate(LangTranslateItems.messageSaved)}'));
@@ -75,6 +78,56 @@ class _BookComponentState extends State<BookComponent> {
     try {
       Map setting = widget.service.getSettings();
       final book = widget.book;
+      if (Proto.modern) {
+        final s = widget.service;
+        final labelForm = (String name, String hint, List<String> items) =>
+            LabelFormField(name: name, initialValue: LabelData(hint, items));
+        return ModernPage(
+            child: ListView(
+                padding: const EdgeInsets.fromLTRB(16, 20, 16, 120),
+                children: [
+              ModernGroup(tr(s, 'Cover & title', 'Обложка и название'), icon: Icons.menu_book_outlined, [
+                Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  ImageFormField(
+                    name: 'bookCoverPage',
+                    initialValue: book.getImageBySectionId('cover'),
+                    width: stringToInt(setting["image-width"]),
+                    quality: stringToInt(setting["image-quality"]),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                      child: Column(children: [
+                    _createFormField(LangTranslateItems.bookTitle,
+                        trimSpecialChar(book.bookTitle, ' ')),
+                    _createFormField(LangTranslateItems.bookVersion, book.version),
+                    _createFormField(LangTranslateItems.bookId, book.id),
+                  ])),
+                ]),
+              ]),
+              ModernGroup(tr(s, 'Author', 'Автор'), icon: Icons.person_outline, [
+                Row(children: [
+                  Expanded(child: _createFormField(LangTranslateItems.authorFirst, book.author.firstName)),
+                  const SizedBox(width: 12),
+                  Expanded(child: _createFormField(LangTranslateItems.authorMid, book.author.middleName)),
+                  const SizedBox(width: 12),
+                  Expanded(child: _createFormField(LangTranslateItems.authorLast, book.author.lastName)),
+                ]),
+                _createFormField(LangTranslateItems.authorHomePage, book.author.homePage),
+              ]),
+              ModernGroup(tr(s, 'Genre', 'Жанр'), icon: Icons.sell_outlined, [
+                labelForm('genre', s.translate(LangTranslateItems.bookGenre), book.genre),
+              ]),
+              ModernGroup(tr(s, 'Series', 'Серия'), icon: Icons.collections_bookmark_outlined, [
+                labelForm('sequence', s.translate(LangTranslateItems.bookSequence), book.sequence),
+              ]),
+              ModernGroup(tr(s, 'Annotation', 'Аннотация'), icon: Icons.notes, [
+                AnnotationFormField(
+                    name: 'annotation',
+                    initialValue: AnnotationData(
+                        s.translate(LangTranslateItems.bookAnnotation), book.annotation)),
+              ]),
+            ]));
+      }
       return Column(
         children: <Widget>[
           Expanded(

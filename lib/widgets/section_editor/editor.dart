@@ -18,6 +18,8 @@ import 'package:quill_fb2/widgets/loading.dialog.dart';
 import 'package:quill_fb2/widgets/section_editor/toolbar.dart';
 import 'package:prompt_dialog/prompt_dialog.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:quill_fb2/prototype/modern_widgets.dart'; // PROTOTYPE
+import 'package:quill_fb2/prototype/prototype_switcher.dart'; // PROTOTYPE
 
 class SectionEditor extends StatefulWidget {
   final ProjectModel book;
@@ -372,8 +374,35 @@ class _SectionEditorState extends State<SectionEditor>
     final ModalRoundedProgressBar progressBar =
         ModalRoundedProgressBar(0.95, "Loading");
     List<Widget> stackItems = [];
+    final modern = Proto.modern; // PROTOTYPE
     final scaffold = Scaffold(
-      appBar: AppBar(
+      backgroundColor: modern ? Theme.of(context).colorScheme.surfaceContainer : null,
+      appBar: modern
+          ? modernAppBar(
+              context,
+              leading: IconButton(
+                  tooltip: tr(widget.service, 'Back', 'Назад'),
+                  icon: const Icon(Icons.arrow_back),
+                  onPressed: () => _navigateBack(context)),
+              title: BaseText.Text(trimSpecialChar(widget.section.title)),
+              actions: [
+                IconButton(
+                    tooltip: widget.service.translate(LangTranslateItems.buttonSave),
+                    icon: const Icon(Icons.save_outlined),
+                    onPressed: () async {
+                      _save();
+                    }),
+                IconButton(
+                    tooltip: tr(widget.service, 'Export .fb2', 'Экспорт .fb2'),
+                    icon: const Icon(Icons.fact_check_outlined),
+                    onPressed: () async {
+                      final filePath = await widget.service.exportProject(widget.book);
+                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                          content: BaseText.Text('${widget.book.bookTitle} Saved\n$filePath')));
+                    }),
+              ],
+            )
+          : AppBar(
         leading: Padding(
           padding: const EdgeInsets.all(8.0),
           child: GestureDetector(
@@ -410,12 +439,16 @@ class _SectionEditorState extends State<SectionEditor>
       body: Stack(children: [
         Column(
           children: [
-            CustomQuillToolbar.basic(
+            Material(
+                color: modern ? Theme.of(context).colorScheme.surface : Colors.transparent,
+                child: CustomQuillToolbar.basic(
               controller: _controller,
               extensions: _toolbarButtons(),
-            ),
+            )),
+            if (modern) const Divider(height: 1),
             Expanded(
-              child: Container(
+              child: ModernPageIf(
+                  modern: modern,
                   child: QuillEditor(
                       controller: _controller,
                       scrollController: ScrollController(),
@@ -463,5 +496,28 @@ class _SectionEditorState extends State<SectionEditor>
     return Stack(
       children: stackItems,
     );
+  }
+}
+
+/// PROTOTYPE: wraps the editor in a centred "page" card when modern.
+class ModernPageIf extends StatelessWidget {
+  final bool modern;
+  final Widget child;
+  const ModernPageIf({super.key, required this.modern, required this.child});
+  @override
+  Widget build(BuildContext context) {
+    if (!modern) return Container(child: child);
+    final c = Theme.of(context).colorScheme;
+    return ModernPage(
+        max: 760,
+        child: Container(
+          margin: const EdgeInsets.fromLTRB(12, 16, 12, 72),
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+          decoration: BoxDecoration(
+              color: c.surface,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: c.outlineVariant)),
+          child: child,
+        ));
   }
 }

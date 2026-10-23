@@ -1,4 +1,4 @@
-package com.example.quill_fb2
+package com.caragulak.fb2editor
 
 import io.flutter.embedding.android.FlutterActivity
 

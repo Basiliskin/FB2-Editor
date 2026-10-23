@@ -4,6 +4,7 @@ import 'package:quill_fb2/services/app.service.dart';
 import 'package:quill_fb2/utils/common.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:quill_fb2/widgets/easy_form_kit/easy_form_kit.dart';
+import 'package:quill_fb2/prototype/prototype_switcher.dart'; // PROTOTYPE
 
 class ImageController extends EasyFormFieldController<String> {
   ImageController(String value) : super(value);
@@ -73,6 +74,38 @@ class ImageField extends EasyFormGenericField<String> {
         ));
   }
 
+  _modernBuild(BuildContext context) {
+    final c = Theme.of(context).colorScheme;
+    return Column(children: [
+      Stack(children: [
+        GestureDetector(
+            onTap: _change,
+            child: Container(
+              width: 110,
+              height: 160,
+              decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: c.outlineVariant),
+                  image: DecorationImage(
+                      fit: BoxFit.cover, image: base64Image(value, true))),
+            )),
+        Positioned(
+            right: 4,
+            top: 4,
+            child: IconButton.filledTonal(
+                tooltip: 'Remove cover',
+                visualDensity: VisualDensity.compact,
+                iconSize: 16,
+                icon: const Icon(Icons.delete_outline),
+                onPressed: () => value = '')),
+      ]),
+      TextButton.icon(
+          onPressed: _change,
+          icon: const Icon(Icons.image_outlined, size: 16),
+          label: const Text('Change')),
+    ]);
+  }
+
   _build() {
     return Stack(
       children: [
@@ -99,6 +132,7 @@ class ImageField extends EasyFormGenericField<String> {
 
   @override
   Widget build(BuildContext context) {
+    if (Proto.modern) return _modernBuild(context);
     return _build();
   }
 }

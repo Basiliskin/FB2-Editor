@@ -3,6 +3,8 @@ import 'dart:async';
 
 import 'package:quill_fb2/services/app.service.dart';
 import 'package:quill_fb2/widgets/forms/settings.form.dart';
+import 'package:quill_fb2/prototype/modern_widgets.dart'; // PROTOTYPE
+import 'package:quill_fb2/prototype/prototype_switcher.dart'; // PROTOTYPE
 
 class SettingsScreen extends StatefulWidget {
   final AppService service;
@@ -67,6 +69,13 @@ class _SettingsScreenState extends State<SettingsScreen>
 
   @override
   Widget build(BuildContext context) {
+    if (Proto.modern) {
+      return Scaffold(
+          key: _scaffoldKey,
+          appBar: modernAppBar(context, title: Text(tr(widget.service, 'Settings', 'Настройки'))),
+          body: SettingsComponent(widget.service, widget.service.getSettings(),
+              changeController!.stream.asBroadcastStream()));
+    }
     return Scaffold(
         key: _scaffoldKey,
         appBar: AppBar(

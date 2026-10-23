@@ -4,6 +4,7 @@ import 'package:quill_fb2/utils/consts.dart';
 import 'package:quill_fb2/widgets/badge/src/badge.dart' as custom_badge;
 import 'package:quill_fb2/widgets/badge/src/badge_shape.dart';
 import 'package:quill_fb2/widgets/easy_form_kit/easy_form_kit.dart';
+import 'package:quill_fb2/prototype/prototype_switcher.dart'; // PROTOTYPE
 
 typedef LabelDataChanged<LabelData> = void Function(LabelData value);
 
@@ -74,7 +75,7 @@ class LabelField extends EasyFormGenericField<LabelData?> {
         .toList()
       ..add(labelName);
     value = LabelData(value!.name, items);
-    _onUpdate!(value);
+    _onUpdate?.call(value);
   }
 
   _removeLabel(String labelName) {
@@ -83,7 +84,7 @@ class LabelField extends EasyFormGenericField<LabelData?> {
             labelName.toLowerCase().compareTo(label.toLowerCase()) != 0)
         .toList();
     value = LabelData(value!.name, items);
-    _onUpdate!(value);
+    _onUpdate?.call(value);
   }
 
   Widget _content(BuildContext context) {
@@ -119,6 +120,22 @@ class LabelField extends EasyFormGenericField<LabelData?> {
 
   @override
   Widget build(BuildContext context) {
+    if (Proto.modern) {
+      // PROTOTYPE: chips + input; same add/remove behaviour
+      return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        if (value!.items.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 10),
+            child: Wrap(spacing: 8, runSpacing: 4, children: [
+              for (final item in value!.items)
+                InputChip(
+                    label: Text(toBeginningOfSentenceCase(item)!),
+                    onDeleted: () => _removeLabel(item)),
+            ]),
+          ),
+        Label(value!.name, _addLabel),
+      ]);
+    }
     return SingleChildScrollView(
         child: SafeArea(
             child: Container(

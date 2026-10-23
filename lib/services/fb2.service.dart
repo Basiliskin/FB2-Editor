@@ -15,10 +15,11 @@ class XmlResult {
 class Fb2Service {
   getAllChildren(xmlNode) {
     return xmlNode.length > 0
-        ? xmlNode.first.children
-            .where((item) => item.innerText != "")
-            .map((elm) {
-            return {"name": elm.name, "text": elm.outerXml};
+        ? (xmlNode.first as XmlNode)
+            .children
+            .where((XmlNode item) => item.innerText != "")
+            .map((XmlNode elm) {
+            return {"name": (elm as XmlElement).name, "text": elm.outerXml};
           }).toList()
         : [];
   }
@@ -80,15 +81,18 @@ class Fb2Service {
     try {
       final doc = XmlDocument.parse(xml);
       return XmlResult(true, xml, level, doc);
-    } on XmlParserException catch (e) {
+    } on XmlException catch (e) {
       await Future.delayed(Duration(milliseconds: 50));
       final invalid =
           XmlResult(false, xml, level, XmlDocument.parse('<xml></xml>'));
-      if (level <= 0 || e.position < 0 || e.position >= xml.length) {
+      final int? position = (e as dynamic).position;
+      if (level <= 0 || position == null || position < 0 || position >= xml.length) {
         return invalid;
       }
       // drop the offending character and retry
-      xml = xml.substring(0, e.position) + xml.substring(e.position + 1);
+      // xml 6 reports the position just after a stray "<"
+      final drop = position > 0 && xml[position - 1] == '<' ? position - 1 : position;
+      xml = xml.substring(0, drop) + xml.substring(drop + 1);
       return tryParse(xml, level - 1);
     } catch (e) {
       print(e);

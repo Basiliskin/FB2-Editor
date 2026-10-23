@@ -69,7 +69,7 @@ void main() {
     test('repairs a stray "<" by dropping it', () async {
       final r = await service.tryParse('<a>x < y</a>', 5);
       expect(r.valid, isTrue);
-      expect(r.doc.rootElement.innerText, 'x  y');
+      expect((r.doc as XmlDocument).rootElement.innerText, 'x  y');
     });
 
     test('returns an invalid result, not an exception, when unrecoverable',
