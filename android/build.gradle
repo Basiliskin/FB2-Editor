@@ -29,14 +29,6 @@ project(':flutter_file_dialog') {
     }
 }
 
-project(':permission_handler_android') {
-    afterEvaluate {
-        android {
-            namespace 'com.baseflow.permissionhandler'
-        }
-    }
-}
-
 tasks.register("clean", Delete) {
     delete rootProject.layout.buildDirectory
 }
