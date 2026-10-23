@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:quill_fb2/models/project.model.dart';
 import 'package:quill_fb2/services/fb2.service.dart';
+import 'package:quill_fb2/utils/common.dart' show newBookXml;
 import 'package:xml/xml.dart';
 
 // Content the editor must not lose when it re-saves a book it did not author.
@@ -282,6 +283,21 @@ void main() {
       final again = ProjectModel.fromJson(await Fb2Service().convertXmlToJson(first))
           .getBookXml() as String;
       expect(XmlDocument.parse(again).toXmlString(), first);
+    });
+  });
+
+  group('a book created in the app', () {
+    test('is valid FB2 with one empty chapter and survives a save', () async {
+      final xml = newBookXml('Tom & Jerry', 'Chapter <1>');
+      final m = ProjectModel.fromJson(await Fb2Service().convertXmlToJson(xml));
+      expect(m.bookTitle, 'Tom & Jerry');
+      expect(m.section.map((s) => s.title), ['Chapter <1>']);
+      expect(m.section.single.p, isEmpty);
+      expect(m.id, isNotEmpty);
+      final again = ProjectModel.fromJson(
+          await Fb2Service().convertXmlToJson(m.getBookXml() as String));
+      expect(again.section.map((s) => s.title), ['Chapter <1>']);
+      expect(again.id, m.id);
     });
   });
 

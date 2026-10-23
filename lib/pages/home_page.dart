@@ -13,6 +13,7 @@ import 'package:quill_fb2/utils/consts.dart';
 import 'package:quill_fb2/widgets/loading.dialog.dart';
 import 'package:intl/intl.dart';
 import 'package:quill_fb2/ui/library_view.dart';
+import 'package:quill_fb2/ui/widgets.dart' show tr;
 
 class HomeScreen extends StatefulWidget {
   final AppService service;
@@ -85,6 +86,19 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     }
   }
 
+  Future<void> _newBook() async {
+    setState(() => isLoading = true);
+    try {
+      final info = await widget.service.createBook(
+          tr(widget.service, 'New book', 'Новая книга'),
+          tr(widget.service, 'Chapter 1', 'Глава 1'));
+      await _showBook(info, null);
+    } catch (e) {
+      _reportOpenError(e);
+    }
+    if (mounted) setState(() => isLoading = false);
+  }
+
   _showBook(FileInfo info, Map? project) async {
     final json = await widget.service.convertXmlToJson(info.data);
     final book = await widget.service.addProject(json, info, project);
@@ -134,7 +148,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         () => Navigator.push(context,
                 MaterialPageRoute(builder: (_) => SettingsScreen(widget.service)))
             .then((_) => setState(() {})),
-        openHelp: () => openHelp(context, widget.service));
+        openHelp: () => openHelp(context, widget.service),
+        newBook: _newBook);
     return Stack(children: [
       LibraryView(widget.service, actions),
       if (isLoading) ModalRoundedProgressBar(0.95, "Loading"),

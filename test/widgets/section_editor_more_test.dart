@@ -535,4 +535,44 @@ void main() {
     expect(book.binaryResource.resources, isEmpty);
     await dispose(tester);
   });
+
+  testWidgets('Add paragraph opens a new paragraph in an empty section',
+      (tester) async {
+    await pump(tester, []);
+    await tester.tap(find.text('Add paragraph'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 200));
+    controller(tester).replaceText(0, 0, 'Once upon a time', null);
+    await tester.tap(find.byIcon(Icons.save_outlined));
+    await tester.pump();
+    await tester.pump();
+    expect(section.p, ['<p>Once upon a time</p>']);
+    await dispose(tester);
+  });
+
+  testWidgets('a paragraph added and left empty is not kept', (tester) async {
+    await pump(tester, paras(1));
+    await tester.tap(find.text('Add paragraph'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 200));
+    await tester.tap(find.byIcon(Icons.save_outlined));
+    await tester.pump();
+    await tester.pump();
+    expect(section.p, paras(1));
+    await dispose(tester);
+  });
+
+  testWidgets('Add paragraph appends after existing text', (tester) async {
+    await pump(tester, paras(2));
+    await activate(tester, 'para 0');
+    await tester.tap(find.text('Add paragraph'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 200));
+    controller(tester).replaceText(0, 0, 'end', null);
+    await tester.tap(find.byIcon(Icons.save_outlined));
+    await tester.pump();
+    await tester.pump();
+    expect(section.p, ['<p>para 0</p>', '<p>para 1</p>', '<p>end</p>']);
+    await dispose(tester);
+  });
 }

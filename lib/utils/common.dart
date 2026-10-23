@@ -426,3 +426,18 @@ parseSectionXml(XmlDocument document) {
   }).toList();
   return sections;
 }
+
+/// Template for a book created in the app: valid FB2 with one titled, empty chapter.
+String newBookXml(String title, String chapter) =>
+    '<?xml version="1.0" encoding="UTF-8"?>\n'
+    '<FictionBook xmlns="http://www.gribuser.ru/xml/fictionbook/2.0" '
+    'xmlns:l="http://www.w3.org/1999/xlink" xmlns:xlink="http://www.w3.org/1999/xlink">\n'
+    '<description><title-info><genre>prose</genre>'
+    '<author><first-name></first-name><last-name></last-name></author>'
+    '<book-title>${escapeXml(title)}</book-title><lang>en</lang></title-info>'
+    '<document-info><author><nickname>FB2 Editor</nickname></author>'
+    '<date>${DateTime.now().toIso8601String().substring(0, 10)}</date>'
+    '<id>${getRandomString(16)}</id><version>1.0</version></document-info></description>\n'
+    '<body><title><p>${escapeXml(title)}</p></title>'
+    '<section><title><p>${escapeXml(chapter)}</p></title></section></body>\n'
+    '</FictionBook>';

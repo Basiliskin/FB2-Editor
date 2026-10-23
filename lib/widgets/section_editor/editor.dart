@@ -81,10 +81,21 @@ class _SectionEditorState extends State<SectionEditor>
   int _commitActive() {
     if (_active < 0) return 1;
     final text = _controller.document.toPlainText().replaceFirst(RegExp(r'\n$'), '');
-    if (text == _activeText) return 1;
+    if (text == _activeText && text.isNotEmpty) return 1;
     final count = widget.section.replaceParagraph(_active, text);
     _activeText = text;
     return count;
+  }
+
+  /// Starts a new paragraph at the end of the section and opens it for typing.
+  void _addParagraph() {
+    if (_active >= 0) {
+      _commitActive();
+      _controller.dispose();
+      _active = -1;
+    }
+    widget.section.p.add('<p></p>');
+    _activate(widget.section.p.length - 1);
   }
 
   void _activate(int index) {
@@ -435,8 +446,16 @@ class _SectionEditorState extends State<SectionEditor>
     final paragraphs = widget.section.p;
     return ListView.builder(
       controller: _scrollController,
-      itemCount: paragraphs.length,
+      itemCount: paragraphs.length + 1,
       itemBuilder: (context, i) {
+        if (i == paragraphs.length) {
+          return Align(
+              alignment: Alignment.centerLeft,
+              child: TextButton.icon(
+                  onPressed: _addParagraph,
+                  icon: const Icon(Icons.add, size: 18),
+                  label: Text(tr(widget.service, 'Add paragraph', 'Добавить абзац'))));
+        }
         final href = imageHref(paragraphs[i]);
         if (href != null) return _pictureTile(i, href);
         if (i == _active) {

@@ -11,6 +11,7 @@ import 'package:quill_fb2/utils/common.dart';
 import 'package:quill_fb2/utils/consts.dart';
 import 'package:quill_fb2/widgets/forms/book_form.dart';
 import 'package:quill_fb2/widgets/leave_dialog.dart';
+import 'package:quill_fb2/widgets/find_replace_dialog.dart';
 import 'package:quill_fb2/widgets/section/list.dart';
 import 'package:quill_fb2/ui/widgets.dart';
 
@@ -103,6 +104,13 @@ class _BookPageState extends State<BookPage>
     }
   }
 
+  Future<void> _findReplace() async {
+    await _flushForms();
+    if (!mounted) return;
+    final changed = await showFindReplace(context, widget.service, widget.book);
+    if (changed && mounted) setChangedString('{}');
+  }
+
   Future<void> _leave() async {
     await _flushForms();
     if (await confirmLeave(context, widget.service, widget.book) && mounted) {
@@ -180,6 +188,10 @@ class _BookPageState extends State<BookPage>
           ),
         ]),
         actions: [
+          IconButton(
+              tooltip: tr(s, 'Find and replace', 'Поиск и замена'),
+              icon: const Icon(Icons.find_replace),
+              onPressed: _findReplace),
           IconButton(
               tooltip: tr(s, 'Help', 'Справка'),
               icon: const Icon(Icons.help_outline),

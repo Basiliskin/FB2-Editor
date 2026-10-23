@@ -20,13 +20,14 @@ Map _book(String id, String title, String author,
 String _png() => base64Encode(img.encodePng(img.Image(width: 4, height: 4)));
 
 class _Calls {
-  int openFile = 0, settings = 0;
+  int openFile = 0, settings = 0, newBook = 0;
   final opened = <Map>[], removed = <Map>[];
   late final HomeActions actions = HomeActions(
     () async => openFile++,
     (b) async => opened.add(b),
     (b) async => removed.add(b),
     () => settings++,
+    newBook: () async => newBook++,
   );
 }
 
@@ -49,6 +50,13 @@ void main() {
       _book('2', 'Neuromancer', 'William Gibson', updated: '2025-01-05 00:00:00'),
     ];
     calls = _Calls();
+  });
+
+  testWidgets('the New book tile calls newBook', (tester) async {
+    await _pump(tester, service, calls);
+    await tester.tap(find.text('New book'));
+    expect(calls.newBook, 1);
+    expect(calls.openFile, 0);
   });
 
   testWidgets('shows the load tile and books, newest history entry first',

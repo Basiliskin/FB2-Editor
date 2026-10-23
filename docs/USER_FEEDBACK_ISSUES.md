@@ -321,7 +321,7 @@ second author in the app (they are preserved but have no form), and annotation w
 
 ---
 
-## 11. Missing features asked for
+## 11. Missing features asked for — partly done
 
 | Request | Reviews | Notes |
 |---|---|---|
@@ -335,6 +335,18 @@ second author in the app (they are preserved but have no form), and annotation w
 | Paste text from the clipboard | 1 | Exists via the book button; make it discoverable. |
 | Insert/remove "Red Book" button | 5 (2021–22) | Already fixed in 1.0.2+, the toggle exists. |
 | Sell/upload books | 1 | Out of scope. |
+
+**Status.**
+- *Create a new book* — done: a "New book" tile in the library creates a valid FB2 (title, one empty
+  chapter, generated id) and opens it. The editor got an "Add paragraph" button at the end of every
+  section, which was also missing for empty sections (a new section could not be typed into at all).
+  An added paragraph left empty is dropped on save.
+- *Find and replace* — done: a search icon on the book page opens a sheet that searches every
+  paragraph and section title, shows snippets, replaces one hit or all, optional match case. It only
+  touches text, never tags, attributes, links or pictures. Limits: a match split across two styles
+  (half in bold) is not found; titles of the book itself and the annotation are not searched.
+- *Paste text from the clipboard* — already existed (book button); the help text covers it.
+- Not done: poems, table of contents, merging books, TXT/EPUB import and export, editor margins.
 
 ---
 

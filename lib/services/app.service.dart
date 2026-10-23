@@ -365,6 +365,16 @@ class AppService {
     return null;
   }
 
+  /// An empty book with one empty chapter, ready to open like any picked file.
+  Future<FileInfo> createBook(String title, String chapter) async {
+    final xml = newBookXml(title, chapter);
+    final name = 'new-${getRandomString(8)}$BOOK_EXT';
+    if (kIsWeb) return FileInfo(xml, name); // coverage:ignore-line
+    final file = File('${await _localPath}/$name');
+    await file.writeAsString(xml);
+    return FileInfo(xml, file.path);
+  }
+
   /// Returns null when the user cancels the picker; throws [OpenFailure] otherwise.
   openFile(Map extensionNames) async {
     FilePickerResult? result = await FilePicker.platform.pickFiles(

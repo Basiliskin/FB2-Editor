@@ -50,6 +50,13 @@ class _FakeService extends AppService {
     return openResult;
   }
 
+  final created = <List>[];
+  @override
+  Future<FileInfo> createBook(String title, String chapter) async {
+    created.add([title, chapter]);
+    return FileInfo('<xml/>', '/tmp/new.fb2');
+  }
+
   @override
   loadBook(Map book) async {
     loaded.add(book);
@@ -73,6 +80,18 @@ void main() {
     addTearDown(tester.view.reset);
     await tester.pumpWidget(MaterialApp(home: HomeScreen(service)));
   }
+
+  testWidgets('New book creates an empty book and opens it', (tester) async {
+    service.addResult = ProjectModel.fromJson({'bodyTitle': 'New book', 'sections': []});
+    await pumpHome(tester);
+    await tester.tap(find.text('New book'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
+    expect(service.created, [['New book', 'Chapter 1']]);
+    expect((service.addCalls.single[0] as FileInfo).path, '/tmp/new.fb2');
+    expect(service.addCalls.single[1], isNull);
+    expect(find.byType(BookPage), findsOneWidget);
+  });
 
   testWidgets('renders the library', (tester) async {
     await pumpHome(tester);

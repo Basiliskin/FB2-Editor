@@ -10,8 +10,10 @@ class HomeActions {
   final Future<void> Function(Map) removeBook;
   final VoidCallback openSettings;
   final VoidCallback? openHelp;
+  /// Creates an empty book; the tile is hidden when null.
+  final Future<void> Function()? newBook;
   HomeActions(this.openFile, this.openBook, this.removeBook, this.openSettings,
-      {this.openHelp});
+      {this.openHelp, this.newBook});
 }
 
 String _date(Map b) {
@@ -153,6 +155,28 @@ class _LibraryViewState extends State<LibraryView> {
                         ]),
                   ),
                 ),
+                if (widget.actions.newBook != null)
+                  InkWell(
+                    borderRadius: BorderRadius.circular(12),
+                    onTap: widget.actions.newBook,
+                    child: Container(
+                      decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: t.colorScheme.outlineVariant)),
+                      child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.note_add_outlined,
+                                size: 36, color: t.colorScheme.onSurfaceVariant),
+                            const SizedBox(height: 8),
+                            Text(tr(widget.service, 'New book', 'Новая книга'),
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                    color: t.colorScheme.onSurfaceVariant,
+                                    fontWeight: FontWeight.w600)),
+                          ]),
+                    ),
+                  ),
                 for (final b in books)
                   InkWell(
                     borderRadius: BorderRadius.circular(12),
