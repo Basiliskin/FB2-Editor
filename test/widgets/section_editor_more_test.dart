@@ -602,4 +602,12 @@ void main() {
     expect(find.textContaining('Copy the verses first'), findsOneWidget);
     await dispose(tester);
   });
+
+  testWidgets('the page margin setting sets the side padding of the text', (tester) async {
+    service.settings = {...service.settings, 'editor-margin': '40'};
+    await pump(tester, paras(1));
+    final page = tester.widget<EditorPage>(find.byType(EditorPage));
+    expect(page.margin, 40);
+    await dispose(tester);
+  });
 }

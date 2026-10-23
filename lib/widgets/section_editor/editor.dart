@@ -590,7 +590,9 @@ class _SectionEditorState extends State<SectionEditor>
             )),
             const Divider(height: 1),
             Expanded(
-              child: EditorPage(child: _paragraphList(fontSize)),
+              child: EditorPage(
+                  margin: (stringToInt(settings["editor-margin"]) ?? 24).toDouble(),
+                  child: _paragraphList(fontSize)),
             )
           ],
         ),
@@ -618,7 +620,9 @@ class _SectionEditorState extends State<SectionEditor>
 /// Wraps the editor in a centred "page" card.
 class EditorPage extends StatelessWidget {
   final Widget child;
-  const EditorPage({super.key, required this.child});
+  /// Space between the page edge and the text.
+  final double margin;
+  const EditorPage({super.key, required this.child, this.margin = 24});
   @override
   Widget build(BuildContext context) {
     final c = Theme.of(context).colorScheme;
@@ -628,7 +632,7 @@ class EditorPage extends StatelessWidget {
           // fill the space above the keyboard so the card tracks the resize
           height: double.infinity,
           margin: const EdgeInsets.fromLTRB(12, 16, 12, 16),
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+          padding: EdgeInsets.symmetric(horizontal: margin, vertical: 16),
           decoration: BoxDecoration(
               color: c.surface,
               borderRadius: BorderRadius.circular(12),

@@ -77,6 +77,15 @@ void main() {
     expect(find.text('Settings Saved'), findsOneWidget);
   });
 
+  testWidgets('page margins can be changed and are saved', (tester) async {
+    await pump(tester);
+    expect(find.text('Page margins'), findsOneWidget);
+    await choose(tester, '24', '56');
+    await tester.tap(find.text('Save'));
+    await settleIO(tester);
+    expect(service.getSettings()['editor-margin'], 56);
+  });
+
   testWidgets('changes are not stored until Save is pressed', (tester) async {
     await pump(tester);
     await choose(tester, '12', '20');
@@ -92,6 +101,7 @@ void main() {
     expect(s['language'], 'eng');
     expect(s['image-quality'], 100);
     expect(s['image-width'], 600);
+    expect(s['editor-margin'], 24);
   });
 
   testWidgets('switching the language to Russian is saved', (tester) async {

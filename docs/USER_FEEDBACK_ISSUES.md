@@ -321,7 +321,7 @@ second author in the app (they are preserved but have no form), and annotation w
 
 ---
 
-## 11. Missing features asked for — partly done
+## 11. Missing features asked for — done except EPUB and a table of contents
 
 | Request | Reviews | Notes |
 |---|---|---|
@@ -346,7 +346,21 @@ second author in the app (they are preserved but have no form), and annotation w
   touches text, never tags, attributes, links or pictures. Limits: a match split across two styles
   (half in bold) is not found; titles of the book itself and the annotation are not searched.
 - *Paste text from the clipboard* — already existed (book button); the help text covers it.
-- Not done: poems, table of contents, merging books, TXT/EPUB import and export, editor margins.
+- *Poems* — done: a toolbar button turns the copied text into a poem (blank line = new stanza)
+  after the paragraph being edited; plain poems are shown as verses and edited as lines of text;
+  a poem with a title, author, date or styled verses is still edited as XML so nothing is lost.
+- *TXT* — import done: a .txt file (UTF-8 or Windows-1251) opens as a new book named after the file;
+  short lines starting "Chapter/Part/Prologue/Глава/Часть/Пролог…" start new sections. Export done:
+  "Export as text (.txt)" in the book page's More menu.
+- *Merge books* — done: "Add another book" (More menu) appends the chapters of an .fb2/.zip/.txt
+  after a heading section named after it, with its pictures and footnotes under prefixed ids so
+  nothing clashes; this book's cover and metadata stay. Note: the picked file is copied into the
+  app folder by the existing open path and not removed.
+- *Editor margins* — done: Settings → "Page margins" (8–56). Font size already existed.
+- *Table of contents* — not built: FB2 readers generate it from section titles, so a hand-made
+  contents section would duplicate it and go stale. Say so in the store listing (issue 12).
+- *EPUB import/export* — not done: it needs an HTML/CSS to FB2 converter (and back) and is a project
+  of its own.
 
 ---
 

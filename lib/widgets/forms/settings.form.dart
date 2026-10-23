@@ -23,6 +23,7 @@ class _SettingsComponentState extends State<SettingsComponent> {
   bool isLoading = false;
   bool _autoSave = false;
   int _fontSize = 12;
+  int _editorMargin = 24;
   int _imageQuality = 100;
   int _imageWidth = 1024;
   String _language = 'eng';
@@ -31,6 +32,7 @@ class _SettingsComponentState extends State<SettingsComponent> {
     super.initState();
     _autoSave = stringToBool(widget.setting["auto-save"]) ?? _autoSave;
     _fontSize = stringToInt(widget.setting["font-size"]) ?? _fontSize;
+    _editorMargin = stringToInt(widget.setting["editor-margin"]) ?? _editorMargin;
     _language = widget.setting["language"] ?? _language;
     _imageWidth = stringToInt(widget.setting["image-width"]) ?? _imageWidth;
     _imageQuality =
@@ -64,6 +66,7 @@ class _SettingsComponentState extends State<SettingsComponent> {
     await widget.service.setSettings({
       "auto-save": _autoSave,
       "font-size": _fontSize,
+      "editor-margin": _editorMargin,
       "image-quality": _imageQuality,
       "language": _language,
       "image-width": _imageWidth
@@ -109,6 +112,9 @@ class _SettingsComponentState extends State<SettingsComponent> {
             _dd<int>(s.translate(LangTranslateItems.fontSize), _fontSize,
                 [12, 14, 16, 18, 20, 22, 24, 26, 28, 30, 32], (v) => _fontSize = v,
                 icon: Icons.format_size),
+            _dd<int>(tr(s, 'Page margins', 'Поля страницы'), _editorMargin,
+                [8, 16, 24, 40, 56], (v) => _editorMargin = v,
+                icon: Icons.width_normal_outlined),
           ]),
           SettingsGroup(tr(s, 'Images', 'Изображения'), icon: Icons.image_outlined, [
             _dd<int>(s.translate(LangTranslateItems.imageSize), _imageWidth,
