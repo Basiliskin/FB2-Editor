@@ -46,12 +46,12 @@ void main() {
           '<section section-id="sid">\n<title><p>T</p></title>\n<p>a</p>\n</section>');
     });
 
-    test('omits empty title and emits first image', () {
+    test('omits empty title and emits the image', () {
       final s = Section({'title': '', 'sectionId': 'sid'}, _res());
       s.setImage('#i1');
       final xml = s.toXml();
       expect(xml, isNot(contains('<title>')));
-      expect(xml, contains('<image xlink:href="#i1" alt="img_sid.jpg"/>'));
+      expect(xml, contains('<image xlink:href="#i1"/>'));
     });
   });
 

@@ -49,6 +49,14 @@ class Fb2Service {
 /// Max number of stray characters dropped while repairing malformed XML.
 const _maxRepairs = 100;
 
+// A "<" that cannot start a tag, and a "&" that does not start an entity.
+final _strayLt = RegExp(r'<(?![A-Za-z_:/!?])');
+final _strayAmp = RegExp(r'&(?!(?:amp|lt|gt|quot|apos|#[0-9]+|#[xX][0-9A-Fa-f]+);)');
+
+/// Escapes stray "<" and "&" in one pass.
+String sanitizeXml(String xml) =>
+    xml.replaceAll(_strayAmp, '&amp;').replaceAll(_strayLt, '&lt;');
+
 XmlResult _tryParseSync(String xml, int level) {
   while (true) {
     try {
@@ -74,7 +82,10 @@ XmlResult _tryParseSync(String xml, int level) {
 Map<String, dynamic>? _convertXml(String xml) {
   try {
     final service = Fb2Service();
-    final parsed = _tryParseSync(xml, _maxRepairs);
+    // Escape everything fixable in one pass; the per-character repair below
+    // re-parses the whole book for every stray character.
+    var parsed = _tryParseSync(xml, 0);
+    if (!parsed.valid) parsed = _tryParseSync(sanitizeXml(xml), _maxRepairs);
     final document = parsed.doc;
     final description = document.rootElement.findElements('description').first;
     final descriptionJson = service.xmlToJson(description.innerXml, 'description');
@@ -94,7 +105,9 @@ Map<String, dynamic>? _convertXml(String xml) {
       "bodyTitle": bodyTitle,
       "description": descriptionJson,
       "resources": resources,
-      "sections": sections
+      "sections": sections,
+      // bodies after the main one (e.g. footnotes) are carried through untouched
+      "extraBodies": body.skip(1).map((b) => b.outerXml).toList()
     };
   } catch (e) {
     print(e);

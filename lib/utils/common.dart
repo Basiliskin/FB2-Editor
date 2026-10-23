@@ -250,18 +250,15 @@ String decodeFb2Bytes(List<int> bytes) {
 
 readAsString(file) async => decodeFb2Bytes(await file.readAsBytes());
 
-_cleanElement(XmlNode node) {
-  if (node is XmlText) return trimSpecialChar(node.outerXml);
-  final p = node as XmlElement;
-  final xml =
-      p.children.whereType<XmlElement>().map((elm) {
-    return "<${elm.name.qualified}>${trimSpecialChar(elm.innerText)}</${elm.name.qualified}>";
-  });
-  final temp = xml.length > 0
-      ? xml.join()
-      : "<${p.name.qualified}>${trimSpecialChar(p.innerText)}</${p.name.qualified}>";
-  return temp;
-}
+/// Keeps inline markup (links, nested formatting) intact; only strips line breaks and tabs.
+_cleanElement(XmlNode node) => trimSpecialChar(node.outerXml);
+
+/// Escapes text for use as element content or inside a double-quoted attribute.
+String escapeXml(String? text) => (text ?? '')
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;');
 
 _removeImage(XmlElement p, items) {
   // print(p);
@@ -278,8 +275,10 @@ _removeImage(XmlElement p, items) {
       .toList();
   if (image.length > 0) {
     final child = image[0];
-    items.add(
-        XmlItem('image', child.getAttribute('xlink:href')!, child.outerXml));
+    items.add(XmlItem(
+        'image',
+        child.getAttribute('xlink:href') ?? child.getAttribute('l:href') ?? '',
+        child.outerXml));
   }
 }
 

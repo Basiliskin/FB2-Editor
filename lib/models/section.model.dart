@@ -31,10 +31,10 @@ class Section {
   }
   toXml() {
     List<String> xml = [];
-    xml.add('<section section-id="$sectionId">');
-    if (title.isNotEmpty) xml.add('<title><p>$title</p></title>');
-    if (images.length > 0) {
-      xml.add('<image xlink:href="${images[0]}" alt="img_$sectionId.jpg"/>');
+    xml.add('<section section-id="${escapeXml(sectionId)}">');
+    if (title.isNotEmpty) xml.add('<title><p>${escapeXml(title)}</p></title>');
+    for (final image in images) {
+      xml.add('<image xlink:href="${escapeXml(image)}"/>');
     }
 
     p.forEach((element) {

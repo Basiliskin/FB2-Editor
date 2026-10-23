@@ -8,6 +8,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:image/image.dart' as img;
 import 'package:quill_fb2/models/project.model.dart';
 import 'package:quill_fb2/services/app.service.dart';
+import 'package:quill_fb2/services/open_failure.dart';
 import 'package:quill_fb2/utils/consts.dart';
 
 const _fb2 = '''<?xml version="1.0" encoding="UTF-8"?>
@@ -109,6 +110,31 @@ void main() {
     test('init falls back to defaults when no workspace file exists', () async {
       await service.init();
       expect(service.workspace['history'], isEmpty);
+    });
+  });
+
+  group('convertXmlToJson failures', () {
+    Matcher failure(OpenFailureKind kind) =>
+        throwsA(isA<OpenFailure>().having((e) => e.kind, 'kind', kind));
+
+    test('text that is not an FB2 book', () {
+      expect(service.convertXmlToJson('<nothing/>'), failure(OpenFailureKind.notFb2));
+    });
+
+    test('text that is not XML at all', () {
+      expect(service.convertXmlToJson('just some text'), failure(OpenFailureKind.notFb2));
+    });
+
+    test('parsing that outlasts the time budget', () {
+      service.parseTimeout = (_) => const Duration(microseconds: 1);
+      expect(service.convertXmlToJson(_fb2), failure(OpenFailureKind.timeout));
+    });
+
+    test('the default budget grows with the file size', () {
+      final small = defaultParseTimeout(100 * 1024);
+      final large = defaultParseTimeout(20 * 1024 * 1024);
+      expect(small, greaterThanOrEqualTo(const Duration(seconds: 90)));
+      expect(large, greaterThan(small));
     });
   });
 

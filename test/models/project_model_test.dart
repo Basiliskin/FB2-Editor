@@ -266,7 +266,7 @@ void main() {
       expect(p.section[2].p, hasLength(1));
     });
 
-    test('keeps only the first image that has a resource', () {
+    test('keeps every image that has a resource', () {
       final p = ProjectModel(_json(resources: [
         {'id': 'i2', 'contentType': 'image/jpeg', 'data': 'D'}
       ], sections: [
@@ -277,7 +277,7 @@ void main() {
           'sectionId': 's1'
         }
       ]));
-      expect(p.section.single.images, ['i2']);
+      expect(p.section.single.images, ['#i2']);
     });
 
     test('addSection appends a titled empty section', () {
@@ -337,7 +337,7 @@ void main() {
       expect(xml, contains('<p>line2</p>'));
       expect(xml, contains('<lang>en</lang>'));
       expect(xml, contains('<first-name>Ann</first-name>'));
-      expect(xml, contains('<title>My Book</title>'));
+      expect(xml, contains('<title><p>My Book</p></title>'));
       expect(xml, contains('<title><p>Ch1</p></title>'));
       expect(xml.trimRight(), endsWith('</FictionBook>'));
     });

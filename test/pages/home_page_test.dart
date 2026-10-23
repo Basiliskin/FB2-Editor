@@ -8,6 +8,7 @@ import 'package:quill_fb2/pages/help_page.dart';
 import 'package:quill_fb2/pages/home_page.dart';
 import 'package:quill_fb2/pages/settings_page.dart';
 import 'package:quill_fb2/services/app.service.dart';
+import 'package:quill_fb2/services/open_failure.dart';
 import 'package:quill_fb2/ui/library_view.dart';
 
 class _FakeService extends AppService {
@@ -17,11 +18,14 @@ class _FakeService extends AppService {
   final loaded = <Map>[];
   dynamic addResult;
   bool convertThrows = false;
+  Object? openThrows;
+  Object? convertFailure;
   final addCalls = <List>[];
   final removed = <Map>[];
 
   @override
   convertXmlToJson(xml) async {
+    if (convertFailure != null) throw convertFailure!;
     if (convertThrows) throw StateError('bad xml');
     return {};
   }
@@ -42,6 +46,7 @@ class _FakeService extends AppService {
   openFile(Map extensionNames) async {
     openCalls++;
     expect(extensionNames, {'fb2': true, 'zip': true});
+    if (openThrows != null) throw openThrows!;
     return openResult;
   }
 
@@ -76,16 +81,62 @@ void main() {
     expect(find.text('Dune'), findsNWidgets(2));
   });
 
-  testWidgets('shows a snackbar when the picked file has no FB2 book',
-      (tester) async {
-    service.openResult = null;
-    await pumpHome(tester);
+  Future<void> tapAdd(WidgetTester tester) async {
     await tester.tap(find.byIcon(Icons.add_circle_outline));
     await tester.pump();
     await tester.pump();
+  }
+
+  testWidgets('cancelling the picker shows no error', (tester) async {
+    service.openResult = null;
+    await pumpHome(tester);
+    await tapAdd(tester);
     expect(service.openCalls, 1);
-    expect(find.text('No FB2 book found in the selected file'), findsOneWidget);
+    expect(find.byType(SnackBar), findsNothing);
     expect(find.text('Loading'), findsNothing);
+  });
+
+  group('open errors are explained', () {
+    testWidgets('unsupported file type', (tester) async {
+      service.openThrows = const OpenFailure(OpenFailureKind.unsupportedType, 'txt');
+      await pumpHome(tester);
+      await tapAdd(tester);
+      expect(find.textContaining('Unsupported file type'), findsOneWidget);
+      expect(find.text('Loading'), findsNothing);
+    });
+
+    testWidgets('zip without a book', (tester) async {
+      service.openThrows = const OpenFailure(OpenFailureKind.noFb2InZip);
+      await pumpHome(tester);
+      await tapAdd(tester);
+      expect(find.text('No .fb2 book found in the archive.'), findsOneWidget);
+    });
+
+    testWidgets('not an FB2 document', (tester) async {
+      service.openResult = FileInfo('<nothing/>', '/tmp/x.fb2');
+      service.convertFailure = const OpenFailure(OpenFailureKind.notFb2);
+      await pumpHome(tester);
+      await tapAdd(tester);
+      expect(find.textContaining('not a valid FB2 book'), findsOneWidget);
+      expect(find.text('Loading'), findsNothing);
+    });
+
+    testWidgets('timeout', (tester) async {
+      service.openResult = FileInfo('<x/>', '/tmp/x.fb2');
+      service.convertFailure = const OpenFailure(OpenFailureKind.timeout);
+      await pumpHome(tester);
+      await tapAdd(tester);
+      expect(find.textContaining('took too long'), findsOneWidget);
+      expect(find.text('Loading'), findsNothing);
+    });
+
+    testWidgets('any other error is reported as unreadable', (tester) async {
+      service.openResult = FileInfo('<x/>', '/tmp/x.fb2');
+      service.convertThrows = true;
+      await pumpHome(tester);
+      await tapAdd(tester);
+      expect(find.text('The file could not be read.'), findsOneWidget);
+    });
   });
 
   testWidgets('does not show the snackbar when opening a saved book fails',

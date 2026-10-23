@@ -15,6 +15,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:flutter_file_dialog/flutter_file_dialog.dart';
 
 import 'fb2.service.dart';
+import 'open_failure.dart';
 
 const bool isProduction = bool.fromEnvironment('dart.vm.product');
 final JsonEncoder encoder = new JsonEncoder.withIndent('  ');
@@ -42,7 +43,12 @@ class FileInfo {
   FileInfo(this.data, this.path);
 }
 
+/// Parse time budget: generous for slow phones, finite so a bad file cannot spin forever.
+Duration defaultParseTimeout(int chars) =>
+    Duration(seconds: 90 + 10 * (chars / (1024 * 1024)).ceil());
+
 class AppService {
+  Duration Function(int chars) parseTimeout = defaultParseTimeout;
   late TranslationService _translationService = new TranslationService();
   late Fb2Service _fb2Service = Fb2Service();
   String _workspaceFile = 'fb2_workspace.json';
@@ -281,9 +287,15 @@ class AppService {
     return cloneMap(defaultValue);
   }
 
+  /// Throws [OpenFailure] when the text is not an FB2 book or parsing times out.
   convertXmlToJson(xml) async {
-    return timed('parse xml (${(xml.length / 1024).round()} KB)',
-        () async => _fb2Service.convertXmlToJson(xml));
+    final json = await timed(
+        'parse xml (${(xml.length / 1024).round()} KB)',
+        () async => _fb2Service.convertXmlToJson(xml).timeout(
+            parseTimeout(xml.length),
+            onTimeout: () => throw const OpenFailure(OpenFailureKind.timeout)));
+    if (json == null) throw const OpenFailure(OpenFailureKind.notFb2);
+    return json;
   }
 
   loadBook(Map book) async {
@@ -335,37 +347,40 @@ class AppService {
     return null;
   }
 
+  /// Returns null when the user cancels the picker; throws [OpenFailure] otherwise.
   openFile(Map extensionNames) async {
     FilePickerResult? result = await FilePicker.platform.pickFiles(
       type: FileType.any,
       withData: kIsWeb,
       // allowedExtensions: [extensionName],
     );
-    if (result != null) {
-      final file = result.files.first;
-      final ext = file.extension?.toLowerCase();
-      if (extensionNames[ext] == true) {
-        try {
-          // coverage:ignore-start
-          if (kIsWeb) {
-            final bytes = file.bytes;
-            if (bytes == null || ext != 'fb2') {
-              return null;
-            }
-            return FileInfo(decodeFb2Bytes(bytes), file.name);
-          }
-          // coverage:ignore-end
-          // final name = file.name;
-          final path = file.path;
-          // final size = file.size;
-          final xml = ext == 'fb2'
-              ? await loadFile(path)
-              : await loadZipFile(path);
-          return xml;
-        } catch (e) {
-          print(e);
-        }
-      }
+    if (result == null) return null;
+    final file = result.files.first;
+    final ext = file.extension?.toLowerCase();
+    if (extensionNames[ext] != true) {
+      throw OpenFailure(OpenFailureKind.unsupportedType, ext);
     }
+    // coverage:ignore-start
+    if (kIsWeb) {
+      final bytes = file.bytes;
+      if (bytes == null || ext != 'fb2') {
+        throw OpenFailure(OpenFailureKind.unsupportedType, ext);
+      }
+      return FileInfo(decodeFb2Bytes(bytes), file.name);
+    }
+    // coverage:ignore-end
+    final path = file.path;
+    dynamic info;
+    try {
+      info = ext == 'fb2' ? await loadFile(path) : await loadZipFile(path);
+    } catch (e) {
+      throw OpenFailure(OpenFailureKind.unreadable, '$e');
+    }
+    if (info == null) {
+      throw OpenFailure(ext == 'fb2'
+          ? OpenFailureKind.unreadable
+          : OpenFailureKind.noFb2InZip);
+    }
+    return info;
   }
 }

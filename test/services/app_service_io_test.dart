@@ -12,6 +12,7 @@ import 'package:plugin_platform_interface/plugin_platform_interface.dart';
 import 'package:quill_fb2/models/project.model.dart';
 import 'package:quill_fb2/services/app.service.dart' as app;
 import 'package:quill_fb2/services/app.service.dart' show AppService;
+import 'package:quill_fb2/services/open_failure.dart';
 import 'package:quill_fb2/utils/consts.dart';
 
 const _fb2 = '''<?xml version="1.0" encoding="UTF-8"?>
@@ -204,9 +205,20 @@ void main() {
       expect(await service.openFile(exts), isNull);
     });
 
-    test('returns null for an extension that is not accepted', () async {
+    test('rejects an extension that is not accepted', () async {
       picker.result = FilePickerResult([_pf('a.txt', '${docs.path}/a.txt')]);
-      expect(await service.openFile(exts), isNull);
+      expect(
+          service.openFile(exts),
+          throwsA(isA<OpenFailure>()
+              .having((e) => e.kind, 'kind', OpenFailureKind.unsupportedType)));
+    });
+
+    test('rejects a file without an extension', () async {
+      picker.result = FilePickerResult([_pf('README', '${docs.path}/README')]);
+      expect(
+          service.openFile(exts),
+          throwsA(isA<OpenFailure>()
+              .having((e) => e.kind, 'kind', OpenFailureKind.unsupportedType)));
     });
 
     test('loads an fb2 file', () async {
@@ -232,9 +244,27 @@ void main() {
       expect(info.data, _fb2);
     });
 
-    test('swallows errors from loading and returns null', () async {
+    test('reports a book that cannot be read', () async {
       picker.result = FilePickerResult([_pf('a.fb2', '${docs.path}/a.fb2')]);
-      expect(await _ThrowingLoadService().openFile(exts), isNull);
+      expect(
+          _ThrowingLoadService().openFile(exts),
+          throwsA(isA<OpenFailure>()
+              .having((e) => e.kind, 'kind', OpenFailureKind.unreadable)));
+    });
+
+    test('reports a zip with no book inside', () async {
+      messenger.setMockMethodCallHandler(const MethodChannel('flutter_archive'),
+          (call) async {
+        Directory(call.arguments['destinationDir'] as String)
+            .createSync(recursive: true);
+        return null;
+      });
+      final zip = File('${docs.path}/empty.zip')..writeAsStringSync('zip');
+      picker.result = FilePickerResult([_pf('empty.zip', zip.path)]);
+      expect(
+          service.openFile(exts),
+          throwsA(isA<OpenFailure>()
+              .having((e) => e.kind, 'kind', OpenFailureKind.noFb2InZip)));
     });
   });
 }

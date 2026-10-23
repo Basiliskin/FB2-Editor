@@ -62,7 +62,12 @@ enum LangTranslateItems {
   titleLanguage,
   buttonLoadBook,
   bookVersion,
-  bookId
+  bookId,
+  openErrorUnsupported,
+  openErrorUnreadable,
+  openErrorNoFb2InZip,
+  openErrorNotFb2,
+  openErrorTimeout
 }
 
 const LANGUAGES = {"eng": "English", "ru": "Русский"};
@@ -92,6 +97,14 @@ const LANG_TRANSLATE = {
     LangTranslateItems.bookAnnotation: 'Enter Annotation',
     LangTranslateItems.messageError: "Error",
     LangTranslateItems.messageLoading: "Loading",
+    LangTranslateItems.openErrorUnsupported:
+        "Unsupported file type. Choose an .fb2 file or a .zip archive with one.",
+    LangTranslateItems.openErrorUnreadable: "The file could not be read.",
+    LangTranslateItems.openErrorNoFb2InZip: "No .fb2 book found in the archive.",
+    LangTranslateItems.openErrorNotFb2:
+        "This file is not a valid FB2 book, or it is too damaged to open.",
+    LangTranslateItems.openErrorTimeout:
+        "Opening the book took too long and was stopped. The file may be too large or damaged.",
     LangTranslateItems.appTitle: "FB2 Editor",
     LangTranslateItems.autoSave: "Auto save book",
     LangTranslateItems.buttonShowPageImage: "Show page image",
@@ -127,6 +140,14 @@ const LANG_TRANSLATE = {
     LangTranslateItems.bookAnnotation: 'Введите аннотацию',
     LangTranslateItems.messageError: "Ошибка",
     LangTranslateItems.messageLoading: "Загрузка",
+    LangTranslateItems.openErrorUnsupported:
+        "Неподдерживаемый тип файла. Выберите файл .fb2 или архив .zip с ним.",
+    LangTranslateItems.openErrorUnreadable: "Не удалось прочитать файл.",
+    LangTranslateItems.openErrorNoFb2InZip: "В архиве не найдена книга .fb2.",
+    LangTranslateItems.openErrorNotFb2:
+        "Это не корректная книга FB2 или файл слишком повреждён.",
+    LangTranslateItems.openErrorTimeout:
+        "Открытие книги заняло слишком много времени и было остановлено. Файл может быть слишком большим или повреждённым.",
     LangTranslateItems.appTitle: "Редактор художественной литературы",
     LangTranslateItems.autoSave: "Автосохранение книги",
     LangTranslateItems.buttonShowPageImage: "Показать изображение страницы",

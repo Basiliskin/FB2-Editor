@@ -98,7 +98,7 @@ void main() {
       final s = (parseSectionXml(doc) as List).single as Map;
       final p = (s['p'] as List).cast<String>();
       expect(p[0], '<p>plain</p>');
-      expect(p[1], '<p><emphasis>deep</emphasis></p>');
+      expect(p[1], '<p><strong><emphasis>deep</emphasis> tail</strong></p>');
     });
 
     test('a section that fails to parse yields null', () {

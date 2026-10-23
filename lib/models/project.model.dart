@@ -52,12 +52,12 @@ class Author {
   toXml() {
     List<String> xml = [];
     xml.add('<author>');
-    xml.add('<first-name>$firstName</first-name>');
-    xml.add('<middle-name>$middleName</middle-name>');
-    xml.add('<last-name>$lastName</last-name>');
-    xml.add('<home-page>$homePage</home-page>');
-    xml.add('<id>$id</id>');
-    xml.add('<nickname>$nickname</nickname>');
+    xml.add('<first-name>${escapeXml(firstName)}</first-name>');
+    xml.add('<middle-name>${escapeXml(middleName)}</middle-name>');
+    xml.add('<last-name>${escapeXml(lastName)}</last-name>');
+    xml.add('<home-page>${escapeXml(homePage)}</home-page>');
+    xml.add('<id>${escapeXml(id)}</id>');
+    xml.add('<nickname>${escapeXml(nickname)}</nickname>');
 
     xml.add('</author>');
     return xml.join();
@@ -148,6 +148,9 @@ class ProjectModel {
   String lang = '';
   String programUsed = '';
   String srcUrl = '';
+  String documentDate = '';
+  /// Raw XML of the bodies after the first (footnotes etc.), written back unchanged.
+  List<String> extraBodies = [];
   String id = '';
   String version = '';
   String projectId = '';
@@ -174,7 +177,7 @@ class ProjectModel {
           .map((name) => binaryResource.find(name))
           .where((i) => i.id.isNotEmpty as bool)
           .toList();
-      img = imgRes.length > 0 ? imgRes.sublist(0, 1).map((res) => res.id) : [];
+      img = imgRes.map((res) => '#${res.id}').toList();
     }
 
     if (_p.length > 0) {
@@ -234,6 +237,8 @@ class ProjectModel {
     author.load(document);
     programUsed = safeGet(document, 'program-used.\$', '');
     srcUrl = safeGet(document, 'src-url.\$', '');
+    documentDate = safeGet(document, 'date.\$', '');
+    extraBodies = [...safeGet(json, 'extraBodies', <String>[])];
     id = safeGet(document, 'id.\$', '');
     version = safeGet(document, 'version.\$', '');
     print(title);
@@ -380,59 +385,59 @@ class ProjectModel {
   }
 
   addXml(tag, value) {
-    return "<$tag>$value</$tag>";
+    return "<$tag>${escapeXml(value)}</$tag>";
   }
 
   getBookXml() {
     List<String> xml = [];
     xml.add('<?xml version="1.0" encoding="UTF-8"?>');
     xml.add(
-        '<FictionBook xmlns="http://www.gribuser.ru/xml/fictionbook/2.0" xmlns:l="http://www.w3.org/1999/xlink">');
+        '<FictionBook xmlns="http://www.gribuser.ru/xml/fictionbook/2.0" xmlns:l="http://www.w3.org/1999/xlink" xmlns:xlink="http://www.w3.org/1999/xlink">');
     xml.add('<description>');
+    // element order follows the FB2 schema; strict readers drop out-of-order elements
     xml.add('<title-info>');
-    xml.add('<fb-editor>1</fb-editor>');
     genre.forEach((element) {
-      xml.add('<genre>$element</genre>');
+      xml.add(addXml('genre', element));
     });
-    sequence.forEach((element) {
-      xml.add('<sequence name="$element"/>');
-    });
+    xml.add(author.toXml());
+    xml.add(addXml('book-title', bookTitle));
     if (annotation.length > 0) {
       xml.add('<annotation>');
       annotation.forEach((element) {
         final lines = element.split('\n');
         lines.forEach((line) {
-          if (line.isNotEmpty) xml.add('<p>$line</p>');
+          if (line.isNotEmpty) xml.add(addXml('p', line));
         });
       });
       xml.add('</annotation>');
-      print(xml.join());
     }
+    if (date.isNotEmpty) xml.add(addXml('date', date));
     final coverRes = binaryResource.findBySectionId('cover');
     if (coverRes.id.isNotEmpty) {
       xml.add(
-          '<coverpage><image l:href="#${coverRes.id}" alt="coverpage"/></coverpage>');
+          '<coverpage><image l:href="#${escapeXml(coverRes.id)}" alt="coverpage"/></coverpage>');
     }
-    xml.add(author.toXml());
+    if (lang.isNotEmpty) xml.add(addXml('lang', lang));
+    sequence.forEach((element) {
+      xml.add('<sequence name="${escapeXml(element)}"/>');
+    });
     xml.add('</title-info>');
     xml.add('<document-info>');
     xml.add(author.toXml());
-
-    xml.add(addXml('date', date));
-    xml.add(addXml('lang', lang));
-    xml.add(addXml('programUsed', programUsed));
-    xml.add(addXml('srcUrl', srcUrl));
+    xml.add(addXml('program-used', programUsed));
+    xml.add(addXml('date', documentDate.isNotEmpty ? documentDate : date));
+    xml.add(addXml('src-url', srcUrl));
     xml.add(addXml('id', id));
     xml.add(addXml('version', version));
-
     xml.add('</document-info>');
     xml.add('</description>');
     xml.add('<body>');
-    xml.add('<title>$bookTitle</title>');
+    xml.add('<title><p>${escapeXml(bookTitle)}</p></title>');
     section.forEach((element) {
       xml.add(element.toXml());
     });
     xml.add('</body>');
+    xml.addAll(extraBodies);
     xml.add(binaryResource.toXml());
     xml.add('</FictionBook>');
     return xml.join('\n');

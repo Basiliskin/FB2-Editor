@@ -113,9 +113,15 @@ void main() {
       expect(json['sections'], hasLength(1));
     });
 
-    test('returns null instead of repairing past the 100-character cap',
+    test('repairs more stray characters than the per-character budget',
         () async {
       final bad = List.filled(150, '<p>a < b</p>').join();
+      final xml = _fb2.replaceFirst('<p>First</p>', bad);
+      expect(await service.convertXmlToJson(xml), isNotNull);
+    });
+
+    test('still gives up on damage the sanitizer cannot fix', () async {
+      final bad = List.filled(150, '<p>a <b c</p>').join();
       final xml = _fb2.replaceFirst('<p>First</p>', bad);
       expect(await service.convertXmlToJson(xml), isNull);
     });
@@ -145,6 +151,33 @@ void main() {
 
     test('returns null for input that is not FB2', () async {
       expect(await service.convertXmlToJson('<nothing/>'), isNull);
+    });
+  });
+
+  group('malformed XML', () {
+    String book(String paragraph, [int copies = 1]) =>
+        _fb2.replaceFirst('<p>First</p>', List.filled(copies, paragraph).join());
+
+    test('many stray "<" are repaired in one pass', () async {
+      // more than the per-character repair budget
+      final json = await service.convertXmlToJson(book('<p>5 < 6</p>', 400)) as Map;
+      expect((json['sections'] as List).single['p'], hasLength(401));
+    });
+
+    test('bare "&" and an unknown entity keep their text', () async {
+      final json =
+          await service.convertXmlToJson(book('<p>AT&T &nbsp; x</p>')) as Map;
+      final text = ((json['sections'] as List).single['p'] as List).join();
+      expect(text, contains('AT&amp;T'));
+    });
+
+    test('sanitizeXml leaves valid markup alone', () {
+      const ok = '<a href="x">&amp; &#38; &#x26; &lt;</a><!-- c --><?pi?>';
+      expect(sanitizeXml(ok), ok);
+    });
+
+    test('truncated XML is reported as null instead of hanging', () async {
+      expect(await service.convertXmlToJson(_fb2.substring(0, _fb2.length ~/ 2)), isNull);
     });
   });
 
