@@ -259,9 +259,17 @@ class ProjectModel {
   factory ProjectModel.fromJson(json, [String projId = '']) {
     return ProjectModel(json, projId);
   }
+  // thumbnail of the last cover resized, reused while the cover data is unchanged
+  String? _thumbSource;
+  Future? _thumb;
+
   getImage(res) async {
     if (res != null) {
-      return resizeImage(res.data, 120);
+      if (_thumb == null || !identical(_thumbSource, res.data)) {
+        _thumbSource = res.data;
+        _thumb = resizeImage(res.data, 120);
+      }
+      return _thumb;
     }
   }
 

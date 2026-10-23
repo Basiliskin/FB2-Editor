@@ -1,5 +1,7 @@
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
+
 import 'package:quill_fb2/utils/common.dart';
 import 'package:xml2json/xml2json.dart';
 import 'package:xml/xml.dart';
@@ -38,64 +40,64 @@ class Fb2Service {
     return '';
   }
 
-  convertXmlToJson(xml) async {
-    try {
-      final parsed = await tryParse(xml, 1000);
-      final document = XmlDocument.parse(parsed.xml);
-      final description =
-          document.rootElement.findElements('description').first;
-      final descriptionJson = xmlToJson(description.innerXml, 'description');
-      final body = document.rootElement.findElements('body');
-      final binary = document.rootElement.findElements('binary');
-      final resources = binary.map((elm) {
-        var contentType = elm.getAttribute('content-type');
-        var sectionId = elm.getAttribute('section-id');
-        var id = elm.getAttribute('id');
-        var data = elm.innerText;
-        return {
-          "id": id,
-          "contentType": contentType,
-          "data": data,
-          "sectionId": sectionId
-        };
-      }).toList();
-      final bodyTitle = safeGetXmlText(body.first, 'title');
-      final sections = parseSectionXml(document);
-      return {
-        "bodyTitle": bodyTitle,
-        "description": descriptionJson,
-        "resources": resources,
-        "sections": sections
-      };
-      // final myTransformer = Xml2Json();
-      // myTransformer.parse(parsed.xml);
-      // return myTransformer.toBadgerfish();
-    } catch (e) {
-      print(e);
-    }
-    // json = myTransformer.toGData();
-    //json = myTransformer.toParker();
-  }
+  /// Parses off the UI isolate (plain `compute` on web); returns null on failure.
+  convertXmlToJson(String xml) => compute(_convertXml, xml);
 
-  tryParse(xml, level) async {
+  tryParse(xml, level) async => _tryParseSync(xml, level);
+}
+
+/// Max number of stray characters dropped while repairing malformed XML.
+const _maxRepairs = 100;
+
+XmlResult _tryParseSync(String xml, int level) {
+  while (true) {
     try {
-      final doc = XmlDocument.parse(xml);
-      return XmlResult(true, xml, level, doc);
+      return XmlResult(true, xml, level, XmlDocument.parse(xml));
     } on XmlException catch (e) {
-      await Future.delayed(Duration(milliseconds: 50));
-      final invalid =
-          XmlResult(false, xml, level, XmlDocument.parse('<xml></xml>'));
       final int? position = (e as dynamic).position;
-      if (level <= 0 || position == null || position < 0 || position >= xml.length) {
-        return invalid;
+      if (level <= 0 ||
+          position == null ||
+          position < 0 ||
+          position >= xml.length) {
+        return XmlResult(false, xml, level, XmlDocument.parse('<xml></xml>'));
       }
       // drop the offending character and retry
       // xml 6 reports the position just after a stray "<"
-      final drop = position > 0 && xml[position - 1] == '<' ? position - 1 : position;
+      final drop =
+          position > 0 && xml[position - 1] == '<' ? position - 1 : position;
       xml = xml.substring(0, drop) + xml.substring(drop + 1);
-      return tryParse(xml, level - 1);
-    } catch (e) {
-      print(e);
+      level--;
     }
   }
+}
+
+Map<String, dynamic>? _convertXml(String xml) {
+  try {
+    final service = Fb2Service();
+    final parsed = _tryParseSync(xml, _maxRepairs);
+    final document = parsed.doc;
+    final description = document.rootElement.findElements('description').first;
+    final descriptionJson = service.xmlToJson(description.innerXml, 'description');
+    final body = document.rootElement.findElements('body');
+    final binary = document.rootElement.findElements('binary');
+    final resources = binary.map((elm) {
+      return {
+        "id": elm.getAttribute('id'),
+        "contentType": elm.getAttribute('content-type'),
+        "data": elm.innerText,
+        "sectionId": elm.getAttribute('section-id')
+      };
+    }).toList();
+    final bodyTitle = service.safeGetXmlText(body.first, 'title');
+    final sections = parseSectionXml(document);
+    return {
+      "bodyTitle": bodyTitle,
+      "description": descriptionJson,
+      "resources": resources,
+      "sections": sections
+    };
+  } catch (e) {
+    print(e);
+  }
+  return null;
 }

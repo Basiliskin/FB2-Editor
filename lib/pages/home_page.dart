@@ -59,11 +59,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       });
       return;
     }
-    await Future.delayed(Duration(seconds: 1));
     try {
       final json = await widget.service.convertXmlToJson(xmlFileInfo.data);
-      await Future.delayed(Duration(seconds: 1));
-      final book = await widget.service.addProject(json, xmlFileInfo, project);
+        final book = await widget.service.addProject(json, xmlFileInfo, project);
       if (book != null) {
         Navigator.push(
           context,
@@ -98,11 +96,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       }
       return;
     }
-    await Future.delayed(Duration(seconds: 1));
     try {
       final json = await widget.service.convertXmlToJson(xmlFileInfo.data);
-      await Future.delayed(Duration(seconds: 1));
-      final book = await widget.service.addProject(json, xmlFileInfo, null);
+        final book = await widget.service.addProject(json, xmlFileInfo, null);
       if (book != null) {
         Navigator.push(
           context,

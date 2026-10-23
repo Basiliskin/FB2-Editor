@@ -2,10 +2,23 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
 import 'dart:typed_data';
+import 'dart:ui' as ui;
+import 'package:flutter/foundation.dart';
 import 'package:image/image.dart';
 import 'package:xml/xml.dart';
 import 'package:path/path.dart' as path;
 import 'cp1251.dart';
+
+/// Runs [body] and logs its duration in debug builds (`[load] label: N ms`).
+Future<T> timed<T>(String label, Future<T> Function() body) async {
+  if (!kDebugMode) return body();
+  final sw = Stopwatch()..start();
+  try {
+    return await body();
+  } finally {
+    debugPrint('[load] $label: ${sw.elapsedMilliseconds} ms');
+  }
+}
 
 const _chars = 'AaBbCcDdEeFfGgHhIiJjKkLlMmNnOoPpQqRrSsTtUuVvWwXxYyZz1234567890';
 Random _rnd = Random();
@@ -97,17 +110,46 @@ resizeImageBytes(bytes, width, quality) async {
   return bytes;
 }
 
-resizeImage(base64, width) async {
+/// Thumbnail as base64 jpg, or null. The native codec decodes and downscales
+/// (fast, off the UI thread); only the tiny result is re-encoded in Dart. Falls
+/// back to the pure-Dart path in an isolate if the platform can't decode it.
+Future resizeImage(base64, width) async {
   try {
-    Uint8List bytes = decode64Image(base64);
+    // base64 of a large cover is megabytes: strip/decode it off the UI isolate
+    final bytes = await compute(_decode64Bytes, base64 as String);
+    if (bytes == null) return null;
+    final codec = await ui.instantiateImageCodec(bytes, targetWidth: width);
+    final frame = await codec.getNextFrame();
+    final small = frame.image;
+    final data = await small.toByteData(format: ui.ImageByteFormat.rawRgba);
+    final thumb = Image.fromBytes(
+        width: small.width,
+        height: small.height,
+        bytes: data!.buffer,
+        numChannels: 4);
+    small.dispose();
+    codec.dispose();
+    return base64Encode(encodeJpg(thumb, quality: 75));
+  } catch (e) {
+    print(e);
+  }
+  return compute(_resizeImageSync, [base64, width]);
+}
+
+Uint8List? _decode64Bytes(String img) => decode64Image(img) as Uint8List?;
+
+String? _resizeImageSync(List args) {
+  try {
+    Uint8List bytes = decode64Image(args[0]);
 
     final image = decodeImage(bytes)!;
-    final thumbnail = copyResize(image, width: width);
+    final thumbnail = copyResize(image, width: args[1]);
     List<int> jpg = encodeJpg(thumbnail, quality: 75);
     return base64Encode(jpg);
   } catch (e) {
     print(e);
   }
+  return null;
 }
 
 decode64Image(String img) {
@@ -133,19 +175,10 @@ Future<Uint8List> readFileByte(String filePath) async {
   return bytes;
 }
 
+final _specialChars = RegExp(r'\\{1,2}[nrt]|[\n\r\t]');
+
 trimSpecialChar(String? text, [char = '']) {
-  return text != null
-      ? text
-          .replaceAll("\\\\n", char)
-          .replaceAll("\\\\r", char)
-          .replaceAll("\\\\t", char)
-          .replaceAll('\\n', char)
-          .replaceAll('\\t', char)
-          .replaceAll('\\r', char)
-          .replaceAll('\n', char)
-          .replaceAll('\t', char)
-          .replaceAll('\r', char)
-      : "";
+  return text != null ? text.replaceAll(_specialChars, char) : "";
 }
 
 Future<File> moveFile(File sourceFile, String newPath) async {
@@ -198,18 +231,22 @@ File? findFb2File(Directory dir) {
   return matches.isEmpty ? null : matches.first;
 }
 
-readAsString(file) async {
-  final bytes = await file.readAsBytes();
+final _declaredEncoding = RegExp(r'encoding\s*=\s*["\x27]([^"\x27]+)', caseSensitive: false);
+
+/// Decodes FB2 bytes using the encoding declared in the XML header, so
+/// windows-1251 files skip a failed full-file UTF-8 pass.
+String decodeFb2Bytes(List<int> bytes) {
+  final head = latin1.decode(bytes.take(200).toList(), allowInvalid: true);
+  final enc = _declaredEncoding.firstMatch(head)?.group(1)?.toLowerCase();
+  if (enc == 'windows-1251' || enc == 'cp1251') return decodeCp1251(bytes);
   try {
-    String text = utf8.decode(bytes);
-    return text;
+    return utf8.decode(bytes);
   } catch (e) {
-    String asci = decodeCp1251(bytes);
-    return asci;
+    return decodeCp1251(bytes);
   }
-  // String text = await file.readAsString(encoding: utf8);
-  // return text;
 }
+
+readAsString(file) async => decodeFb2Bytes(await file.readAsBytes());
 
 _cleanElement(XmlNode node) {
   if (node is XmlText) return trimSpecialChar(node.outerXml);

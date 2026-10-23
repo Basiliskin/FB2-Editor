@@ -10,7 +10,6 @@ import 'package:quill_fb2/models/project.model.dart';
 import 'package:quill_fb2/models/section.model.dart';
 import 'package:quill_fb2/utils/common.dart';
 import 'package:quill_fb2/utils/consts.dart';
-import 'package:quill_fb2/utils/cp1251.dart';
 import 'package:quill_fb2/utils/file_download.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:flutter_file_dialog/flutter_file_dialog.dart';
@@ -146,15 +145,18 @@ class AppService {
 
   addProject(projectData, fileInfo, book) async {
     String projId = book != null ? book['projectId'] : '';
+    final sw = Stopwatch()..start();
     ProjectModel model = ProjectModel.fromJson(projectData, projId);
+    if (kDebugMode) debugPrint('[load] build model: ${sw.elapsedMilliseconds} ms');
     if (fileInfo != null && book == null) {
       final currentProjectPath = kIsWeb
           ? fileInfo.path
           : '${await _localPath}/${model.projectId}$BOOK_EXT';
-      Map info = await model.getInfo(
-        kIsWeb ? null : fileInfo,
-        currentProjectPath,
-      );
+      Map info = await timed('book info + cover thumbnail',
+          () async => await model.getInfo(
+                kIsWeb ? null : fileInfo,
+                currentProjectPath,
+              ));
 
       _workspace["currentProject"] = currentProjectPath;
       if (_workspace["history"].length >= MAX_BOOK_IN_HISTORY)
@@ -221,10 +223,16 @@ class AppService {
     return _project;
   }
 
+  // decoded bytes by base64 string; a stable list keeps MemoryImage cache hits
+  final Map<String, Uint8List> _imageCache = {};
+
   base64Image(base64, provider) {
     if (base64 != "")
       try {
-        Uint8List _image = decode64Image(base64);
+        Uint8List? _image = _imageCache.remove(base64);
+        _image ??= decode64Image(base64) as Uint8List;
+        _imageCache[base64] = _image;
+        if (_imageCache.length > 16) _imageCache.remove(_imageCache.keys.first);
         final img = provider
             ? MemoryImage(_image)
             : Image.memory(
@@ -276,7 +284,8 @@ class AppService {
   }
 
   convertXmlToJson(xml) async {
-    return _fb2Service.convertXmlToJson(xml);
+    return timed('parse xml (${(xml.length / 1024).round()} KB)',
+        () async => _fb2Service.convertXmlToJson(xml));
   }
 
   loadBook(Map book) async {
@@ -291,8 +300,10 @@ class AppService {
   Future loadFile(filePath) async {
     try {
       final appPath = await _localPath;
-      File file = await moveFileTo(filePath, appPath);
-      String text = await readAsString(file); //.readAsString(encoding: utf8);
+      File file = await timed<File>('copy to app dir',
+          () async => await moveFileTo(filePath, appPath) as File);
+      String text = await timed<String>(
+          'read+decode', () async => await readAsString(file) as String);
       print(filePath);
       print(text.length);
       return FileInfo(text, file.path);
@@ -342,13 +353,7 @@ class AppService {
             if (bytes == null || ext != 'fb2') {
               return null;
             }
-            String text;
-            try {
-              text = utf8.decode(bytes, allowMalformed: false);
-            } catch (_) {
-              text = decodeCp1251(bytes);
-            }
-            return FileInfo(text, file.name);
+            return FileInfo(decodeFb2Bytes(bytes), file.name);
           }
           // final name = file.name;
           final path = file.path;

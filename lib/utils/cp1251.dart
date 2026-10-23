@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 List cp1251 = [
   '\u0000',
   '\u0001',
@@ -257,10 +259,13 @@ List cp1251 = [
   '\u044F'
 ];
 
+final Uint16List _cp1251Units =
+    Uint16List.fromList(cp1251.map<int>((c) => (c as String).codeUnitAt(0)).toList());
+
 decodeCp1251(bytes) {
-  StringBuffer htmlBuffer = new StringBuffer();
-  for (num i = 0; i < bytes.length; i++) {
-    htmlBuffer.write('${cp1251[bytes[i]]}');
+  final units = Uint16List(bytes.length);
+  for (var i = 0; i < units.length; i++) {
+    units[i] = _cp1251Units[bytes[i]];
   }
-  return htmlBuffer.toString();
+  return String.fromCharCodes(units);
 }
