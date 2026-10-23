@@ -63,7 +63,9 @@ dependency_overrides:
 
 flutter_icons:
   android: true
-  image_path_android: "images/logo.png"
+  image_path_android: "images/logo_full.png"
+  adaptive_icon_background: "#2B1E1A"
+  adaptive_icon_foreground: "images/logo_foreground.png"
   ios: false
   image_path: "images/android-icon-192x192.png"
 
