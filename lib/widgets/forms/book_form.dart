@@ -10,6 +10,7 @@ import 'package:quill_fb2/widgets/forms/image.dart';
 import 'package:quill_fb2/widgets/loading.dialog.dart';
 
 import 'package:quill_fb2/ui/widgets.dart';
+import 'package:quill_fb2/ui/book_info.dart';
 import 'annotation.dart';
 import 'label.dart';
 
@@ -49,15 +50,27 @@ class _BookComponentState extends State<BookComponent> {
   }
 
   _createFormField(LangTranslateItems fieldName, String value,
-      [bool validate = false]) {
+      {bool validate = false,
+      TextStyle? style,
+      int maxLines = 1,
+      bool flat = false}) {
     final label = widget.service.translate(fieldName);
+    final c = Theme.of(context).colorScheme;
     return EasyTextFormField(
       initialValue: value,
       name: fieldName.name,
+      style: style,
+      maxLines: maxLines,
       decoration: InputDecoration(
         labelText: label,
-        hintText:
-            '${widget.service.translate(LangTranslateItems.hintMessage)} $label',
+        isDense: true,
+        filled: !flat,
+        fillColor: c.surfaceContainerHighest.withValues(alpha: .5),
+        border: flat
+            ? const UnderlineInputBorder()
+            : OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide.none),
       ),
       validator: (value, [values = defaultMap]) {
         if (validate && value!.isEmpty) {
@@ -77,56 +90,25 @@ class _BookComponentState extends State<BookComponent> {
     try {
       Map setting = widget.service.getSettings();
       final book = widget.book;
-      {
-        final s = widget.service;
-        final labelForm = (String name, String hint, List<String> items) =>
-            LabelFormField(name: name, initialValue: LabelData(hint, items));
-        return PageBody(
-            child: ListView(
-                padding: const EdgeInsets.fromLTRB(16, 20, 16, 120),
-                children: [
-              SettingsGroup(tr(s, 'Cover & title', 'Обложка и название'), icon: Icons.menu_book_outlined, [
-                Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  ImageFormField(
-                    name: 'bookCoverPage',
-                    initialValue: book.getImageBySectionId('cover'),
-                    width: stringToInt(setting["image-width"]),
-                    quality: stringToInt(setting["image-quality"]),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                      child: Column(children: [
-                    _createFormField(LangTranslateItems.bookTitle,
-                        trimSpecialChar(book.bookTitle, ' ')),
-                    _createFormField(LangTranslateItems.bookVersion, book.version),
-                    _createFormField(LangTranslateItems.bookId, book.id),
-                  ])),
-                ]),
-              ]),
-              SettingsGroup(tr(s, 'Author', 'Автор'), icon: Icons.person_outline, [
-                Row(children: [
-                  Expanded(child: _createFormField(LangTranslateItems.authorFirst, book.author.firstName)),
-                  const SizedBox(width: 12),
-                  Expanded(child: _createFormField(LangTranslateItems.authorMid, book.author.middleName)),
-                  const SizedBox(width: 12),
-                  Expanded(child: _createFormField(LangTranslateItems.authorLast, book.author.lastName)),
-                ]),
-                _createFormField(LangTranslateItems.authorHomePage, book.author.homePage),
-              ]),
-              SettingsGroup(tr(s, 'Genre', 'Жанр'), icon: Icons.sell_outlined, [
-                labelForm('genre', s.translate(LangTranslateItems.bookGenre), book.genre),
-              ]),
-              SettingsGroup(tr(s, 'Series', 'Серия'), icon: Icons.collections_bookmark_outlined, [
-                labelForm('sequence', s.translate(LangTranslateItems.bookSequence), book.sequence),
-              ]),
-              SettingsGroup(tr(s, 'Annotation', 'Аннотация'), icon: Icons.notes, [
-                AnnotationFormField(
-                    name: 'annotation',
-                    initialValue: AnnotationData(
-                        s.translate(LangTranslateItems.bookAnnotation), book.annotation)),
-              ]),
-            ]));
-      }
+      final kit = InfoKit(widget.service, book,
+          text: (n, val, {style, maxLines = 1, flat = false}) =>
+              _createFormField(n, val,
+                  style: style, maxLines: maxLines, flat: flat),
+          cover: (w) => ImageFormField(
+                name: 'bookCoverPage',
+                initialValue: book.getImageBySectionId('cover'),
+                width: stringToInt(setting["image-width"]),
+                quality: stringToInt(setting["image-quality"]),
+                coverWidth: w,
+              ),
+          labels: (name, hint, items) =>
+              LabelFormField(name: name, initialValue: LabelData(hint, items)),
+          annotation: () => AnnotationFormField(
+              name: 'annotation',
+              initialValue: AnnotationData(
+                  widget.service.translate(LangTranslateItems.bookAnnotation),
+                  book.annotation)));
+      return BookInfoLayout(kit);
     } catch (e) {
       _log(e.toString());
       return Text(widget.service.translate(LangTranslateItems.messageError));

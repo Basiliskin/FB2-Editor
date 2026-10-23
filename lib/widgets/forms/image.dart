@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:quill_fb2/services/app.service.dart';
@@ -13,19 +14,21 @@ class ImageField extends EasyFormGenericField<String> {
   final picker = ImagePicker();
   int? _width = 600;
   int? _quality = 75;
+  final double coverWidth;
   ImageField(
       {Key? key,
       @required ImageController? controller,
       ValueChanged<String?>? onChange,
       int? width,
-      int? quality})
+      int? quality,
+      this.coverWidth = 110})
       : super(
           key: key,
           controller: controller!,
           onChange: onChange,
         ) {
-    this._width = width;
-    this._quality = _quality;
+    this._width = width ?? _width;
+    this._quality = quality ?? _quality;
   }
 
   _change() async {
@@ -35,7 +38,9 @@ class ImageField extends EasyFormGenericField<String> {
       print(pickedFile.path);
       List<int> imageBytes = await readFileByte(pickedFile.path);
 
-      value = await resizeImageBytes(imageBytes, _width, _quality);
+      final resized = await resizeImageBytes(imageBytes, _width, _quality);
+      // At 100 quality resizeImageBytes returns the original bytes untouched.
+      value = resized is String ? resized : base64Encode(resized);
     } else {
       print('No image selected.');
     }
@@ -80,8 +85,8 @@ class ImageField extends EasyFormGenericField<String> {
         GestureDetector(
             onTap: _change,
             child: Container(
-              width: 110,
-              height: 160,
+              width: coverWidth,
+              height: coverWidth * 1.45,
               decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(10),
                   border: Border.all(color: c.outlineVariant),
@@ -118,7 +123,8 @@ class ImageFormField extends EasyCustomFormField<String?, ImageController> {
       ImageController? controller,
       String? initialValue,
       int? width,
-      int? quality})
+      int? quality,
+      double coverWidth = 110})
       : super(
           key: key,
           name: (name as String),
@@ -131,6 +137,7 @@ class ImageFormField extends EasyCustomFormField<String?, ImageController> {
               onChange: onChangedHandler,
               width: width,
               quality: quality,
+              coverWidth: coverWidth,
             );
           },
         );

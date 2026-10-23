@@ -187,6 +187,17 @@ readyAscii(bytes) {
   }
 }
 
+/// First `.fb2` file under [dir] (recursive, case-insensitive), or null.
+File? findFb2File(Directory dir) {
+  final matches = dir
+      .listSync(recursive: true)
+      .whereType<File>()
+      .where((f) => f.path.toLowerCase().endsWith('.fb2'))
+      .toList()
+    ..sort((a, b) => a.path.compareTo(b.path));
+  return matches.isEmpty ? null : matches.first;
+}
+
 readAsString(file) async {
   final bytes = await file.readAsBytes();
   try {

@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:quill_fb2/utils/common.dart';
@@ -6,6 +7,31 @@ import 'package:quill_fb2/utils/consts.dart';
 import 'package:xml/xml.dart';
 
 void main() {
+  group('findFb2File', () {
+    late Directory dir;
+    setUp(() => dir = Directory.systemTemp.createTempSync('fb2_zip_test'));
+    tearDown(() => dir.deleteSync(recursive: true));
+
+    test('returns null when no fb2 is present', () {
+      File('${dir.path}/cover.jpg').writeAsStringSync('x');
+      File('${dir.path}/readme.txt').writeAsStringSync('x');
+      expect(findFb2File(dir), isNull);
+    });
+    test('returns null for an empty directory', () {
+      expect(findFb2File(dir), isNull);
+    });
+    test('skips non-fb2 files that sort first', () {
+      File('${dir.path}/a.jpg').writeAsStringSync('x');
+      File('${dir.path}/b.fb2').writeAsStringSync('x');
+      expect(findFb2File(dir)!.path, endsWith('b.fb2'));
+    });
+    test('finds nested files with uppercase extension', () {
+      Directory('${dir.path}/sub').createSync();
+      File('${dir.path}/sub/Book.FB2').writeAsStringSync('x');
+      expect(findFb2File(dir)!.path, endsWith('Book.FB2'));
+    });
+  });
+
   group('stringToInt', () {
     test('parses numeric strings', () => expect(stringToInt('42'), 42));
     test('maps "best" to 100', () => expect(stringToInt('best'), 100));

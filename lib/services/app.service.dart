@@ -311,8 +311,11 @@ class AppService {
         zipFile: zipFile,
         destinationDir: destinationDir,
       );
-      final files = destinationDir.listSync();
-      File file = File(files.first.path);
+      final file = findFb2File(destinationDir);
+      if (file == null) {
+        await destinationDir.delete(recursive: true);
+        return null;
+      }
       String text = await readAsString(file); //.readAsString(encoding: utf8);
       print(filePath);
       print(text.length);

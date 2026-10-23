@@ -91,6 +91,11 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       setState(() {
         isLoading = false;
       });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('No FB2 book found in the selected file')),
+        );
+      }
       return;
     }
     await Future.delayed(Duration(seconds: 1));
