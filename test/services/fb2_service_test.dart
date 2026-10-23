@@ -187,7 +187,7 @@ void main() {
       final json = await service.convertXmlToJson(_fb2);
       final p = ProjectModel.fromJson(json, 'pid');
       expect(p.projectId, 'pid');
-      expect(p.getBookTitle(), 'Sample Body');
+      expect(p.getBookTitle(), 'Sample');
       expect(p.getAuthor(), 'Ann Lee');
       expect(p.lang, 'en');
       expect(p.genre, ['prose']);

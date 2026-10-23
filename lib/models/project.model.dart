@@ -143,6 +143,10 @@ class ProjectModel {
   List<String> genre = [];
   List<String> sequence = [];
   String bookTitle = '';
+  // The body heading as loaded, written back while the title is not edited:
+  // it often holds more than the title (author line, line breaks).
+  String _bodyTitle = '';
+  String _loadedTitle = '';
   List<String> annotation = [];
   String date = '';
   String lang = '';
@@ -201,7 +205,7 @@ class ProjectModel {
 
   ProjectModel(json, [String projId = '']) {
     projectId = projId.isNotEmpty ? projId : getRandomString(16);
-    bookTitle = safeGet(json, 'bodyTitle', '');
+    _bodyTitle = safeGet(json, 'bodyTitle', '');
     final descriptionValue = safeGet(json, 'description.description', {});
     final description =
         descriptionValue is Map ? descriptionValue : <dynamic, dynamic>{};
@@ -224,9 +228,9 @@ class ProjectModel {
     if (coverPageFile.sectionId.isEmpty) {
       coverPageFile.sectionId = "cover";
     }
-    if (bookTitle.isEmpty) {
-      bookTitle = safeGet(title, 'book-title.\$', '');
-    }
+    bookTitle = safeGet(title, 'book-title.\$', '');
+    if (bookTitle.isEmpty) bookTitle = _bodyTitle;
+    _loadedTitle = bookTitle;
     programUsed = safeGet(document, 'program-used.\$', '');
     srcUrl = safeGet(document, 'src-url.\$', '');
     documentDate = safeGet(document, 'date.\$', '');
@@ -528,7 +532,10 @@ class ProjectModel {
     xml.add(_rest(descriptionExtras, {'src-title-info'}));
     xml.add('</description>');
     xml.add('<body>');
-    xml.add('<title><p>${escapeXml(bookTitle)}</p></title>');
+    final heading = _bodyTitle.isNotEmpty && bookTitle == _loadedTitle
+        ? _bodyTitle
+        : bookTitle;
+    xml.add('<title><p>${escapeXml(heading)}</p></title>');
     section.forEach((element) {
       xml.add(element.toXml());
     });

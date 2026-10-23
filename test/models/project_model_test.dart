@@ -190,13 +190,30 @@ void main() {
       expect(p.srcUrl, 'http://x');
     });
 
-    test('bodyTitle takes precedence over book-title', () {
+    test('book-title is the title; the body heading is only a fallback', () {
       final p = ProjectModel(_json(bodyTitle: 'Body', description: {
         'title-info': {
           'book-title': {r'$': 'Info'}
         }
       }));
-      expect(p.getBookTitle(), 'Body');
+      expect(p.getBookTitle(), 'Info');
+      expect(ProjectModel(_json(bodyTitle: 'Body')).getBookTitle(), 'Body');
+    });
+
+    test('a save keeps book-title and the body heading apart', () {
+      final p = ProjectModel(_json(bodyTitle: 'Author\nBIG TITLE\n', description: {
+        'title-info': {
+          'book-title': {r'$': 'Big Title'}
+        }
+      }));
+      final xml = p.getBookXml() as String;
+      expect(xml, contains('<book-title>Big Title</book-title>'));
+      expect(xml, contains('<title><p>Author\nBIG TITLE\n</p></title>'));
+      // and a second round does not drift
+      p.bookTitle = 'Renamed';
+      final renamed = p.getBookXml() as String;
+      expect(renamed, contains('<book-title>Renamed</book-title>'));
+      expect(renamed, contains('<title><p>Renamed</p></title>'));
     });
 
     test('single genre / annotation paragraph maps are supported', () {
