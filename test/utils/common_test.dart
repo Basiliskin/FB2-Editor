@@ -277,10 +277,6 @@ void main() {
     });
   });
 
-  test('MAX_SECTION_LENGTH is a positive chunk size', () {
-    expect(MAX_SECTION_LENGTH, greaterThan(0));
-  });
-
   group('safeFileName', () {
     test('replaces reserved characters and collapses spaces', () {
       expect(safeFileName('A/B: "C"?  <D>|*'), 'A B C D');

@@ -147,4 +147,74 @@ void main() {
       expect(XmlDocument.parse(second).toXmlString(), first);
     });
   });
+
+  group('section structure survives a save', () {
+    String book(String sections) => '''<?xml version="1.0" encoding="UTF-8"?>
+<FictionBook xmlns="http://www.gribuser.ru/xml/fictionbook/2.0" xmlns:l="http://www.w3.org/1999/xlink">
+<description><title-info><book-title>T</book-title></title-info></description>
+<body><title><p>T</p></title>$sections</body>
+<binary content-type="image/jpeg" id="pic.jpg">QUJD</binary>
+</FictionBook>''';
+
+    Future<ProjectModel> load(String xml) async =>
+        ProjectModel.fromJson(await Fb2Service().convertXmlToJson(xml));
+
+    Future<XmlDocument> resave(ProjectModel p) async {
+      final out = p.getBookXml() as String;
+      // the saved file must load back into the same number of sections
+      return XmlDocument.parse(out);
+    }
+
+    test('a long chapter stays one section with its title and id', () async {
+      final paras = List.generate(1200, (i) => '<p>line $i</p>').join();
+      final p = await load(book(
+          '<section section-id="big"><title><p>Long</p></title>$paras</section>'));
+      expect(p.section, hasLength(1));
+      expect(p.section.single.title, 'Long');
+      expect(p.section.single.sectionId, 'big');
+      expect(p.section.single.p, hasLength(1200));
+
+      final doc = await resave(p);
+      final sections =
+          doc.rootElement.findElements('body').first.findElements('section');
+      expect(sections, hasLength(1));
+      expect(sections.single.findElements('p'), hasLength(1200));
+    });
+
+    test('an image shown once stays once for a long chapter', () async {
+      final paras = List.generate(900, (i) => '<p>x$i</p>').join();
+      final p = await load(book(
+          '<section section-id="s"><title><p>T</p></title><image l:href="#pic.jpg"/>$paras</section>'));
+      final doc = await resave(p);
+      expect(doc.rootElement.descendants.whereType<XmlElement>().where((e) => e.name.local == 'image'),
+          hasLength(1));
+    });
+
+    test('a section with only a title is kept', () async {
+      final p = await load(book(
+          '<section section-id="a"><title><p>Part One</p></title></section>'
+          '<section section-id="b"><title><p>Ch</p></title><p>text</p></section>'));
+      expect(p.section.map((s) => s.title), ['Part One', 'Ch']);
+    });
+
+    test('a section with only a picture is kept', () async {
+      final p = await load(book(
+          '<section section-id="a"><image l:href="#pic.jpg"/></section>'));
+      expect(p.section, hasLength(1));
+      expect(p.section.single.images, ['#pic.jpg']);
+    });
+
+    test('a section added in the app is still there after save and reload',
+        () async {
+      final p = await load(book('<section><title><p>One</p></title><p>x</p></section>'));
+      p.addSection('Brand new');
+      final again = await load(p.getBookXml() as String);
+      expect(again.section.map((s) => s.title), ['One', 'Brand new']);
+    });
+
+    test('a book with no sections at all still opens', () async {
+      final p = await load(book(''));
+      expect(p.section, isEmpty);
+    });
+  });
 }

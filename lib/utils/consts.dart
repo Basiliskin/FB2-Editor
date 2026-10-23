@@ -193,4 +193,3 @@ splitStringByEof(String text) {
   return ls.convert(text);
 }
 
-const MAX_SECTION_LENGTH = 500;

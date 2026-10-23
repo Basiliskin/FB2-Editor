@@ -247,23 +247,29 @@ void main() {
       expect(p.section.single.sectionId, 's1');
     });
 
-    test('skips sections without paragraphs', () {
+    test('keeps a titled section that has no paragraphs', () {
       final p = ProjectModel(_json(sections: [
         {'title': 'Empty', 'p': [], 'sectionId': 's1'}
+      ]));
+      expect(p.section.single.title, 'Empty');
+    });
+
+    test('skips a section with no title, text or picture', () {
+      final p = ProjectModel(_json(sections: [
+        {'title': '', 'p': [], 'sectionId': 's1'}
       ]));
       expect(p.section, isEmpty);
     });
 
-    test('splits oversized sections into MAX_SECTION_LENGTH chunks', () {
-      final paras = List.generate(MAX_SECTION_LENGTH * 2 + 1, (i) => '<p>$i</p>');
+    test('never splits a long section', () {
+      final paras = List.generate(5000, (i) => '<p>$i</p>');
       final p = ProjectModel(_json(sections: [
         {'title': 'Big', 'p': paras, 'sectionId': 's1'}
       ]));
-      expect(p.section, hasLength(3));
-      expect(p.section[0].title, 'Big - 0');
-      expect(p.section[1].title, 'Big - $MAX_SECTION_LENGTH');
-      expect(p.section[0].p, hasLength(MAX_SECTION_LENGTH));
-      expect(p.section[2].p, hasLength(1));
+      expect(p.section, hasLength(1));
+      expect(p.section.single.title, 'Big');
+      expect(p.section.single.sectionId, 's1');
+      expect(p.section.single.p, hasLength(5000));
     });
 
     test('keeps every image that has a resource', () {

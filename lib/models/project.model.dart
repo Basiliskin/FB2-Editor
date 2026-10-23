@@ -172,7 +172,8 @@ class ProjectModel {
     final sectionId = safeGet(json, 'sectionId', '');
     final _p = safeGet(json, 'p', []);
     var img = safeGet(json, 'img', []);
-    if (img.length > 0) {
+    final hadImage = img.length > 0;
+    if (hadImage) {
       final imgRes = img
           .map((name) => binaryResource.find(name))
           .where((i) => i.id.isNotEmpty as bool)
@@ -180,26 +181,12 @@ class ProjectModel {
       img = imgRes.map((res) => '#${res.id}').toList();
     }
 
-    if (_p.length > 0) {
-      if (_p.length > MAX_SECTION_LENGTH)
-        for (var i = 0; i < _p.length; i += MAX_SECTION_LENGTH) {
-          final copy = _p.sublist(
-              i,
-              i + MAX_SECTION_LENGTH > _p.length
-                  ? _p.length
-                  : i + MAX_SECTION_LENGTH);
-          section.add(Section({
-            "title": "$title - $i",
-            "p": copy,
-            "img": img,
-            "sectionId": sectionId
-          }, binaryResource));
-        }
-      else {
-        section.add(Section(
-            {"title": "$title", "p": _p, "img": img, "sectionId": sectionId},
-            binaryResource));
-      }
+    // A chapter is kept whole however long it is (the editor pages its paragraphs),
+    // and so is one that has only a title or a picture, such as a new empty section.
+    if (_p.length > 0 || '$title'.isNotEmpty || hadImage) {
+      section.add(Section(
+          {"title": "$title", "p": _p, "img": img, "sectionId": sectionId},
+          binaryResource));
     }
   }
 

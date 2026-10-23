@@ -205,14 +205,22 @@ indent control. Keep an undo snapshot per section before each range rewrite.
 
 ---
 
-## 7. Big sections are split and renamed on load — Medium [code]
+## 7. Big sections are split and renamed on load — Medium [code] — fixed
 
 **Cause.** `project.model.dart:179-206` splits any section with more than `MAX_SECTION_LENGTH = 500`
 paragraphs into several `Section`s titled `"$title - $i"`, all with the **same `sectionId`**. They are
 then saved as separate sections, so the book structure changes silently, ids collide, and images attach
 to every chunk (a probable cause of the "first image appears double" review; unverified).
 
-**Reproduce.** Open a book with a 1200-paragraph chapter, save without edits: three sections
+**Done:** the split is removed (it dates from when the editor laid out a whole section eagerly; the
+editor now pages paragraphs and has a 5000-paragraph scroll test). A second loss in the same
+function is fixed too: sections with no paragraphs were dropped on load, so a "New section" that
+was still empty, a title-only part heading, or a picture-only section vanished after save and
+reopen. Sections are now dropped only when they have no title, text or picture. Covered by
+`test/services/fb2_roundtrip_test.dart`. Issue 6's "end of the chapter remains" report is not
+explained by this and still needs a reproduction.
+
+**Reproduce (before the fix).** Open a book with a 1200-paragraph chapter, save without edits: three sections
 `Chapter - 0`, `Chapter - 500`, `Chapter - 1000`, each with the chapter image.
 
 **Fix.** Page inside the editor (the new `loadRange` already enables this) and keep one `Section` per
