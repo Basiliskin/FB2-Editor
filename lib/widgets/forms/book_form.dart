@@ -37,7 +37,7 @@ class _BookComponentState extends State<BookComponent> {
     if (!mounted) return;
     final snackBar = SnackBar(
         content: Text(
-            '${widget.book.bookTitle} ${widget.service.translate(LangTranslateItems.messageSaved)}'));
+            '${widget.book.bookTitle}: ${widget.service.translate(LangTranslateItems.messageSavedInApp)}'));
     ScaffoldMessenger.of(context).showSnackBar(snackBar);
     setState(() {
       isLoading = false;

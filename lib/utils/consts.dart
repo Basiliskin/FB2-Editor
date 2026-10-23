@@ -67,7 +67,12 @@ enum LangTranslateItems {
   openErrorUnreadable,
   openErrorNoFb2InZip,
   openErrorNotFb2,
-  openErrorTimeout
+  openErrorTimeout,
+  messageSavedInApp,
+  messageExported,
+  unsavedTitle,
+  unsavedBody,
+  buttonDiscard
 }
 
 const LANGUAGES = {"eng": "English", "ru": "Русский"};
@@ -97,6 +102,12 @@ const LANG_TRANSLATE = {
     LangTranslateItems.bookAnnotation: 'Enter Annotation',
     LangTranslateItems.messageError: "Error",
     LangTranslateItems.messageLoading: "Loading",
+    LangTranslateItems.messageSavedInApp:
+        "Saved in the app. Use Export to create the .fb2 file.",
+    LangTranslateItems.messageExported: "Exported",
+    LangTranslateItems.unsavedTitle: "Unsaved changes",
+    LangTranslateItems.unsavedBody: "Save your changes before leaving?",
+    LangTranslateItems.buttonDiscard: "Don't save",
     LangTranslateItems.openErrorUnsupported:
         "Unsupported file type. Choose an .fb2 file or a .zip archive with one.",
     LangTranslateItems.openErrorUnreadable: "The file could not be read.",
@@ -140,6 +151,12 @@ const LANG_TRANSLATE = {
     LangTranslateItems.bookAnnotation: 'Введите аннотацию',
     LangTranslateItems.messageError: "Ошибка",
     LangTranslateItems.messageLoading: "Загрузка",
+    LangTranslateItems.messageSavedInApp:
+        "Сохранено в приложении. Чтобы получить файл .fb2, нажмите «Экспорт».",
+    LangTranslateItems.messageExported: "Экспортировано",
+    LangTranslateItems.unsavedTitle: "Есть несохранённые изменения",
+    LangTranslateItems.unsavedBody: "Сохранить изменения перед выходом?",
+    LangTranslateItems.buttonDiscard: "Не сохранять",
     LangTranslateItems.openErrorUnsupported:
         "Неподдерживаемый тип файла. Выберите файл .fb2 или архив .zip с ним.",
     LangTranslateItems.openErrorUnreadable: "Не удалось прочитать файл.",

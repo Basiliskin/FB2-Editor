@@ -20,8 +20,14 @@ class _FakeService extends AppService {
     saves++;
   }
 
+  String? exportResult = '/exported/path.fb2';
+  final exportedParagraphs = <List<String>>[];
+
   @override
-  exportProject(ProjectModel model) async => '/exported/path.fb2';
+  exportProject(ProjectModel model) async {
+    exportedParagraphs.add([...model.section.last.p]);
+    return exportResult;
+  }
 
   @override
   getSettings() => settings;
@@ -239,6 +245,106 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byType(SectionEditor), findsNothing);
     expect(service.saves, 1);
+  });
+
+  group('leaving with unsaved changes', () {
+    Future<void> openEditor(WidgetTester tester) async {
+      section = book.addSection('S');
+      section.p = paras(2);
+      service.markSaved(book);
+      await tester.pumpWidget(MaterialApp(
+          home: Builder(
+              builder: (c) => TextButton(
+                  onPressed: () => Navigator.push(
+                      c,
+                      MaterialPageRoute(
+                          builder: (_) => SectionEditor(service, book, section))),
+                  child: const Text('open')))));
+      await tester.tap(find.text('open'));
+      await tester.pumpAndSettle();
+    }
+
+    Future<void> edit(WidgetTester tester) async {
+      await activate(tester, 'para 1');
+      controller(tester).replaceText(0, 0, 'Y', null);
+      await tester.pump();
+    }
+
+    testWidgets('nothing edited: leaves without asking', (tester) async {
+      await openEditor(tester);
+      await tester.tap(find.byIcon(Icons.arrow_back));
+      await tester.pumpAndSettle();
+      expect(find.byType(SectionEditor), findsNothing);
+      expect(find.text('Unsaved changes'), findsNothing);
+    });
+
+    testWidgets('Save keeps the edit and leaves', (tester) async {
+      await openEditor(tester);
+      await edit(tester);
+      await tester.tap(find.byIcon(Icons.arrow_back));
+      await tester.pumpAndSettle();
+      expect(find.text('Unsaved changes'), findsOneWidget);
+      await tester.tap(find.text('Save'));
+      await tester.pumpAndSettle();
+      expect(service.saves, 1);
+      expect(section.p[1], '<p>Ypara 1</p>');
+      expect(find.byType(SectionEditor), findsNothing);
+    });
+
+    testWidgets("Don't save leaves without saving", (tester) async {
+      await openEditor(tester);
+      await edit(tester);
+      await tester.tap(find.byIcon(Icons.arrow_back));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text("Don't save"));
+      await tester.pumpAndSettle();
+      expect(service.saves, 0);
+      expect(find.byType(SectionEditor), findsNothing);
+    });
+
+    testWidgets('Cancel stays in the editor', (tester) async {
+      await openEditor(tester);
+      await edit(tester);
+      await tester.tap(find.byIcon(Icons.arrow_back));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Cancel'));
+      await tester.pumpAndSettle();
+      expect(service.saves, 0);
+      expect(find.byType(SectionEditor), findsOneWidget);
+      await dispose(tester);
+    });
+
+    testWidgets('the system back gesture asks too', (tester) async {
+      await openEditor(tester);
+      await edit(tester);
+      await tester.binding.handlePopRoute();
+      await tester.pumpAndSettle();
+      expect(find.text('Unsaved changes'), findsOneWidget);
+      await tester.tap(find.text('Cancel'));
+      await tester.pumpAndSettle();
+      await dispose(tester);
+    });
+  });
+
+  testWidgets('export includes the paragraph being edited', (tester) async {
+    await pump(tester, paras(2));
+    await activate(tester, 'para 1');
+    controller(tester).replaceText(0, 0, 'Y', null);
+    await tester.pump();
+    await tester.tap(find.byIcon(Icons.fact_check_outlined));
+    await tester.pump();
+    await tester.pump();
+    expect(service.exportedParagraphs.single[1], '<p>Ypara 1</p>');
+    await dispose(tester);
+  });
+
+  testWidgets('a cancelled export shows no message', (tester) async {
+    service.exportResult = null;
+    await pump(tester, paras(2));
+    await tester.tap(find.byIcon(Icons.fact_check_outlined));
+    await tester.pump();
+    await tester.pump();
+    expect(find.byType(SnackBar), findsNothing);
   });
 
   testWidgets('help and export buttons', (tester) async {

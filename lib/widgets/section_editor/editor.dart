@@ -15,6 +15,7 @@ import 'package:quill_fb2/pages/help_page.dart';
 import 'package:quill_fb2/services/app.service.dart';
 import 'package:quill_fb2/utils/common.dart';
 import 'package:quill_fb2/utils/consts.dart';
+import 'package:quill_fb2/widgets/leave_dialog.dart';
 import 'package:quill_fb2/widgets/loading.dialog.dart';
 import 'package:quill_fb2/widgets/section_editor/toolbar.dart';
 import 'package:prompt_dialog/prompt_dialog.dart';
@@ -163,9 +164,16 @@ class _SectionEditorState extends State<SectionEditor>
       setState(() => _active = -1);
     }
     await widget.service.saveProject(widget.book);
-    final snackBar =
-        SnackBar(content: BaseText.Text('${widget.book.bookTitle} Saved'));
+    if (!mounted) return;
+    final snackBar = SnackBar(
+        content: BaseText.Text(
+            '${widget.book.bookTitle}: ${widget.service.translate(LangTranslateItems.messageSavedInApp)}'));
     ScaffoldMessenger.of(context).showSnackBar(snackBar);
+  }
+
+  /// Puts the paragraph being edited into the book, so saving and exporting see it.
+  _flushActive() {
+    if (_commitActive() != 1) setState(() => _active = -1);
   }
 
   _editContent(int previousBookmark, [String tag = '', cb]) async {
@@ -456,13 +464,10 @@ class _SectionEditorState extends State<SectionEditor>
   }
 
   _navigateBack(BuildContext context) async {
-    Map settings = widget.service.getSettings();
-    bool autoSave = stringToBool(settings["auto-save"]) ?? false;
-    print(autoSave);
-    if (autoSave) {
-      await _save();
+    _flushActive();
+    if (await confirmLeave(context, widget.service, widget.book) && mounted) {
+      Navigator.of(context).pop();
     }
-    Navigator.of(context).pop();
   }
 
   @override
@@ -472,7 +477,12 @@ class _SectionEditorState extends State<SectionEditor>
     final ModalRoundedProgressBar progressBar =
         ModalRoundedProgressBar(0.95, "Loading");
     List<Widget> stackItems = [];
-    final scaffold = Scaffold(
+    final scaffold = PopScope(
+        canPop: false,
+        onPopInvokedWithResult: (didPop, _) {
+          if (!didPop) _navigateBack(context);
+        },
+        child: Scaffold(
       backgroundColor: Theme.of(context).colorScheme.surfaceContainer,
       appBar: appBarFor(
               context,
@@ -496,9 +506,14 @@ class _SectionEditorState extends State<SectionEditor>
                     tooltip: tr(widget.service, 'Export .fb2', 'Экспорт .fb2'),
                     icon: const Icon(Icons.fact_check_outlined),
                     onPressed: () async {
+                      _flushActive();
                       final filePath = await widget.service.exportProject(widget.book);
-                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                          content: BaseText.Text('${widget.book.bookTitle} Saved\n$filePath')));
+                      final message =
+                          exportedMessage(widget.service, widget.book, filePath);
+                      if (message != null && mounted) {
+                        ScaffoldMessenger.of(context)
+                            .showSnackBar(SnackBar(content: BaseText.Text(message)));
+                      }
                     }),
               ],
             ),
@@ -532,7 +547,7 @@ class _SectionEditorState extends State<SectionEditor>
       //     borderRadius: BorderRadius.circular(2),
       //   ),
       // )
-    );
+    ));
     stackItems.add(scaffold);
     if (isLoading) stackItems.add(progressBar);
 

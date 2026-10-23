@@ -144,12 +144,25 @@ detection, killing the isolate after a timeout (it keeps running until it finish
 
 ---
 
-## 5. Saved changes do not show up / unclear where files go — High [review]
+## 5. Saved changes do not show up / unclear where files go — High [code] — fixed
 
 **Reviews:** "edit, save, close/open — no changes"; "doesn't save changes" (x4);
 "you need to save twice: floppy icon to the internal image, then stack icon to a file";
 "unclear where the file is saved; can't choose a path"; "deleted text in the editor, reader shows
 nothing changed, editor shows it fine".
+
+**Confirmed in the code (before the fix).** `exportProject` handed the dialog the stored app copy
+without saving first, so an export from the section editor skipped the paragraph being edited and any
+unsaved change. The exported file was named `<random id>.fb2`. A cancelled dialog still showed
+"Saved ... null". Leaving the editor with auto-save off silently kept nothing.
+
+**Done:** export saves first (and the editor commits the open paragraph first); file named
+"Author - Title.fb2"; no message on cancel, the path on success; "Saved in the app. Use Export..."
+wording; leaving the editor or book with unsaved changes asks Save / Don't save / Cancel (silent save
+when auto-save is on); the system back gesture goes through the same check; help text explains reader
+caching. **Not done:** a single combined Save button, choosing the folder in settings, a `.bak` copy
+(the app never overwrites the original: it works on a private copy and exports to a new file, so it
+is not needed).
 
 **Cause.** There are two separate saves: one into the app's private workspace and one export to a
 user file. The first looks like a complete save. Readers keep their own cached copy of the book, so

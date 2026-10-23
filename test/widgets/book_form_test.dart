@@ -79,8 +79,8 @@ void main() {
   testWidgets('saving shows a confirmation with the title', (tester) async {
     await pump(tester);
     await save(tester);
-    expect(find.text('New title Saved'), findsNothing);
-    expect(find.text('Sample Saved'), findsOneWidget);
+    expect(find.textContaining('New title'), findsNothing);
+    expect(find.textContaining('Sample: Saved in the app'), findsOneWidget);
   });
 
   testWidgets('genre edits are saved', (tester) async {

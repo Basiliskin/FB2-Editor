@@ -253,6 +253,19 @@ readAsString(file) async => decodeFb2Bytes(await file.readAsBytes());
 /// Keeps inline markup (links, nested formatting) intact; only strips line breaks and tabs.
 _cleanElement(XmlNode node) => trimSpecialChar(node.outerXml);
 
+/// A file name that every file system accepts: no separators or reserved
+/// characters, collapsed spaces, at most [maxLength] characters.
+String safeFileName(String name, {int maxLength = 100}) {
+  final cleaned = name
+      .replaceAll(RegExp(r'[\\/:*?"<>|\x00-\x1f]'), ' ')
+      .replaceAll(RegExp(r'\s+'), ' ')
+      .trim()
+      .replaceAll(RegExp(r'^[.\s]+'), '');
+  return cleaned.length > maxLength
+      ? cleaned.substring(0, maxLength).trim()
+      : cleaned;
+}
+
 /// Escapes text for use as element content or inside a double-quoted attribute.
 String escapeXml(String? text) => (text ?? '')
     .replaceAll('&', '&amp;')

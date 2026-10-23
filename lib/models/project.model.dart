@@ -311,6 +311,14 @@ class ProjectModel {
     return "${author.firstName} ${author.lastName}";
   }
 
+  /// "Author - Title.fb2", falling back to the project id so the name is never empty.
+  String get exportFileName {
+    final who = safeFileName('${author.lastName} ${author.firstName}');
+    final what = safeFileName(bookTitle);
+    final name = [who, what].where((s) => s.isNotEmpty).join(' - ');
+    return '${name.isEmpty ? projectId : name}$BOOK_EXT';
+  }
+
   getBookTitle() {
     return "$bookTitle";
   }

@@ -22,6 +22,7 @@ const _fb2 = '''<?xml version="1.0" encoding="UTF-8"?>
 class _FakeService extends AppService {
   int saves = 0;
   final exported = <ProjectModel>[];
+  String? exportResult = '/exported/book.fb2';
 
   @override
   saveProject(ProjectModel model) async => saves++;
@@ -29,7 +30,7 @@ class _FakeService extends AppService {
   @override
   exportProject(ProjectModel model) async {
     exported.add(model);
-    return '/exported/book.fb2';
+    return exportResult;
   }
 
   @override
@@ -124,6 +125,68 @@ void main() {
     await tester.pumpAndSettle();
     expect(service.exported, [book]);
     expect(find.textContaining('/exported/book.fb2'), findsOneWidget);
+  });
+
+  testWidgets('a cancelled export shows no message', (tester) async {
+    service.exportResult = null;
+    await pump(tester);
+    await tester.tap(find.byIcon(Icons.storage_outlined));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('Exported'), findsNothing);
+  });
+
+  testWidgets('the export message replaces the "saved" notice', (tester) async {
+    await pump(tester);
+    await tester.tap(find.byIcon(Icons.storage_outlined));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('Exported'), findsOneWidget);
+    expect(find.textContaining('Saved in the app'), findsNothing);
+  });
+
+  group('leaving the book', () {
+    Future<void> openBook(WidgetTester tester) async {
+      tester.view.physicalSize = const Size(800, 1600);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      await tester.pumpWidget(MaterialApp(
+          home: Builder(
+              builder: (c) => TextButton(
+                  onPressed: () => Navigator.push(
+                      c,
+                      MaterialPageRoute(
+                          builder: (_) => BookPage(
+                              service, book, StreamController<void>.broadcast()))),
+                  child: const Text('open')))));
+      await tester.tap(find.text('open'));
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('an unedited book just closes', (tester) async {
+      service.markSaved(book);
+      await openBook(tester);
+      await tester.binding.handlePopRoute();
+      await tester.pumpAndSettle();
+      expect(find.byType(BookPage), findsNothing);
+      expect(find.text('Unsaved changes'), findsNothing);
+    });
+
+    testWidgets('unsaved section changes ask before closing', (tester) async {
+      service.markSaved(book);
+      book.addSection('Extra');
+      await openBook(tester);
+      await tester.binding.handlePopRoute();
+      await tester.pumpAndSettle();
+      expect(find.text('Unsaved changes'), findsOneWidget);
+      await tester.tap(find.text('Cancel'));
+      await tester.pumpAndSettle();
+      expect(find.byType(BookPage), findsOneWidget);
+
+      await tester.binding.handlePopRoute();
+      await tester.pumpAndSettle();
+      await tester.tap(find.text("Don't save"));
+      await tester.pumpAndSettle();
+      expect(find.byType(BookPage), findsNothing);
+    });
   });
 
   testWidgets('tapping a tab saves, and the FAB only shows on sections',

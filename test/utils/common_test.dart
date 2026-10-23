@@ -280,4 +280,22 @@ void main() {
   test('MAX_SECTION_LENGTH is a positive chunk size', () {
     expect(MAX_SECTION_LENGTH, greaterThan(0));
   });
+
+  group('safeFileName', () {
+    test('replaces reserved characters and collapses spaces', () {
+      expect(safeFileName('A/B: "C"?  <D>|*'), 'A B C D');
+    });
+    test('strips leading dots and control characters', () {
+      expect(safeFileName('..\u0001hidden'), 'hidden');
+    });
+    test('keeps Cyrillic', () {
+      expect(safeFileName('Война и мир'), 'Война и мир');
+    });
+    test('cuts long names', () {
+      expect(safeFileName('x' * 300, maxLength: 20), 'x' * 20);
+    });
+    test('can end up empty', () {
+      expect(safeFileName('???'), '');
+    });
+  });
 }

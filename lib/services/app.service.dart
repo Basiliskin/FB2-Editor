@@ -82,18 +82,35 @@ class AppService {
     return '$path/$_workspaceFile';
   }
 
+  /// Saves the book into the app first, so the exported file is never older than
+  /// the screen, then asks where to put it. Returns the saved location, or null
+  /// when the user cancelled the dialog.
   exportProject(ProjectModel model) async {
     // coverage:ignore-start
     if (kIsWeb) {
-      await downloadFile('${model.projectId}$BOOK_EXT', model.getBookXml());
-      return;
+      await downloadFile(model.exportFileName, model.getBookXml());
+      return model.exportFileName;
     }
     // coverage:ignore-end
+    await saveProject(model);
     final path = await _localPath;
     String currentProjectPath = '$path/${model.projectId}$BOOK_EXT';
-    final params = SaveFileDialogParams(sourceFilePath: currentProjectPath);
-    final filePath = await FlutterFileDialog.saveFile(params: params);
-    return filePath;
+    final params = SaveFileDialogParams(
+        sourceFilePath: currentProjectPath, fileName: model.exportFileName);
+    return FlutterFileDialog.saveFile(params: params);
+  }
+
+  // fingerprint of each book as last written to the app, to detect unsaved edits
+  final Map<String, int> _savedFingerprint = {};
+
+  void markSaved(ProjectModel model, [String? xml]) {
+    _savedFingerprint[model.projectId] = (xml ?? model.getBookXml()).hashCode;
+  }
+
+  /// True when [model] differs from what was last saved or opened.
+  bool hasUnsavedChanges(ProjectModel model) {
+    final saved = _savedFingerprint[model.projectId];
+    return saved != null && saved != model.getBookXml().hashCode;
   }
 
   saveProject(ProjectModel model) async {
@@ -106,7 +123,8 @@ class AppService {
           .toList();
       _workspace["history"] = [...filtered, info];
       await save();
-      await downloadFile(currentProjectPath, model.getBookXml());
+      await downloadFile(model.exportFileName, model.getBookXml());
+      markSaved(model);
       return;
     }
     // coverage:ignore-end
@@ -119,10 +137,9 @@ class AppService {
     _workspace["history"] = [...filtered, info];
     await save();
     final bookXml = model.getBookXml();
-    print(currentProjectPath);
-    print(bookXml.length);
     final file = File(currentProjectPath);
     await file.writeAsString(bookXml);
+    markSaved(model, bookXml);
   }
 
   removeProject(model) async {
@@ -157,6 +174,7 @@ class AppService {
     String projId = book != null ? book['projectId'] : '';
     final sw = Stopwatch()..start();
     ProjectModel model = ProjectModel.fromJson(projectData, projId);
+    markSaved(model);
     if (kDebugMode) debugPrint('[load] build model: ${sw.elapsedMilliseconds} ms');
     if (fileInfo != null && book == null) {
       final currentProjectPath = kIsWeb

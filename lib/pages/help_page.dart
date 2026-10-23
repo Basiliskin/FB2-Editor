@@ -97,8 +97,16 @@ const helpTopics = <HelpTopic>[
       'Автосохранение (✨ на экране книги или в настройках) также сохраняет при выходе из редактора и сворачивании приложения. Зелёный значок — включено.'
     ),
     (
-      'Export saves a ready .fb2 file where you choose (in the browser it downloads the file).',
-      'Экспорт сохраняет готовый файл .fb2 в выбранное место (в браузере файл скачивается).'
+      'Export saves a ready .fb2 file where you choose (in the browser it downloads the file). The file is named "Author - Title.fb2" and always contains your latest edits.',
+      'Экспорт сохраняет готовый файл .fb2 в выбранное место (в браузере файл скачивается). Файл называется «Автор - Название.fb2» и всегда содержит последние правки.'
+    ),
+    (
+      'Your original file is never changed. Your reader may keep showing the old copy: remove the old book from the reader and add the exported file.',
+      'Исходный файл не изменяется. Читалка может показывать старую копию: удалите старую книгу в читалке и добавьте экспортированный файл.'
+    ),
+    (
+      'Leaving a screen with unsaved changes asks whether to save them.',
+      'При выходе с несохранёнными изменениями приложение спросит, сохранить ли их.'
     ),
   ]),
   HelpTopic(Icons.settings_outlined, ('Settings', 'Настройки'), [

@@ -154,9 +154,69 @@ void main() {
         ProjectModel.fromJson(await service.convertXmlToJson(_fb2));
     final r = await service.exportProject(model);
     expect(r, '/saved/here.fb2');
+    expect(seen!.arguments['fileName'], 'Lee Ann - Sample.fb2');
     expect(seen!.method, 'saveFile');
     expect(seen!.arguments['sourceFilePath'],
         '${docs.path}/${model.projectId}$BOOK_EXT');
+  });
+
+  group('export and unsaved changes', () {
+    Future<ProjectModel> opened() async {
+      final model = ProjectModel.fromJson(await service.convertXmlToJson(_fb2));
+      final src = File('${docs.path}/src.fb2')..writeAsStringSync(_fb2);
+      await service.addProject(
+          await service.convertXmlToJson(_fb2), app.FileInfo(_fb2, src.path), null);
+      service.markSaved(model);
+      return model;
+    }
+
+    test('a freshly opened book has no unsaved changes', () async {
+      expect(service.hasUnsavedChanges(await opened()), isFalse);
+    });
+
+    test('editing makes it dirty and saving makes it clean', () async {
+      final model = await opened();
+      model.bookTitle = 'Changed';
+      expect(service.hasUnsavedChanges(model), isTrue);
+      await service.saveProject(model);
+      expect(service.hasUnsavedChanges(model), isFalse);
+    });
+
+    test('a book the service has not seen is never reported dirty', () async {
+      final model = ProjectModel.fromJson(await service.convertXmlToJson(_fb2));
+      model.bookTitle = 'Changed';
+      expect(service.hasUnsavedChanges(model), isFalse);
+    });
+
+    test('export saves the current book first and names the file after it',
+        () async {
+      final model = await opened();
+      model.bookTitle = 'Changed: Title';
+      String? onDisk;
+      MethodCall? seen;
+      messenger.setMockMethodCallHandler(
+          const MethodChannel('flutter_file_dialog'), (call) async {
+        seen = call;
+        onDisk = File(call.arguments['sourceFilePath'] as String).readAsStringSync();
+        return '/saved/x.fb2';
+      });
+      await service.exportProject(model);
+      expect(onDisk, contains('<book-title>Changed: Title</book-title>'));
+      expect(seen!.arguments['fileName'], 'Lee Ann - Changed Title.fb2');
+      expect(service.hasUnsavedChanges(model), isFalse);
+    });
+
+    test('export returns null when the dialog is cancelled', () async {
+      final model = await opened();
+      messenger.setMockMethodCallHandler(
+          const MethodChannel('flutter_file_dialog'), (call) async => null);
+      expect(await service.exportProject(model), isNull);
+    });
+
+    test('export file name falls back to the project id', () {
+      final model = ProjectModel.fromJson({'title': '', 'section': []});
+      expect(model.exportFileName, '${model.projectId}.fb2');
+    });
   });
 
   test('sectionToDeltaJson delegates to the section', () async {

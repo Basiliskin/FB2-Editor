@@ -10,6 +10,7 @@ import 'package:quill_fb2/utils/color.utils.dart';
 import 'package:quill_fb2/utils/common.dart';
 import 'package:quill_fb2/utils/consts.dart';
 import 'package:quill_fb2/widgets/forms/book_form.dart';
+import 'package:quill_fb2/widgets/leave_dialog.dart';
 import 'package:quill_fb2/widgets/section/list.dart';
 import 'package:quill_fb2/ui/widgets.dart';
 
@@ -83,6 +84,32 @@ class _BookPageState extends State<BookPage>
     super.initState();
   }
 
+  /// Lets the forms put their values into the book before it is saved or exported.
+  Future<void> _flushForms() async {
+    changeController!.add({});
+    await Future.delayed(Duration.zero);
+  }
+
+  Future<void> _export() async {
+    final s = widget.service;
+    await _flushForms();
+    final filePath = await s.exportProject(widget.book);
+    final message = exportedMessage(s, widget.book, filePath);
+    if (message != null && mounted) {
+      // drop the "saved" notice the flush raised so the export result shows now
+      ScaffoldMessenger.of(context)
+        ..clearSnackBars()
+        ..showSnackBar(SnackBar(content: Text(message)));
+    }
+  }
+
+  Future<void> _leave() async {
+    await _flushForms();
+    if (await confirmLeave(context, widget.service, widget.book) && mounted) {
+      Navigator.of(context).pop();
+    }
+  }
+
   void resultsCallback(Map<String, String> results) {
     print(results);
   }
@@ -126,7 +153,12 @@ class _BookPageState extends State<BookPage>
     final s = widget.service;
     final book = widget.book;
     final autoSave = stringToBool(s.getSettings()["auto-save"]) ?? false;
-    return Scaffold(
+    return PopScope(
+        canPop: false,
+        onPopInvokedWithResult: (didPop, _) {
+          if (!didPop) _leave();
+        },
+        child: Scaffold(
       key: _scaffoldKey,
       appBar: appBarFor(
         context,
@@ -167,11 +199,7 @@ class _BookPageState extends State<BookPage>
           IconButton(
               tooltip: tr(s, 'Export .fb2', 'Экспорт .fb2'),
               icon: const Icon(Icons.storage_outlined),
-              onPressed: () async {
-                final filePath = await s.exportProject(book);
-                ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                    content: Text('${book.bookTitle} ${s.translate(LangTranslateItems.messageSaved)}\n$filePath')));
-              }),
+              onPressed: _export),
         ],
         bottom: TabBar(
           onTap: (_) => setChangedString('{}'),
@@ -203,6 +231,6 @@ class _BookPageState extends State<BookPage>
           );
         },
       ),
-    );
+    ));
   }
 }
