@@ -49,14 +49,6 @@ class Fb2Service {
 /// Max number of stray characters dropped while repairing malformed XML.
 const _maxRepairs = 100;
 
-// A "<" that cannot start a tag, and a "&" that does not start an entity.
-final _strayLt = RegExp(r'<(?![A-Za-z_:/!?])');
-final _strayAmp = RegExp(r'&(?!(?:amp|lt|gt|quot|apos|#[0-9]+|#[xX][0-9A-Fa-f]+);)');
-
-/// Escapes stray "<" and "&" in one pass.
-String sanitizeXml(String xml) =>
-    xml.replaceAll(_strayAmp, '&amp;').replaceAll(_strayLt, '&lt;');
-
 XmlResult _tryParseSync(String xml, int level) {
   while (true) {
     try {

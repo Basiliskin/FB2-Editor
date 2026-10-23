@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:quill_fb2/models/project.model.dart';
 import 'package:quill_fb2/services/fb2.service.dart';
+import 'package:quill_fb2/utils/common.dart' show sanitizeXml;
 import 'package:xml/xml.dart';
 
 const _fb2 = '''<?xml version="1.0" encoding="UTF-8"?>

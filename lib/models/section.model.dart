@@ -62,21 +62,74 @@ class Section {
     images = images.where((f) => f == imgId).toList();
   }
 
+  /// Replaces the content with pasted plain text: one paragraph per line, with
+  /// every character kept as text (nothing in it is treated as markup).
   load(String text) {
-    final _p = splitStringByEof(text);
-    p = [];
-    _p.forEach((line) {
-      p.add(addXml('p', line));
-    });
+    p = [for (final line in splitStringByEof(text)) '<p>${escapeText(line)}</p>'];
   }
 
   /// Replaces paragraphs [start, end) with the lines of [text]; returns the new end.
   int loadRange(int start, int end, String text) {
     final List<String> lines = [
-      for (final String l in splitStringByEof(text)) addXml('p', l)
+      for (final String l in splitStringByEof(text)) _inlineToP(l)
     ];
     p.replaceRange(start, end, lines);
     return start + lines.length;
+  }
+
+  /// What the editor shows for one stored paragraph: a `<p>` as a single line of
+  /// inline markup (so bold, italics and footnote links stay in place), any other
+  /// block (poem, table, ...) as its whole XML.
+  String editableText(String pXml) {
+    try {
+      final root = XmlDocument.parse(pXml).rootElement;
+      if (root.name.local != 'p') return root.outerXml;
+      return root.children
+          .map((n) => n.outerXml)
+          .join()
+          .replaceAll(RegExp(r'[\r\n]+'), ' ');
+    } catch (e) {
+      return pXml;
+    }
+  }
+
+  /// Writes edited [text] back over paragraph [index] and returns how many
+  /// paragraphs it now occupies (0 when the text was cleared). A new line starts
+  /// a new paragraph. A block element that was edited into broken XML is left as
+  /// it was.
+  int replaceParagraph(int index, String text) {
+    if (!_isParagraph(p[index])) {
+      final fragment = text.trim();
+      try {
+        XmlDocument.parse(fragment);
+        p[index] = fragment;
+      } catch (e) {
+        // keep the original block
+      }
+      return 1;
+    }
+    return loadRange(index, index + 1, text) - index;
+  }
+
+  bool _isParagraph(String xml) {
+    try {
+      return XmlDocument.parse(xml).rootElement.name.local == 'p';
+    } catch (e) {
+      return true;
+    }
+  }
+
+  /// One edited line as a paragraph. Typed tags stay tags, a stray "&" or "<" is
+  /// escaped, and a line that still cannot be parsed is kept as plain text, so a
+  /// slip never makes the saved book unreadable.
+  String _inlineToP(String line) {
+    final fixed = sanitizeXml(line);
+    try {
+      XmlDocument.parse('<p>$fixed</p>');
+      return '<p>$fixed</p>';
+    } catch (e) {
+      return '<p>${escapeText(line)}</p>';
+    }
   }
 
   addXml(tag, value) {

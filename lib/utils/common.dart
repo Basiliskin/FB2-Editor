@@ -250,8 +250,12 @@ String decodeFb2Bytes(List<int> bytes) {
 
 readAsString(file) async => decodeFb2Bytes(await file.readAsBytes());
 
-/// Keeps inline markup (links, nested formatting) intact; only strips line breaks and tabs.
-_cleanElement(XmlNode node) => trimSpecialChar(node.outerXml);
+final _lineBreakRun = RegExp(r'[ \t]*[\r\n]+[ \t]*');
+
+/// Keeps inline markup (links, nested formatting) and the text itself intact.
+/// A line break inside a paragraph, with the indentation around it, is one space,
+/// as in any XML reader. Backslashes are ordinary characters.
+_cleanElement(XmlNode node) => node.outerXml.replaceAll(_lineBreakRun, ' ');
 
 /// A file name that every file system accepts: no separators or reserved
 /// characters, collapsed spaces, at most [maxLength] characters.
@@ -265,6 +269,20 @@ String safeFileName(String name, {int maxLength = 100}) {
       ? cleaned.substring(0, maxLength).trim()
       : cleaned;
 }
+
+// A "<" that cannot start a tag, and a "&" that does not start an entity.
+final _strayLt = RegExp(r'<(?![A-Za-z_:/!?])');
+final _strayAmp = RegExp(r'&(?!(?:amp|lt|gt|quot|apos|#[0-9]+|#[xX][0-9A-Fa-f]+);)');
+
+/// Escapes stray "<" and "&" in one pass.
+String sanitizeXml(String xml) =>
+    xml.replaceAll(_strayAmp, '&amp;').replaceAll(_strayLt, '&lt;');
+
+/// Escapes text for use as element content (quotes are left alone).
+String escapeText(String? text) => (text ?? '')
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;');
 
 /// Escapes text for use as element content or inside a double-quoted attribute.
 String escapeXml(String? text) => (text ?? '')

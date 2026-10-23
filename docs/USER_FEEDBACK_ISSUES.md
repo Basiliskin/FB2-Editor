@@ -181,13 +181,36 @@ manager: unchanged.
 
 ---
 
-## 6. Text vanishes or formatting destroys work — High [review]
+## 6. Text vanishes or formatting destroys work — High [code] — fixed
 
 **Reviews:** "text disappearing from chapters, about 20 percent of the end remains" (May 2024);
 "all work lost when using highlight, italics, indentation" (Mar 2023); "constantly removes indents"
 (Mar 2025); "text that wasn't highlighted is still highlighted after saving" (May 2023);
 "deleting author notes at chapter ends, reader shows nothing changed".
 
+**Confirmed and fixed (2026-10-23).**
+- Editing any paragraph that contained inline markup (bold, italic, a footnote link) split it into
+  one paragraph per child: `<p>one <strong>two</strong> three</p>` became `Xone `, a paragraph
+  holding only the bold word, and ` three`. The editor now shows a paragraph as one line of inline
+  markup and writes it back as one paragraph (`Section.editableText` / `replaceParagraph`).
+- Typed `&` or `<` was stored raw and made the paragraph invalid XML; pasted text had the same
+  problem. Typed text is now made safe (stray `&`/`<` escaped, unparseable lines kept as plain
+  text) and pasted text is escaped completely.
+- Editing a poem, table or other block turned it into a `<p>` holding the block. Blocks are now
+  edited as whole XML and an edit that breaks them is ignored.
+- Loading deleted literal backslash sequences (`C:\temp\new` became `C:empew`) and glued lines
+  that were wrapped inside a paragraph (`one\ntwo` became `onetwo`). Both are fixed.
+- A random edit test (`test/widgets/section_editor_property_test.dart`: activate, type, split, save
+  over 80 steps, three seeds) fails on the old editor and passes now.
+- Highlight and indent buttons no longer exist in the toolbar (only undo/redo, bold, italic, quote
+  and paste tools), so those reports are from 1.0.4 and no longer apply. Indents made of spaces or
+  no-break spaces are kept (tested). Tab characters are kept as well.
+
+**Not reproduced:** "about 20 percent of the end of the chapter remains" (May 2024, v1.0.4). The
+random edit test finds no loss in the current editor; it was probably the old chunking (issue 7) or
+the old per-child split above.
+
+**Original analysis.**
 **Likely causes.**
 - Editing works on ranges of paragraphs (`Section.loadRange`) and `_editContent` rewrites paragraph XML
   for bold/italic/quote; an off-by-one in a range (especially across the 500-paragraph split, see issue 7)

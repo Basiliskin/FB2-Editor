@@ -217,4 +217,45 @@ void main() {
       expect(p.section, isEmpty);
     });
   });
+
+  group('paragraph text survives a save', () {
+    Future<List<String>> texts(String paragraphs) async {
+      final xml = '''<?xml version="1.0" encoding="UTF-8"?>
+<FictionBook xmlns="http://www.gribuser.ru/xml/fictionbook/2.0">
+<description><title-info><book-title>T</book-title></title-info></description>
+<body><section section-id="s"><title><p>T</p></title>$paragraphs</section></body>
+</FictionBook>''';
+      final p = ProjectModel.fromJson(await Fb2Service().convertXmlToJson(xml));
+      final out = XmlDocument.parse(p.getBookXml() as String);
+      return out.rootElement
+          .findElements('body')
+          .first
+          .findElements('section')
+          .first
+          .findElements('p')
+          .map((e) => e.innerText)
+          .toList();
+    }
+
+    test('backslash sequences in text are kept', () async {
+      expect(await texts(r'<p>C:\temp\new and \r\n</p>'), [r'C:\temp\new and \r\n']);
+    });
+
+    test('a line wrapped inside a paragraph keeps the space', () async {
+      expect(await texts('<p>line one\nline two</p>'), ['line one line two']);
+    });
+
+    test('pretty-printed paragraphs are not padded', () async {
+      expect(await texts('<p>\n    text\n  </p>'), [' text ']);
+    });
+
+    test('indentation made of spaces and no-break spaces is kept', () async {
+      expect(await texts('<p>\u00a0\u00a0\u00a0indented</p><p>   spaced</p>'),
+          ['\u00a0\u00a0\u00a0indented', '   spaced']);
+    });
+
+    test('inline markup keeps the spaces around it', () async {
+      expect(await texts('<p>a <strong>b</strong> c</p>'), ['a b c']);
+    });
+  });
 }

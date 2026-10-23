@@ -69,16 +69,7 @@ class _SectionEditorState extends State<SectionEditor>
   String _paragraphText(String xml) {
     if (_textCache.length > 800) _textCache.clear();
     return _textCache.putIfAbsent(xml, () {
-      try {
-        return widget.section
-            .parseP(xml)
-            .map((d) => d['insert'] as String)
-            .join()
-            .replaceFirst(RegExp(r'\n$'), '');
-      } catch (e) {
-        print(e);
-        return xml;
-      }
+      return widget.section.editableText(xml);
     });
   }
 
@@ -88,9 +79,9 @@ class _SectionEditorState extends State<SectionEditor>
     if (_active < 0) return 1;
     final text = _controller.document.toPlainText().replaceFirst(RegExp(r'\n$'), '');
     if (text == _activeText) return 1;
-    final end = widget.section.loadRange(_active, _active + 1, text);
+    final count = widget.section.replaceParagraph(_active, text);
     _activeText = text;
-    return end - _active;
+    return count;
   }
 
   void _activate(int index) {
