@@ -45,6 +45,7 @@
 - **Real FB2 output:** formatting round-trips into FictionBook tags on save — bold → `<strong>`, italic → `<emphasis>`, blockquote → `<cite>`.
 - **Section manager:** create, rename, batch-delete, and drag-reorder sections; images embedded in FB2 as base64 `<binary>` resources.
 - **Full book metadata:** edit title, author (first/middle/last name, home page, nickname), genre, sequence, annotation, and cover page.
+- **Story map:** an automatic map of who and what appears in which section, built from your text on your device. Add and edit people, places, events and lore, connect them, filter and zoom, and keep it inside the book file.
 - **Local-first:** the workspace and your books live in the app's private documents directory — no account, no server, nothing to configure in the cloud.
 - **Bilingual UI:** English and Russian, switchable in settings.
 
