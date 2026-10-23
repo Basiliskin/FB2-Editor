@@ -1,0 +1,3 @@
+# LLM Providers are Android-first, with no proxy backend and keys kept on the device
+
+Providers call Gemini, OpenAI, Anthropic or a user-supplied base URL directly from the app, using the user's own API key. Keys live in platform secure storage on Android, and in memory on web unless the user opts in to remembering them in the browser. They are never written to the workspace JSON or exports. We rejected a hosted proxy because it would add a backend to operate and put user book text and keys through our servers. The cost is that web is best-effort, since browser CORS rules may block some vendors.
