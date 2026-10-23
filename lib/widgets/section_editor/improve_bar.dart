@@ -3,6 +3,7 @@ import 'package:quill_fb2/services/app.service.dart';
 import 'package:quill_fb2/services/llm/improvement.dart';
 import 'package:quill_fb2/services/llm/llm_client.dart';
 import 'package:quill_fb2/ui/widgets.dart';
+import 'package:quill_fb2/utils/common.dart';
 import 'package:quill_fb2/widgets/section_editor/diff_text.dart';
 import 'package:quill_fb2/widgets/section_editor/improve_controller.dart';
 
@@ -84,28 +85,22 @@ class _ImproveBarState extends State<ImproveBar> {
       instruction, (p, n, t) => confirmSend(context, _s, p, n, t));
 
   Future<void> _editStyleNote() async {
-    final ctl = TextEditingController(text: _c.styleNote);
     final saved = await showDialog<String>(
-        context: context,
-        builder: (_) => AlertDialog(
-              title: Text(tr(_s, 'Style note for this book', 'Стиль этой книги')),
-              content: TextField(
-                  controller: ctl,
-                  maxLines: 4,
-                  decoration: InputDecoration(
-                      hintText: tr(_s, 'e.g. keep the 19th-century tone',
-                          'например: сохранять тон XIX века'))),
-              actions: [
-                TextButton(
-                    onPressed: () => Navigator.pop(context),
-                    child: Text(tr(_s, 'Cancel', 'Отмена'))),
-                FilledButton(
-                    onPressed: () => Navigator.pop(context, ctl.text),
-                    child: Text(tr(_s, 'Save', 'Сохранить'))),
-              ],
-            ));
-    ctl.dispose();
+        context: context, builder: (_) => _StyleNoteDialog(_s, _c.styleNote));
     if (saved != null) await _c.setStyleNote(saved);
+  }
+
+  /// Creates a preset (or edits [existing]); [prefill] seeds the instruction.
+  Future<void> _editPreset([Preset? existing, String prefill = '']) async {
+    final result = await showDialog<(String, Preset?)>(
+        context: context,
+        builder: (_) => _PresetDialog(_s, existing, prefill));
+    if (result == null) return;
+    if (result.$1 == 'save') {
+      await _c.savePreset(result.$2!);
+    } else {
+      await _c.deletePreset(existing!.id);
+    }
   }
 
   void _pickProvider() {
@@ -207,14 +202,23 @@ class _ImproveBarState extends State<ImproveBar> {
                     SingleChildScrollView(
                         scrollDirection: Axis.horizontal,
                         child: Row(children: [
-                          for (final pr in defaultPresets)
+                          for (final pr in _c.presets)
                             Padding(
                                 padding: const EdgeInsets.only(right: 8),
-                                child: ActionChip(
-                                    label: Text(pr.name),
-                                    onPressed: _c.busy
-                                        ? null
-                                        : () => _ask(pr.instruction))),
+                                child: GestureDetector(
+                                  onLongPress: pr.custom ? () => _editPreset(pr) : null,
+                                  child: ActionChip(
+                                      label: Text(pr.name),
+                                      onPressed: _c.busy
+                                          ? null
+                                          : () => _ask(pr.instruction)),
+                                )),
+                          Padding(
+                              padding: const EdgeInsets.only(right: 8),
+                              child: ActionChip(
+                                  avatar: const Icon(Icons.add, size: 16),
+                                  label: Text(tr(_s, 'New preset', 'Новый шаблон')),
+                                  onPressed: () => _editPreset(null, _text.text.trim()))),
                           if (_c.suggestions.length > 1)
                             FilledButton(
                                 onPressed: () => _c.accept(_c.suggestions.keys.toList()),
@@ -288,6 +292,109 @@ class SuggestionCard extends StatelessWidget {
             icon: Icon(Icons.close, color: cs.error),
             onPressed: () => controller.reject(index)),
       ]),
+    );
+  }
+}
+
+class _StyleNoteDialog extends StatefulWidget {
+  final AppService service;
+  final String note;
+  const _StyleNoteDialog(this.service, this.note);
+  @override
+  State<_StyleNoteDialog> createState() => _StyleNoteDialogState();
+}
+
+class _StyleNoteDialogState extends State<_StyleNoteDialog> {
+  late final _ctl = TextEditingController(text: widget.note);
+
+  @override
+  void dispose() {
+    _ctl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final s = widget.service;
+    return AlertDialog(
+      title: Text(tr(s, 'Style note for this book', 'Стиль этой книги')),
+      content: TextField(
+          controller: _ctl,
+          maxLines: 4,
+          decoration: InputDecoration(
+              hintText: tr(s, 'e.g. keep the 19th-century tone',
+                  'например: сохранять тон XIX века'))),
+      actions: [
+        TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(tr(s, 'Cancel', 'Отмена'))),
+        FilledButton(
+            onPressed: () => Navigator.pop(context, _ctl.text),
+            child: Text(tr(s, 'Save', 'Сохранить'))),
+      ],
+    );
+  }
+}
+
+/// Pops ('save', preset) or ('delete', null); null when cancelled.
+class _PresetDialog extends StatefulWidget {
+  final AppService service;
+  final Preset? existing;
+  final String prefill;
+  const _PresetDialog(this.service, this.existing, this.prefill);
+  @override
+  State<_PresetDialog> createState() => _PresetDialogState();
+}
+
+class _PresetDialogState extends State<_PresetDialog> {
+  late final _name = TextEditingController(text: widget.existing?.name ?? '');
+  late final _text = TextEditingController(
+      text: widget.existing?.instruction ?? widget.prefill);
+
+  @override
+  void dispose() {
+    _name.dispose();
+    _text.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final s = widget.service;
+    return AlertDialog(
+      title: Text(tr(s, 'Preset', 'Шаблон')),
+      content: Column(mainAxisSize: MainAxisSize.min, children: [
+        TextField(
+            controller: _name,
+            onChanged: (_) => setState(() {}),
+            decoration: InputDecoration(labelText: tr(s, 'Name', 'Название'))),
+        TextField(
+            controller: _text,
+            maxLines: 4,
+            onChanged: (_) => setState(() {}),
+            decoration:
+                InputDecoration(labelText: tr(s, 'Instruction', 'Инструкция'))),
+      ]),
+      actions: [
+        if (widget.existing != null)
+          TextButton(
+              onPressed: () => Navigator.pop(context, ('delete', null)),
+              child: Text(tr(s, 'Delete', 'Удалить'))),
+        TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(tr(s, 'Cancel', 'Отмена'))),
+        FilledButton(
+            onPressed: _name.text.trim().isEmpty || _text.text.trim().isEmpty
+                ? null
+                : () => Navigator.pop(
+                    context,
+                    (
+                      'save',
+                      Preset(_name.text.trim(), _text.text.trim(),
+                          id: widget.existing?.id ?? getRandomString(8))
+                    )),
+            child: Text(tr(s, 'Save', 'Сохранить'))),
+      ],
     );
   }
 }

@@ -17,7 +17,11 @@ class ImprovementContext {
 class Preset {
   final String name;
   final String instruction;
-  const Preset(this.name, this.instruction);
+
+  /// Empty for the built-in presets; set for ones the user saved.
+  final String id;
+  const Preset(this.name, this.instruction, {this.id = ''});
+  bool get custom => id.isNotEmpty;
 }
 
 const defaultPresets = [

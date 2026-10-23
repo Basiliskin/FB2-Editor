@@ -94,4 +94,40 @@ void main() {
     expect(find.text('Paragraphs 1-3'), findsOneWidget);
     await tester.pumpWidget(const SizedBox());
   });
+
+  testWidgets('a custom preset is saved from the bar and offered as a chip',
+      (tester) async {
+    final Map llmSettings = {};
+    service.providerStore = ProviderStore(
+        getSettings: () => llmSettings,
+        setSettings: (m) async => llmSettings.addAll(m),
+        session: MemoryKeyVault(),
+        persistent: MemoryKeyVault(),
+        isWeb: false);
+    await service.providerStore.save(const Provider(
+        id: 'p', name: 'Mine', vendor: LlmVendor.openai, model: 'm', apiKey: 'k'));
+    await pump(tester, 3);
+    await tester.tap(find.byIcon(Icons.auto_awesome_outlined));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('New preset'));
+    await tester.tap(find.text('New preset'));
+    await tester.pumpAndSettle();
+    final fields = find.descendant(
+        of: find.byType(AlertDialog), matching: find.byType(TextField));
+    await tester.enterText(fields.at(0), 'Formal');
+    await tester.enterText(fields.at(1), 'Make it formal');
+    await tester.pump();
+    await tester.tap(find.text('Save').last);
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('Formal'));
+    expect(find.text('Formal'), findsOneWidget);
+    expect(service.providerStore.customPresets().single.instruction, 'Make it formal');
+    // long press edits it; delete removes it
+    await tester.longPress(find.text('Formal'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Delete'));
+    await tester.pumpAndSettle();
+    expect(find.text('Formal'), findsNothing);
+    await tester.pumpWidget(const SizedBox());
+  });
 }

@@ -1,3 +1,4 @@
+import 'package:quill_fb2/services/llm/improvement.dart';
 import 'package:quill_fb2/services/llm/key_vault.dart';
 import 'package:quill_fb2/services/llm/llm_client.dart';
 
@@ -6,6 +7,7 @@ const _defaultKey = 'llm-default-provider';
 const rememberKeyKey = 'llm-remember-key';
 const _consentKey = 'llm-consented';
 const _styleNotesKey = 'llm-style-notes';
+const _presetsKey = 'llm-presets';
 
 /// Saved Providers: descriptions in the workspace settings, keys in a [KeyVault].
 class ProviderStore {
@@ -101,6 +103,31 @@ class ProviderStore {
       _consentKey: [...((_getSettings()[_consentKey] as List?) ?? const []), id]
     });
   }
+
+  /// The presets the user saved, in the order they were made.
+  List<Preset> customPresets() => [
+        for (final r in (_getSettings()[_presetsKey] as List? ?? const []))
+          Preset(r['name'], r['instruction'], id: r['id'])
+      ];
+
+  /// Adds [p], or replaces the saved preset with the same id.
+  Future<void> savePreset(Preset p) async {
+    final rows = [
+      for (final q in customPresets())
+        if (q.id != p.id) {'id': q.id, 'name': q.name, 'instruction': q.instruction}
+    ];
+    final at = customPresets().indexWhere((q) => q.id == p.id);
+    final row = {'id': p.id, 'name': p.name, 'instruction': p.instruction};
+    at < 0 ? rows.add(row) : rows.insert(at, row);
+    await _setSettings({_presetsKey: rows});
+  }
+
+  Future<void> deletePreset(String id) => _setSettings({
+        _presetsKey: [
+          for (final q in customPresets())
+            if (q.id != id) {'id': q.id, 'name': q.name, 'instruction': q.instruction}
+        ]
+      });
 
   /// The user's tone-and-voice instruction for one book ("" when none).
   String styleNote(String bookId) =>

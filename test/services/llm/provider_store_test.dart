@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:quill_fb2/services/llm/improvement.dart';
 import 'package:quill_fb2/services/llm/key_vault.dart';
 import 'package:quill_fb2/services/llm/llm_client.dart';
 import 'package:quill_fb2/services/llm/provider_store.dart';
@@ -100,5 +101,16 @@ void main() {
     expect(s.styleNote('book'), '');
     await s.delete('1');
     expect(s.isConsented('1'), isFalse);
+  });
+
+  test('custom presets save, replace in place and delete', () async {
+    final s = store();
+    await s.savePreset(const Preset('A', 'do a', id: '1'));
+    await s.savePreset(const Preset('B', 'do b', id: '2'));
+    await s.savePreset(const Preset('A2', 'do a2', id: '1'));
+    expect(s.customPresets().map((p) => (p.id, p.name)), [('1', 'A2'), ('2', 'B')]);
+    expect(s.customPresets().every((p) => p.custom), isTrue);
+    await s.deletePreset('1');
+    expect(s.customPresets().single.id, '2');
   });
 }

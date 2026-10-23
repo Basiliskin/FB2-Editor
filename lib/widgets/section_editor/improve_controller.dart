@@ -51,6 +51,7 @@ class ImproveController extends ChangeNotifier {
   int start = 0, end = 0;
   Map<int, String> suggestions = {};
   List<Provider> providers = [];
+  List<Preset> presets = defaultPresets;
   Provider? current;
   List<String>? _undo;
   http.Client? _client;
@@ -97,12 +98,23 @@ class ImproveController extends ChangeNotifier {
   Future<void> reload() async {
     final all = await store.list();
     providers = all;
+    presets = [...defaultPresets, ...store.customPresets()];
     current = all.isEmpty
         ? null
         : all.firstWhere((p) => p.id == current?.id,
             orElse: () => all.firstWhere((p) => p.id == store.defaultId,
                 orElse: () => all.first));
     notifyListeners();
+  }
+
+  Future<void> savePreset(Preset p) async {
+    await store.savePreset(p);
+    await reload();
+  }
+
+  Future<void> deletePreset(String id) async {
+    await store.deletePreset(id);
+    await reload();
   }
 
   void selectProvider(Provider p) {
