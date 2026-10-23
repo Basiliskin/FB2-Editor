@@ -22,6 +22,9 @@ import 'package:quill_fb2/utils/consts.dart';
 import 'package:quill_fb2/widgets/leave_dialog.dart';
 import 'package:quill_fb2/widgets/loading.dialog.dart';
 import 'package:quill_fb2/widgets/section_editor/toolbar.dart';
+import 'package:quill_fb2/pages/settings_page.dart';
+import 'package:quill_fb2/widgets/section_editor/improve_bar.dart';
+import 'package:quill_fb2/widgets/section_editor/improve_controller.dart';
 import 'package:prompt_dialog/prompt_dialog.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:quill_fb2/ui/widgets.dart';
@@ -55,6 +58,57 @@ class _SectionEditorState extends State<SectionEditor>
   final _scrollController = ScrollController();
   final _innerScroll = ScrollController();
   final _focusNode = FocusNode();
+  late final ImproveController _improve = ImproveController(
+      store: widget.service.providerStore,
+      section: widget.section,
+      bookId: widget.book.projectId,
+      bookInfo: () => (
+            title: widget.book.bookTitle,
+            lang: widget.book.lang,
+            genre: widget.book.genre.join(', ')
+          ),
+      flush: _flushActive,
+      afterApply: _afterImprove);
+
+  void _onImprove() {
+    if (mounted) setState(() {});
+  }
+
+  /// The section changed under the editor: drop cached text and the open editor.
+  void _afterImprove() {
+    _textCache.clear();
+    _closeActiveEditor();
+    if (!mounted || !_improve.canUndo) return;
+    ScaffoldMessenger.of(context)
+      ..clearSnackBars()
+      ..showSnackBar(SnackBar(
+          content: BaseText.Text(tr(widget.service, 'Text updated', 'Текст обновлён')),
+          action: SnackBarAction(
+              label: tr(widget.service, 'Undo', 'Отменить'),
+              onPressed: _improve.undo)));
+  }
+
+  void _closeActiveEditor() {
+    if (_active < 0) return;
+    _controller.dispose();
+    _controller = QuillController.basic();
+    _active = -1;
+  }
+
+  Future<void> _toggleImprove() async {
+    final at = _active >= 0 ? _active : 0;
+    if (!_improve.open) {
+      _flushActive();
+      setState(_closeActiveEditor);
+    }
+    await _improve.toggle(at);
+  }
+
+  Future<void> _manageProviders() async {
+    await Navigator.push(
+        context, MaterialPageRoute(builder: (_) => SettingsScreen(widget.service)));
+    if (mounted) await _improve.reload();
+  }
 
   void changePage(int? index) {
     setState(() {
@@ -67,6 +121,7 @@ class _SectionEditorState extends State<SectionEditor>
     WidgetsBinding.instance.addObserver(this);
     super.initState();
     currentIndex = 0;
+    _improve.addListener(_onImprove);
   }
 
   /// Editable text of one stored paragraph (inline markup shows as its own lines).
@@ -145,6 +200,8 @@ class _SectionEditorState extends State<SectionEditor>
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _improve.removeListener(_onImprove);
+    _improve.dispose();
     _scrollController.dispose();
     _innerScroll.dispose();
     _controller.dispose();
@@ -472,10 +529,7 @@ class _SectionEditorState extends State<SectionEditor>
     final style = TextStyle(
         fontSize: fontSize, color: ColorUtils.stringToColor("0"), height: 1.3);
     final paragraphs = widget.section.p;
-    return ListView.builder(
-      controller: _scrollController,
-      itemCount: paragraphs.length + 1,
-      itemBuilder: (context, i) {
+    Widget tile(BuildContext context, int i) {
         if (i == paragraphs.length) {
           return Align(
               alignment: Alignment.centerLeft,
@@ -510,7 +564,7 @@ class _SectionEditorState extends State<SectionEditor>
               ));
         }
         return InkWell(
-          onTap: () => _activate(i),
+          onTap: () => _improve.open ? _improve.tapParagraph(i) : _activate(i),
           child: Padding(
             padding: const EdgeInsets.symmetric(vertical: 4),
             child: SizedBox(
@@ -524,6 +578,26 @@ class _SectionEditorState extends State<SectionEditor>
                         : style)),
           ),
         );
+    }
+
+    return ListView.builder(
+      controller: _scrollController,
+      itemCount: paragraphs.length + 1,
+      itemBuilder: (context, i) {
+        final t = tile(context, i);
+        if (i >= paragraphs.length) return t;
+        final cs = Theme.of(context).colorScheme;
+        return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+          _improve.inRange(i)
+              ? ColoredBox(color: cs.primaryContainer.withValues(alpha: .5), child: t)
+              : t,
+          if (_improve.suggestions.containsKey(i))
+            SuggestionCard(
+                service: widget.service,
+                controller: _improve,
+                index: i,
+                before: _paragraphText(paragraphs[i])),
+        ]);
       },
     );
   }
@@ -557,6 +631,12 @@ class _SectionEditorState extends State<SectionEditor>
                   onPressed: () => _navigateBack(context)),
               title: BaseText.Text(trimSpecialChar(widget.section.title)),
               actions: [
+                IconButton(
+                    tooltip: tr(widget.service, 'Improve with AI', 'Улучшить с ИИ'),
+                    isSelected: _improve.open,
+                    icon: const Icon(Icons.auto_awesome_outlined),
+                    selectedIcon: const Icon(Icons.auto_awesome),
+                    onPressed: _toggleImprove),
                 IconButton(
                     tooltip: tr(widget.service, 'Story map', 'Карта истории'),
                     icon: const Icon(Icons.hub_outlined),
@@ -609,6 +689,12 @@ class _SectionEditorState extends State<SectionEditor>
           ],
         ),
       ]),
+      bottomNavigationBar: _improve.open
+          ? ImproveBar(
+              service: widget.service,
+              controller: _improve,
+              onManageProviders: _manageProviders)
+          : null,
       // floatingActionButton: FloatingActionButton(
       //   backgroundColor: Colors.lightBlue,
       //   onPressed: () {

@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:quill_fb2/models/project.model.dart';
 import 'package:quill_fb2/services/app.service.dart';
+import 'package:quill_fb2/services/llm/key_vault.dart';
+import 'package:quill_fb2/services/llm/llm_client.dart';
+import 'package:quill_fb2/services/llm/provider_store.dart';
 import 'package:quill_fb2/widgets/section_editor/editor.dart';
 
 import '../support/form_harness.dart';
@@ -59,5 +62,36 @@ void main() {
     // let the editor's cursor timers die with the widget
     await tester.pumpWidget(const SizedBox());
     await tester.pump(const Duration(seconds: 1));
+  });
+
+  testWidgets('the Improve bar asks for a provider, then offers presets',
+      (tester) async {
+    final Map llmSettings = {};
+    service.providerStore = ProviderStore(
+        getSettings: () => llmSettings,
+        setSettings: (m) async => llmSettings.addAll(m),
+        session: MemoryKeyVault(),
+        persistent: MemoryKeyVault(),
+        isWeb: false);
+    await pump(tester, 4);
+    await tester.tap(find.byIcon(Icons.auto_awesome_outlined));
+    await tester.pumpAndSettle();
+    expect(find.text('Add provider'), findsOneWidget);
+    await tester.tap(find.byTooltip('Close'));
+    await tester.pumpAndSettle();
+    expect(find.text('Add provider'), findsNothing);
+
+    await service.providerStore.save(const Provider(
+        id: 'p', name: 'Mine', vendor: LlmVendor.openai, model: 'm', apiKey: 'k'));
+    await tester.tap(find.byIcon(Icons.auto_awesome_outlined));
+    await tester.pumpAndSettle();
+    expect(find.text('Mine'), findsOneWidget);
+    expect(find.text('Proofread'), findsOneWidget);
+    expect(find.text('Paragraph 1'), findsOneWidget);
+    // tapping a later paragraph widens the chosen range instead of editing it
+    await tester.tap(find.text('para 2 lorem ipsum dolor'));
+    await tester.pump();
+    expect(find.text('Paragraphs 1-3'), findsOneWidget);
+    await tester.pumpWidget(const SizedBox());
   });
 }
