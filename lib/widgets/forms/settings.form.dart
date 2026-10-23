@@ -22,7 +22,6 @@ class SettingsComponent extends StatefulWidget {
 class _SettingsComponentState extends State<SettingsComponent> {
   bool isLoading = false;
   bool _autoSave = false;
-  bool _showImage = false;
   int _fontSize = 12;
   int _imageQuality = 100;
   int _imageWidth = 1024;
@@ -33,7 +32,6 @@ class _SettingsComponentState extends State<SettingsComponent> {
     _autoSave = stringToBool(widget.setting["auto-save"]) ?? _autoSave;
     _fontSize = stringToInt(widget.setting["font-size"]) ?? _fontSize;
     _language = widget.setting["language"] ?? _language;
-    _showImage = stringToBool(widget.setting["show-image"]) ?? _showImage;
     _imageWidth = stringToInt(widget.setting["image-width"]) ?? _imageWidth;
     _imageQuality =
         stringToInt(widget.setting["image-quality"]) ?? _imageQuality;
@@ -65,7 +63,6 @@ class _SettingsComponentState extends State<SettingsComponent> {
     });
     await widget.service.setSettings({
       "auto-save": _autoSave,
-      "show-image": _showImage,
       "font-size": _fontSize,
       "image-quality": _imageQuality,
       "language": _language,
@@ -109,11 +106,6 @@ class _SettingsComponentState extends State<SettingsComponent> {
                 title: Text(s.translate(LangTranslateItems.autoSave)),
                 value: _autoSave,
                 onChanged: (v) => setState(() => _autoSave = v)),
-            SwitchListTile(
-                contentPadding: EdgeInsets.zero,
-                title: Text(s.translate(LangTranslateItems.buttonShowPageImage)),
-                value: _showImage,
-                onChanged: (v) => setState(() => _showImage = v)),
             _dd<int>(s.translate(LangTranslateItems.fontSize), _fontSize,
                 [12, 14, 16, 18, 20, 22, 24, 26, 28, 30, 32], (v) => _fontSize = v,
                 icon: Icons.format_size),

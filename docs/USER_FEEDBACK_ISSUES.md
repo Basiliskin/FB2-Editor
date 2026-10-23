@@ -277,7 +277,7 @@ reports most likely came from a lowered quality/width setting or from the upscal
 
 ---
 
-## 9. Inserting images into text — Medium [review]
+## 9. Inserting images into text — Medium [review] — fixed
 
 **Reviews (~8):** "pick an image, it never appears"; "how do I insert pictures?"; "can't insert
 multiple images into one section"; "I insert a picture, upload the book, there's no picture".
@@ -289,6 +289,13 @@ complained about was the section-image picker.
 **Fix.** Support inline `<image>` blocks in the editor (Quill image embed ↔ `<image l:href>`), allow
 multiple images per section, and label the existing section-image button as "Section picture".
 Depends on issue 1 (multi-image serialisation).
+
+**Status.** Fixed: pictures are now blocks inside the section, kept in their original position on
+open and save; the editor shows them between paragraphs with a delete button; the image button in the
+toolbar picks a file and inserts it after the paragraph being edited (or at the end), any number per
+section; the content type comes from the file. The old corner thumbnail and its "show page image"
+setting are gone. Not done: pictures inside a paragraph (inline in a line of text) and moving a
+picture up or down.
 
 ---
 

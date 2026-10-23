@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:image/image.dart' as img;
 import 'package:quill_fb2/models/project.model.dart';
+import 'package:quill_fb2/utils/common.dart' show imageHref;
 import 'package:quill_fb2/services/fb2.service.dart';
 import 'package:quill_fb2/services/app.service.dart' show FileInfo;
 
@@ -152,6 +153,49 @@ void main() {
       final s = m.addSection();
       m.addSecionImage(s, png());
       expect(m.binaryResource.findBySectionId(s.sectionId).contentType, 'image/png');
+    });
+  });
+
+  group('inline pictures', () {
+    String png() => base64Encode(img.encodePng(img.Image(width: 8, height: 8)));
+
+    test('a picture goes after the given paragraph with its real type', () async {
+      final m = await _model();
+      final s = m.addSection()..p = ['<p>a</p>', '<p>b</p>'];
+      final at = m.addInlineImage(s, png(), 0);
+      expect(at, 1);
+      expect(s.p[0], '<p>a</p>');
+      expect(imageHref(s.p[1]), isNotNull);
+      expect(s.p[2], '<p>b</p>');
+      final res = m.binaryResource.find(imageHref(s.p[1])!);
+      expect([res.contentType, res.sectionId], ['image/png', s.sectionId]);
+    });
+
+    test('several pictures fit in one section and all are saved', () async {
+      final m = await _model();
+      final s = m.addSection()..p = ['<p>a</p>'];
+      m.addInlineImage(s, png(), 0);
+      m.addInlineImage(s, png(), -1);
+      expect(s.pictureRefs, hasLength(2));
+      final xml = m.getBookXml() as String;
+      expect(RegExp('<image ').allMatches(xml).length, 2);
+      expect('<binary '.allMatches(xml).length, 2);
+    });
+
+    test('removing a picture frees its data', () async {
+      final m = await _model();
+      final s = m.addSection()..p = ['<p>a</p>'];
+      m.addInlineImage(s, png(), 0);
+      m.removeInlineImage(s, 1);
+      expect(s.p, ['<p>a</p>']);
+      expect(m.binaryResource.resources, isEmpty);
+    });
+
+    test('empty data adds nothing', () async {
+      final m = await _model();
+      final s = m.addSection();
+      expect(m.addInlineImage(s, '', 0), -1);
+      expect(s.p, isEmpty);
     });
   });
 

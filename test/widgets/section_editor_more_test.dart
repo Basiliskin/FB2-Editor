@@ -8,6 +8,7 @@ import 'package:image/image.dart' as img;
 import 'package:quill_fb2/models/project.model.dart';
 import 'package:quill_fb2/models/section.model.dart';
 import 'package:quill_fb2/services/app.service.dart';
+import 'package:quill_fb2/utils/common.dart' show imageHref;
 import 'package:quill_fb2/widgets/section_editor/editor.dart';
 
 /// AppService that keeps settings in memory and records saves/exports.
@@ -472,51 +473,66 @@ void main() {
     expect(find.text('Annotation Added'), findsOneWidget);
   });
 
-  testWidgets('image button toggles the cover slot and picks images',
-      (tester) async {
-    await pump(tester, paras(2));
-    expect(find.byType(GestureDetector), findsWidgets);
-    await tester.tap(toolbarIcon(Icons.image));
-    await tester.pump();
-    expect(service.settings['show-image'], true);
-    final slot = find.byWidgetPredicate((w) =>
-        w is Container &&
-        w.constraints?.maxWidth == 100.0 &&
-        w.constraints?.maxHeight == 160.0);
-    expect(slot, findsOneWidget);
-
-    // nothing picked: the section image is cleared
-    await tester.tap(slot);
-    await tester.pump();
-    await tester.pump();
-    expect(service.saves, 1);
-
-    // picked file is resized and attached
+  Future<void> pickPicture(WidgetTester tester) async {
     final dir = Directory.systemTemp.createTempSync('picked_image');
     addTearDown(() => dir.deleteSync(recursive: true));
     final file = File('${dir.path}/pic.png')
       ..writeAsBytesSync(img.encodePng(img.Image(width: 40, height: 40)));
     pickedPath = file.uri.toString();
-    service.settings = {
-      ...service.settings,
-      'image-width': '10',
-      'image-quality': '50'
-    };
     await tester.runAsync(() async {
-      await tester.tap(slot);
+      await tester.tap(toolbarIcon(Icons.image));
       await tester.pump();
       await Future<void>.delayed(const Duration(milliseconds: 500));
     });
     await tester.pump();
     await tester.pump();
-    expect(service.saves, 2);
-    expect(section.images, isNotEmpty);
-    expect(book.getImageBySectionId(section.sectionId), isNotEmpty);
+  }
 
-    // the image now renders in the slot and the button toggles it back off
+  testWidgets('the image button inserts a picture after the edited paragraph',
+      (tester) async {
+    await pump(tester, paras(3));
+    await activate(tester, 'para 1');
+    await pickPicture(tester);
+    expect(section.p.length, 4);
+    expect(section.p[1], '<p>para 1</p>');
+    expect(imageHref(section.p[2]), isNotNull);
+    expect(section.p[3], '<p>para 2</p>');
+    expect(find.byType(Image), findsOneWidget);
+    expect(service.saves, 1);
+    expect(book.binaryResource.resources.single.contentType, 'image/png');
+    await dispose(tester);
+  });
+
+  testWidgets('a second picture can follow the first, and without a '
+      'paragraph in edit it goes to the end', (tester) async {
+    await pump(tester, paras(2));
+    await pickPicture(tester);
+    await pickPicture(tester);
+    expect(section.p.length, 4);
+    expect(section.pictureRefs, hasLength(2));
+    expect(imageHref(section.p[3]), isNotNull);
+    await dispose(tester);
+  });
+
+  testWidgets('cancelling the picker changes nothing', (tester) async {
+    await pump(tester, paras(2));
     await tester.tap(toolbarIcon(Icons.image));
     await tester.pump();
-    expect(service.settings['show-image'], false);
-    expect(slot, findsNothing);
+    await tester.pump();
+    expect(section.p, paras(2));
+    expect(service.saves, 0);
+    await dispose(tester);
+  });
+
+  testWidgets('the delete button removes the picture and keeps the text',
+      (tester) async {
+    await pump(tester, paras(2));
+    await pickPicture(tester);
+    expect(section.p.length, 3);
+    await tester.tap(find.byIcon(Icons.delete_outline));
+    await tester.pump();
+    expect(section.p, paras(2));
+    expect(book.binaryResource.resources, isEmpty);
+    await dispose(tester);
   });
 }

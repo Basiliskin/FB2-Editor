@@ -1,3 +1,6 @@
+import 'dart:convert';
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:quill_fb2/utils/color.utils.dart';
@@ -309,16 +312,8 @@ class _SectionEditorState extends State<SectionEditor>
       final snackBar = SnackBar(content: BaseText.Text('Annotation Added'));
       ScaffoldMessenger.of(context).showSnackBar(snackBar);
     });
-    Map settings = widget.service.getSettings();
-    bool showImageBtn = settings["show-image"] ?? false;
-
     final imageButton = defaultToggleStyleButtonBuilderHandler(
-        context, Attribute.unchecked, Icons.image, showImageBtn, () async {
-      await widget.service.setSettings({"show-image": !showImageBtn});
-      setState(() {
-        isLoading = false;
-      });
-    });
+        context, Attribute.unchecked, Icons.image, false, _insertPicture);
     // final addBookmark = defaultToggleStyleButtonBuilderHandler(
     //     context,
     //     Attribute.unchecked,
@@ -366,48 +361,72 @@ class _SectionEditorState extends State<SectionEditor>
     ];
   }
 
-  _change() async {
+  /// Picks a picture and puts it after the paragraph being edited (or at the end).
+  Future<void> _insertPicture() async {
     final pickedFile = await picker.pickImage(source: ImageSource.gallery);
-    if (pickedFile != null) {
-      print(pickedFile.path);
-      Map settings = widget.service.getSettings();
-      int _imageWidth = stringToInt(settings["image-width"]) ?? 1024;
-      int _imageQuality = stringToInt(settings["image-quality"]) ?? 100;
-
-      List<int> imageBytes = await readFileByte(pickedFile.path);
-      String value =
-          await resizeImageBytes(imageBytes, _imageWidth, _imageQuality);
-      widget.book.addSecionImage(widget.section, value);
-    } else {
-      print('No image selected.');
-      widget.book.addSecionImage(widget.section, '');
+    if (pickedFile == null || !mounted) return;
+    Map settings = widget.service.getSettings();
+    int width = stringToInt(settings["image-width"]) ?? 1024;
+    int quality = stringToInt(settings["image-quality"]) ?? 100;
+    List<int> imageBytes = await readFileByte(pickedFile.path);
+    final resized = await resizeImageBytes(imageBytes, width, quality);
+    final data = resized is String ? resized : base64Encode(resized as List<int>);
+    if (!mounted) return;
+    var after = widget.section.p.length - 1;
+    if (_active >= 0) {
+      after = _active + _commitActive() - 1;
     }
+    setState(() {
+      _active = -1;
+      widget.book.addInlineImage(widget.section, data, after);
+    });
     await widget.service.saveProject(widget.book);
-    setState(() {});
   }
 
-  _image() {
-    Map settings = widget.service.getSettings();
-    bool showImageBtn = stringToBool(settings["show-image"]) ?? false;
-    if (!showImageBtn) return null;
-    // final currentImage =
-    //     widget.section.images.length > 0 ? widget.section.images[0] : "";
-    final img = widget.book.getImageBySectionId(widget.section.sectionId);
+  void _removePicture(int index) {
+    setState(() {
+      if (_active >= 0) {
+        final count = _commitActive();
+        if (index > _active) index += count - 1;
+        _active = -1;
+      }
+      widget.book.removeInlineImage(widget.section, index);
+    });
+  }
 
-    return GestureDetector(
-        onTap: _change,
-        child: Container(
-          width: 100.0,
-          height: 160.0,
-          decoration: new BoxDecoration(
-              shape: BoxShape.rectangle,
-              borderRadius: BorderRadius.all(Radius.circular(10)),
-              border: Border.all(
-                  color: Colors.teal, width: 2.0, style: BorderStyle.solid),
-              image: new DecorationImage(
-                  fit: BoxFit.cover,
-                  image: widget.service.base64Image(img, true))),
-        ));
+  final Map<String, Uint8List?> _pictureBytes = {};
+
+  Widget _pictureTile(int i, String href) {
+    final bytes = _pictureBytes.putIfAbsent(href, () {
+      final data = widget.book.binaryResource.find(href).data;
+      if (data.isEmpty) return null;
+      final b = decode64Image(data);
+      return b is Uint8List ? b : null;
+    });
+    return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 6),
+        child: Stack(children: [
+          // tall enough for the delete button even before the picture has loaded
+          ConstrainedBox(
+              constraints: const BoxConstraints(minHeight: 48, minWidth: double.infinity),
+              child: Center(
+              child: bytes == null
+                  ? const Icon(Icons.broken_image_outlined, size: 48)
+                  : Image.memory(bytes,
+                      gaplessPlayback: true,
+                      fit: BoxFit.contain,
+                      errorBuilder: (_, __, ___) =>
+                          const Icon(Icons.broken_image_outlined, size: 48)))),
+          Positioned(
+              right: 4,
+              top: 4,
+              child: IconButton.filledTonal(
+                  tooltip: tr(widget.service, 'Remove picture', 'Удалить картинку'),
+                  visualDensity: VisualDensity.compact,
+                  iconSize: 16,
+                  icon: const Icon(Icons.delete_outline),
+                  onPressed: () => _removePicture(i))),
+        ]));
   }
 
   Widget _paragraphList(double fontSize) {
@@ -418,6 +437,8 @@ class _SectionEditorState extends State<SectionEditor>
       controller: _scrollController,
       itemCount: paragraphs.length,
       itemBuilder: (context, i) {
+        final href = imageHref(paragraphs[i]);
+        if (href != null) return _pictureTile(i, href);
         if (i == _active) {
           return QuillEditor(
               key: _activeKey,
@@ -523,10 +544,6 @@ class _SectionEditorState extends State<SectionEditor>
             )
           ],
         ),
-        Align(
-          alignment: Alignment(0.9, 0.9),
-          child: _image(),
-        )
       ]),
       // floatingActionButton: FloatingActionButton(
       //   backgroundColor: Colors.lightBlue,

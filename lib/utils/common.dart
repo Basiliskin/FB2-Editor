@@ -374,6 +374,22 @@ parseXml(XmlElement root) {
   return items;
 }
 
+/// A picture as a stored section block; [href] is `#id`.
+String imageBlock(String href) => '<image xlink:href="${escapeXml(href)}"/>';
+
+/// The `#id` a stored block points to, or null when the block is not a picture.
+String? imageHref(String blockXml) {
+  if (!blockXml.startsWith('<image')) return null;
+  try {
+    final e = XmlDocument.parse(blockXml).rootElement;
+    if (e.name.local != 'image') return null;
+    for (final a in e.attributes) {
+      if (a.name.local == 'href') return a.value;
+    }
+  } catch (_) {}
+  return null;
+}
+
 parseSectionXml(XmlDocument document) {
   final body = document.rootElement.findElements('body');
   final bodySections = body.first.findElements('section');
@@ -382,24 +398,19 @@ parseSectionXml(XmlDocument document) {
       final p = parseXml(node);
       final sectionId = node.getAttribute('section-id') ?? '';
       final _p = p.where((element) => element.tag == 'p').toList();
-      final _i = p.where((element) => element.tag == 'image').toList();
       final _title =
           p.firstWhere((element) => element.tag == 'title', orElse: () {
         return _p.length > 0 ? _p[0] : null;
       });
 
-      List<String> img = [];
-      if (_i != null)
-        _i.forEach((elm) {
-          img.add(elm.text);
-        });
       List<String> pp = [];
       if (p != null)
         p.forEach((elm) {
-          if (elm.tag == 'title' ||
-              elm.tag == 'sectionId' ||
-              elm.tag == 'image') return;
-          if (elm.tag == 'text') {
+          if (elm.tag == 'title' || elm.tag == 'sectionId') return;
+          if (elm.tag == 'image') {
+            // pictures stay where the author put them, between the paragraphs
+            pp.add(imageBlock(elm.text));
+          } else if (elm.tag == 'text') {
             // bare text is kept as a paragraph, whitespace-only is dropped
             if (trimSpecialChar(elm.text, '').trim().isNotEmpty)
               pp.add('<p>${elm.xml}</p>');
@@ -408,7 +419,7 @@ parseSectionXml(XmlDocument document) {
           }
         });
       var title = _title != null ? _title.text : '';
-      return {"title": title, "p": pp, "img": img, "sectionId": sectionId};
+      return {"title": title, "p": pp, "img": [], "sectionId": sectionId};
     } catch (e) {
       print(e);
     }

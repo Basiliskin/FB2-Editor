@@ -271,12 +271,11 @@ void main() {
       final s = sections.single as Map;
       expect(s['sectionId'], 's1');
       expect(s['title'], 'Chapter');
-      expect(s['img'], ['#img1']);
-      // title is dropped from paragraphs
+      // title is dropped from paragraphs; the picture keeps its place
       final p = (s['p'] as List).cast<String>();
-      expect(p, containsAll(['<p>One</p>', '<p>Two</p>']));
-      expect(p, hasLength(2)); // no title, no image
-      expect(p.any((e) => e.contains('<image')), isFalse);
+      expect(p, hasLength(3));
+      expect(imageHref(p[0]), '#img1');
+      expect(p.sublist(1), ['<p>One</p>', '<p>Two</p>']);
     });
 
     test('falls back to the first paragraph as title', () {

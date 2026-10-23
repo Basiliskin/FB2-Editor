@@ -201,7 +201,7 @@ void main() {
       final p = await load(book(
           '<section section-id="a"><image l:href="#pic.jpg"/></section>'));
       expect(p.section, hasLength(1));
-      expect(p.section.single.images, ['#pic.jpg']);
+      expect(p.section.single.pictureRefs, ['#pic.jpg']);
     });
 
     test('a section added in the app is still there after save and reload',
@@ -215,6 +215,32 @@ void main() {
     test('a book with no sections at all still opens', () async {
       final p = await load(book(''));
       expect(p.section, isEmpty);
+    });
+  });
+
+  group('pictures stay where the author put them', () {
+    test('order of text and pictures survives open and save', () async {
+      const xml = '''<?xml version="1.0" encoding="UTF-8"?>
+<FictionBook xmlns="http://www.gribuser.ru/xml/fictionbook/2.0" xmlns:l="http://www.w3.org/1999/xlink">
+<description><title-info><book-title>T</book-title></title-info></description>
+<body><section section-id="s"><title><p>T</p></title>
+<p>one</p><image l:href="#a.jpg"/><p>two</p><image l:href="#b.jpg"/><p>three</p></section></body>
+<binary content-type="image/jpeg" id="a.jpg">QUJD</binary>
+<binary content-type="image/jpeg" id="b.jpg">QUJD</binary>
+</FictionBook>''';
+      final p = ProjectModel.fromJson(await Fb2Service().convertXmlToJson(xml));
+      final out = XmlDocument.parse(p.getBookXml() as String);
+      final kids = out.rootElement
+          .findElements('body')
+          .first
+          .findElements('section')
+          .first
+          .childElements
+          .map((e) => e.name.local == 'image'
+              ? e.attributes.firstWhere((a) => a.name.local == 'href').value
+              : e.innerText)
+          .toList();
+      expect(kids, ['T', 'one', '#a.jpg', 'two', '#b.jpg', 'three']);
     });
   });
 

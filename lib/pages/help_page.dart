@@ -83,8 +83,8 @@ const helpTopics = <HelpTopic>[
       'Кнопка с карточкой: добавляет текст из буфера обмена в аннотацию книги.'
     ),
     (
-      'Image button: shows or hides the section image in the corner of the editor. Tap that image to replace it.',
-      'Кнопка с картинкой: показывает или скрывает изображение раздела в углу редактора. Нажмите на него, чтобы заменить.'
+      'Image button: choose a picture and it is inserted after the paragraph you are editing (or at the end). Use as many as you like; the bin icon on a picture removes it.',
+      'Кнопка с картинкой: выберите изображение, и оно вставится после редактируемого абзаца (или в конец). Картинок может быть сколько угодно; значок корзины на картинке удаляет её.'
     ),
   ]),
   HelpTopic(Icons.save_outlined, ('Saving & export', 'Сохранение и экспорт'), [
@@ -111,8 +111,8 @@ const helpTopics = <HelpTopic>[
   ]),
   HelpTopic(Icons.settings_outlined, ('Settings', 'Настройки'), [
     (
-      'Editing: auto-save, the image button in the editor, and the editor font size.',
-      'Редактирование: автосохранение, кнопка изображения в редакторе и размер шрифта.'
+      'Editing: auto-save and the editor font size.',
+      'Редактирование: автосохранение и размер шрифта.'
     ),
     (
       'Images: maximum width and JPEG quality for pictures you add. Smaller values give smaller books; quality 100 keeps the original file untouched.',

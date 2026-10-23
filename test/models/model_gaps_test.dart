@@ -17,11 +17,11 @@ void main() {
       expect(s.p, isEmpty);
     });
 
-    test('removeImage keeps only the matching image', () {
+    test('removeImage drops the matching image', () {
       final s = Section({'sectionId': 's'}, BinaryResources([]))
         ..images = ['a', 'b'];
       s.removeImage('a');
-      expect(s.images, ['a']);
+      expect(s.images, ['b']);
     });
   });
 }

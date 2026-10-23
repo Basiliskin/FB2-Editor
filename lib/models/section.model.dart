@@ -18,6 +18,13 @@ class Section {
       _p.forEach((e) {
         p.add(e);
       });
+      for (final block in p) {
+        final href = imageHref(block);
+        final res = href == null ? null : binRes.find(href);
+        if (res != null && res.id.isNotEmpty && res.sectionId.isEmpty) {
+          res.sectionId = sectionId;
+        }
+      }
       _img.forEach((e) {
         final res = binRes.find(e);
         if (res.id.isNotEmpty && res.sectionId.isEmpty) {
@@ -59,8 +66,22 @@ class Section {
   }
 
   removeImage(imgId) {
-    images = images.where((f) => f == imgId).toList();
+    images = images.where((f) => f != imgId).toList();
   }
+
+  /// Puts a picture block right after paragraph [after] (-1: at the start);
+  /// returns its index.
+  int insertImage(int after, String href) {
+    final at = (after + 1).clamp(0, p.length);
+    p.insert(at, imageBlock(href));
+    return at;
+  }
+
+  /// Every picture this section shows, in order.
+  List<String> get pictureRefs => [
+        ...images,
+        for (final block in p) if (imageHref(block) != null) imageHref(block)!
+      ];
 
   /// Replaces the content with pasted plain text: one paragraph per line, with
   /// every character kept as text (nothing in it is treated as markup).

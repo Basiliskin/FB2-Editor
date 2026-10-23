@@ -281,6 +281,35 @@ class ProjectModel {
     }
   }
 
+  /// Stores a picture and puts it in [section] after paragraph [after]
+  /// (-1: before the first). Returns the index of the new block, or -1 when
+  /// [data] is empty.
+  int addInlineImage(Section section, String data, int after) {
+    if (data.isEmpty) return -1;
+    final type = sniffBase64ImageType(data);
+    final id = "${getRandomString(7)}.${type.ext}";
+    binaryResource.add({
+      "id": id,
+      "contentType": type.contentType,
+      "data": data,
+      "sectionId": section.sectionId
+    });
+    return section.insertImage(after, '#$id');
+  }
+
+  /// Removes picture block [index] of [section] and its data once nothing else uses it.
+  void removeInlineImage(Section section, int index) {
+    final href = imageHref(section.p[index]);
+    section.p.removeAt(index);
+    if (href == null) return;
+    final used = this.section.any((s) => s.pictureRefs.contains(href)) ||
+        coverpage.href == href;
+    if (!used) {
+      binaryResource.resources =
+          binaryResource.resources.where((r) => '#${r.id}' != href).toList();
+    }
+  }
+
   getCoverPageImage() async {
     if (coverpage.href.isNotEmpty) {
       final res = binaryResource.findBySectionId('cover');

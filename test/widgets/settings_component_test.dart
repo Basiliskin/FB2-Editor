@@ -37,15 +37,4 @@ void main() {
     expect(find.text('Settings Saved'), findsOneWidget);
     expect(find.text('Loading'), findsNothing);
   });
-
-  testWidgets('the show-image switch is saved with the settings',
-      (tester) async {
-    await pump(tester);
-    expect(service.getSettings()['show-image'], isNot(true));
-    await tester.tap(find.byType(Switch).last);
-    await tester.pump();
-    await tester.tap(find.text('Save'));
-    await settleIO(tester);
-    expect(service.getSettings()['show-image'], isTrue);
-  });
 }
