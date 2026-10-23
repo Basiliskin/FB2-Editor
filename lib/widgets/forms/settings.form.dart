@@ -5,6 +5,7 @@ import 'package:quill_fb2/services/app.service.dart';
 import 'package:quill_fb2/utils/common.dart';
 import 'package:quill_fb2/utils/consts.dart';
 import 'package:quill_fb2/widgets/easy_form_kit/easy_form_kit.dart';
+import 'package:quill_fb2/widgets/forms/providers.section.dart';
 import 'package:quill_fb2/widgets/loading.dialog.dart';
 import 'package:quill_fb2/ui/widgets.dart';
 
@@ -126,6 +127,7 @@ class _SettingsComponentState extends State<SettingsComponent> {
             _dd<String>(s.translate(LangTranslateItems.titleLanguage), _language,
                 ["eng", "ru"], (v) => _language = v, show: (k) => LANGUAGES[k]!),
           ]),
+          ProvidersSection(s),
         ]));
   }
 

@@ -51,6 +51,8 @@ dependencies:
   intl: ^0.20.2
   flutter_archive: ^6.0.3
   archive: ^4.0.0
+  http: ^1.6.0
+  flutter_secure_storage: ^10.3.4
 
 dev_dependencies:
   flutter_test:

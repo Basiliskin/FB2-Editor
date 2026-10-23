@@ -177,6 +177,18 @@ class Section {
     return loadRange(index, index + 1, text) - index;
   }
 
+  /// True for an ordinary text paragraph (not a picture, poem, table, ...).
+  bool isTextParagraph(int index) =>
+      imageHref(p[index]) == null && p[index].startsWith('<p') && _isParagraph(p[index]);
+
+  /// Writes [texts] (paragraph index -> new inline text) over those paragraphs.
+  void applyTexts(Map<int, String> texts) {
+    // last first, so a paragraph that splits cannot shift the ones still to do
+    for (final i in texts.keys.toList()..sort((a, b) => b.compareTo(a))) {
+      replaceParagraph(i, texts[i]!);
+    }
+  }
+
   /// A poem made only of stanzas of plain verses; such a poem is edited as lines of
   /// text. One with a title, author, date or styled verses is edited as XML so
   /// nothing in it is lost.

@@ -17,6 +17,8 @@ import 'package:flutter_file_dialog/flutter_file_dialog.dart';
 import 'epub.service.dart';
 import 'fb2.service.dart';
 import 'open_failure.dart';
+import 'llm/key_vault.dart';
+import 'llm/provider_store.dart';
 
 const bool isProduction = bool.fromEnvironment('dart.vm.product');
 final JsonEncoder encoder = new JsonEncoder.withIndent('  ');
@@ -52,6 +54,12 @@ class AppService {
   Duration Function(int chars) parseTimeout = defaultParseTimeout;
   late TranslationService _translationService = new TranslationService();
   late Fb2Service _fb2Service = Fb2Service();
+  late ProviderStore providerStore = ProviderStore(
+      getSettings: () => getSettings(),
+      setSettings: (m) => setSettings(m),
+      session: MemoryKeyVault(),
+      persistent: SecureKeyVault(),
+      isWeb: kIsWeb);
   String _workspaceFile = 'fb2_workspace.json';
   Map _workspace = cloneMap(DEFAULT_WORKSPACE);
   late Map _project = {};
