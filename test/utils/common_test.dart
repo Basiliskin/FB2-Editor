@@ -1,0 +1,257 @@
+import 'dart:convert';
+
+import 'package:flutter_test/flutter_test.dart';
+import 'package:quill_fb2/utils/common.dart';
+import 'package:quill_fb2/utils/consts.dart';
+import 'package:xml/xml.dart';
+
+void main() {
+  group('stringToInt', () {
+    test('parses numeric strings', () => expect(stringToInt('42'), 42));
+    test('maps "best" to 100', () => expect(stringToInt('best'), 100));
+    test('passes non-strings through', () => expect(stringToInt(7), 7));
+    test('throws on non-numeric strings',
+        () => expect(() => stringToInt('abc'), throwsFormatException));
+  });
+
+  group('stringToBool', () {
+    test('is case-insensitive', () {
+      expect(stringToBool('TRUE'), isTrue);
+      expect(stringToBool('false'), isFalse);
+    });
+    test('passes non-strings through', () => expect(stringToBool(true), true));
+  });
+
+  group('getRandomString', () {
+    test('returns requested length from the allowed alphabet', () {
+      final s = getRandomString(32);
+      expect(s.length, 32);
+      expect(RegExp(r'^[A-Za-z0-9]+$').hasMatch(s), isTrue);
+    });
+    test('returns empty string for zero length',
+        () => expect(getRandomString(0), ''));
+  });
+
+  group('safeGet', () {
+    final data = {
+      'a': {
+        'b': {'c': 1},
+        'n': null
+      },
+      'list': [1, 2]
+    };
+    test('reads nested values by dotted key', () {
+      expect(safeGet(data, 'a.b.c', 0), 1);
+    });
+    test('returns default for missing key', () {
+      expect(safeGet(data, 'a.x.c', 'def'), 'def');
+    });
+    test('returns default when value is null', () {
+      expect(safeGet(data, 'a.n', 'def'), 'def');
+    });
+    test('returns default when traversing through a non-map', () {
+      expect(safeGet(data, 'list.0', 'def'), 'def');
+    });
+    test('returns default for null data', () {
+      expect(safeGet(null, 'a', 'def'), 'def');
+    });
+  });
+
+  group('prettyJson / toJSonString / cloneMap', () {
+    test('prettyJson indents with two spaces', () {
+      expect(prettyJson({'a': 1}), '{\n  "a": 1\n}');
+    });
+    test('prettyJson returns error text for unencodable objects', () {
+      final out = prettyJson({'a': Object()});
+      expect(out, contains('Converting object'));
+    });
+    test('toJSonString converts DateTime values, including nested ones', () {
+      final d = DateTime.utc(2020, 1, 2);
+      final Map<String, dynamic> input = {
+        'd': d,
+        'm': <String, dynamic>{'d': d},
+        'l': <dynamic>[d]
+      };
+      final out = jsonDecode(toJSonString(input));
+      expect(out['d'], d.toString());
+      expect(out['m']['d'], d.toString());
+      expect(out['l'][0], d.toString());
+    });
+    test('cloneMap produces an independent deep copy', () {
+      final src = {
+        'a': {'b': 1}
+      };
+      final copy = cloneMap(src);
+      copy['a']['b'] = 2;
+      expect(src['a']!['b'], 1);
+    });
+  });
+
+  group('toBeginningOfSentenceCase', () {
+    test('capitalizes the first letter', () {
+      expect(toBeginningOfSentenceCase('hello world'), 'Hello world');
+    });
+    test('handles null and empty input', () {
+      expect(toBeginningOfSentenceCase(null), isNull);
+      expect(toBeginningOfSentenceCase(''), '');
+    });
+  });
+
+  group('trimSpecialChar', () {
+    test('strips real control characters', () {
+      expect(trimSpecialChar('a\nb\tc\rd'), 'abcd');
+    });
+    test('strips escaped (literal backslash) sequences', () {
+      expect(trimSpecialChar(r'a\nb\tc\rd'), 'abcd');
+      expect(trimSpecialChar(r'a\\nb'), 'ab');
+    });
+    test('substitutes a replacement character', () {
+      expect(trimSpecialChar('a\nb', ' '), 'a b');
+    });
+    test('returns empty string for null', () {
+      expect(trimSpecialChar(null), '');
+    });
+  });
+
+  group('decode64Image', () {
+    test('decodes plain base64', () {
+      expect(decode64Image(base64Encode([1, 2, 3, 4])), [1, 2, 3, 4]);
+    });
+    test('ignores embedded newlines and fixes missing padding', () {
+      final b64 = base64Encode([1, 2, 3, 4]); // "AQIDBA=="
+      final noPad = b64.replaceAll('=', '');
+      expect(decode64Image('${noPad.substring(0, 2)}\n${noPad.substring(2)}'),
+          [1, 2, 3, 4]);
+    });
+    test('returns null for invalid input', () {
+      expect(decode64Image('!!!not base64!!!'), isNull);
+    });
+  });
+
+  group('resizeImage', () {
+    test('returns undefined (null) for invalid image data', () async {
+      expect(await resizeImage(base64Encode([1, 2, 3]), 10), isNull);
+    });
+  });
+
+  group('resizeImageBytes', () {
+    test('returns input untouched when quality is 100', () async {
+      final bytes = [1, 2, 3];
+      expect(await resizeImageBytes(bytes, 10, 100), same(bytes));
+    });
+    test('falls back to input when bytes are not an image', () async {
+      final bytes = [1, 2, 3];
+      expect(await resizeImageBytes(bytes, 10, 50), same(bytes));
+    });
+  });
+
+  group('readyAscii / getXmlText', () {
+    test('readyAscii decodes latin1 bytes', () {
+      expect(readyAscii([0x68, 0xE9]), 'hé');
+    });
+    test('getXmlText returns root inner text', () {
+      expect(getXmlText('<p>Hello <b>big</b> world</p>'), 'Hello big world');
+    });
+  });
+
+  group('splitStringByEof', () {
+    test('splits on \\n, \\r\\n and \\r', () {
+      expect(splitStringByEof('a\nb\r\nc\rd'), ['a', 'b', 'c', 'd']);
+    });
+  });
+
+  group('parseXml', () {
+    XmlElement root(String xml) => XmlDocument.parse(xml).rootElement;
+
+    test('emits text items for text nodes', () {
+      final items = parseXml(root('<section>hello</section>'));
+      expect(items.single.tag, 'text');
+      expect(items.single.text, 'hello');
+      expect(items.single.xml, 'hello');
+    });
+
+    test('rebuilds <p> keeping inline markup one level deep', () {
+      final items =
+          parseXml(root('<section><p>a <strong>b</strong> c</p></section>'));
+      expect(items.single.tag, 'p');
+      expect(items.single.text, 'a b c');
+      expect(items.single.xml, startsWith('<p>'));
+      expect(items.single.xml, contains('<strong>b</strong>'));
+    });
+
+    test('splits an image out of a paragraph', () {
+      final items = parseXml(root(
+          '<section xmlns:xlink="x"><p>t<image xlink:href="#i1"/></p></section>'));
+      expect(items.map((i) => i.tag), ['p', 'image']);
+      expect(items[1].text, '#i1');
+      expect(items[0].xml, isNot(contains('image')));
+    });
+
+    test('reads standalone image href from xlink or l namespace', () {
+      final a = parseXml(
+          root('<s xmlns:xlink="x"><image xlink:href="#a"/></s>'));
+      final b = parseXml(root('<s xmlns:l="x"><image l:href="#b"/></s>'));
+      expect(a.single.text, '#a');
+      expect(b.single.text, '#b');
+    });
+
+    test('keeps other elements as generic items', () {
+      final items = parseXml(root('<s><title><p>T</p></title></s>'));
+      expect(items.single.tag, 'title');
+      expect(items.single.text, 'T');
+    });
+  });
+
+  group('parseSectionXml', () {
+    test('extracts title, paragraphs, images and section id', () {
+      final doc = XmlDocument.parse('''
+<FictionBook xmlns:xlink="x"><body>
+  <section section-id="s1">
+    <title><p>Chapter</p></title>
+    <image xlink:href="#img1"/>
+    <p>One</p><p>Two</p>
+  </section>
+</body></FictionBook>''');
+      final sections = parseSectionXml(doc) as List;
+      expect(sections, hasLength(1));
+      final s = sections.single as Map;
+      expect(s['sectionId'], 's1');
+      expect(s['title'], 'Chapter');
+      expect(s['img'], ['#img1']);
+      // title is dropped from paragraphs
+      final p = (s['p'] as List).cast<String>();
+      expect(p, containsAll(['<p>One</p>', '<p>Two</p>']));
+      expect(p, hasLength(2)); // no title, no image
+      expect(p.any((e) => e.contains('<image')), isFalse);
+    });
+
+    test('falls back to the first paragraph as title', () {
+      final doc = XmlDocument.parse(
+          '<FictionBook><body><section><p>First</p><p>Second</p></section></body></FictionBook>');
+      final s = (parseSectionXml(doc) as List).single as Map;
+      expect(s['title'], 'First');
+      expect(s['sectionId'], '');
+    });
+
+    test('wraps bare text in <p> and drops whitespace-only text', () {
+      final doc = XmlDocument.parse(
+          '<FictionBook><body><section>\n  loose &amp; text\n  <p>x</p>\n</section></body></FictionBook>');
+      final s = (parseSectionXml(doc) as List).single as Map;
+      final p = (s['p'] as List).cast<String>();
+      expect(p, hasLength(2));
+      expect(XmlDocument.parse(p.first).rootElement.innerText.trim(),
+          'loose & text');
+      expect(p.last, '<p>x</p>');
+    });
+
+    test('returns one entry per section', () {
+      final doc = XmlDocument.parse(
+          '<FictionBook><body><section><p>a</p></section><section><p>b</p></section></body></FictionBook>');
+      expect(parseSectionXml(doc) as List, hasLength(2));
+    });
+  });
+
+  test('MAX_SECTION_LENGTH is a positive chunk size', () {
+    expect(MAX_SECTION_LENGTH, greaterThan(0));
+  });
+}

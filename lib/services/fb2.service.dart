@@ -82,13 +82,14 @@ class Fb2Service {
       return XmlResult(true, xml, level, doc);
     } on XmlParserException catch (e) {
       await Future.delayed(Duration(milliseconds: 50));
-      final part = e.message.split(' ').last;
-      String firstPart = xml.substring(0, e.position);
-      String secondPart = xml.substring(e.position + part.length);
-      xml = firstPart + secondPart;
-      return level > 0
-          ? tryParse(xml, level - 1)
-          : XmlResult(false, xml, level, XmlDocument.parse('<xml></xml>'));
+      final invalid =
+          XmlResult(false, xml, level, XmlDocument.parse('<xml></xml>'));
+      if (level <= 0 || e.position < 0 || e.position >= xml.length) {
+        return invalid;
+      }
+      // drop the offending character and retry
+      xml = xml.substring(0, e.position) + xml.substring(e.position + 1);
+      return tryParse(xml, level - 1);
     } catch (e) {
       print(e);
     }

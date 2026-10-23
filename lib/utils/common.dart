@@ -241,7 +241,7 @@ parseXml(XmlElement root) {
 
   root.children.forEach((child) {
     if (child is XmlText)
-      items.add(XmlItem("text", child.innerText, child.outerXml));
+      items.add(XmlItem("text", child.text, child.outerXml));
     else if (child is XmlElement) {
       if (child.name.qualified == 'p') {
         _removeImage(child, items);
@@ -282,12 +282,15 @@ parseSectionXml(XmlDocument document) {
       List<String> pp = [];
       if (p != null)
         p.forEach((elm) {
-          if (elm.tag != 'title' && elm.tag != 'sectionId') if (elm.tag !=
-              'text')
+          if (elm.tag == 'title' ||
+              elm.tag == 'sectionId' ||
+              elm.tag == 'image') return;
+          if (elm.tag == 'text') {
+            // bare text is kept as a paragraph, whitespace-only is dropped
+            if (trimSpecialChar(elm.text, '').trim().isNotEmpty)
+              pp.add('<p>${elm.xml}</p>');
+          } else {
             pp.add(elm.xml);
-          else {
-            String trimed = trimSpecialChar(elm.text, '');
-            if (trimed.isNotEmpty) pp.add(elm.xml);
           }
         });
       var title = _title != null ? _title.text : '';
