@@ -288,6 +288,7 @@ class _TimelineGridState extends State<TimelineGrid> {
           Expanded(
             child: ListView.builder(
               controller: _vc,
+              padding: const EdgeInsets.only(bottom: 56), // lets the last rows scroll clear of the zoom pill
               itemCount: items.length,
               itemExtentBuilder: (i, _) => items[i].$1 ? 28 : d.rowH,
               itemBuilder: (_, i) => items[i].$1 ? actRow(items[i].$2) : unitRow(items[i].$2),
@@ -356,6 +357,7 @@ class _TimelineGridState extends State<TimelineGrid> {
               style: const TextStyle(fontSize: 12, color: storyWarn)),
         ),
       Padding(padding: EdgeInsets.fromLTRB(16, 4, widget.editing ? 80 : 16, 6), child: storyLegend(s)),
+      SizedBox(height: MediaQuery.paddingOf(context).bottom), // clear of the gesture bar
     ]);
   }
 }
