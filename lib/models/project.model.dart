@@ -28,6 +28,7 @@ class Author {
   String homePage = '';
   String id = '';
   String nickname = '';
+  String email = '';
   process(json) {
     final author = safeGet(json, 'author', []);
     if (author is Map) {
@@ -47,20 +48,17 @@ class Author {
     homePage = safeGet(json, 'home-page$attributeName', homePage);
     id = safeGet(json, 'id$attributeName', id);
     nickname = safeGet(json, 'nickname$attributeName', nickname);
+    email = safeGet(json, 'email$attributeName', email);
   }
 
   toXml() {
-    List<String> xml = [];
-    xml.add('<author>');
-    xml.add('<first-name>${escapeXml(firstName)}</first-name>');
-    xml.add('<middle-name>${escapeXml(middleName)}</middle-name>');
-    xml.add('<last-name>${escapeXml(lastName)}</last-name>');
-    xml.add('<home-page>${escapeXml(homePage)}</home-page>');
-    xml.add('<id>${escapeXml(id)}</id>');
-    xml.add('<nickname>${escapeXml(nickname)}</nickname>');
-
-    xml.add('</author>');
-    return xml.join();
+    // first and last name are required by the schema; the rest only when filled in
+    String tag(String name, String value, [bool always = false]) =>
+        value.isEmpty && !always ? '' : '<$name>${escapeXml(value)}</$name>';
+    return '<author>${tag('first-name', firstName, true)}'
+        '${tag('middle-name', middleName)}${tag('last-name', lastName, true)}'
+        '${tag('nickname', nickname)}${tag('home-page', homePage)}'
+        '${tag('email', email)}${tag('id', id)}</author>';
   }
 }
 
@@ -151,8 +149,13 @@ class ProjectModel {
   String documentDate = '';
   /// Raw XML of the bodies after the first (footnotes etc.), written back unchanged.
   List<String> extraBodies = [];
+  String keywords = '';
   String id = '';
   String version = '';
+  /// Raw description parts the editor does not model, per place, as {name, xml}.
+  List<Map> titleInfoExtras = [];
+  List<Map> documentInfoExtras = [];
+  List<Map> descriptionExtras = [];
   String projectId = '';
   late CoverImage coverpage;
   late Author author;
@@ -213,6 +216,7 @@ class ProjectModel {
     getAnnotation(title);
     date = safeGet(title, 'date.\$', '');
     lang = safeGet(title, 'lang.\$', '');
+    keywords = safeGet(title, 'keywords.\$', '');
     coverpage = CoverImage(safeGet(title, 'coverpage.image', {}));
     final coverPageFile = binaryResource.find(coverpage.href);
     if (coverPageFile.sectionId.isEmpty) {
@@ -221,10 +225,14 @@ class ProjectModel {
     if (bookTitle.isEmpty) {
       bookTitle = safeGet(title, 'book-title.\$', '');
     }
-    author.load(document);
     programUsed = safeGet(document, 'program-used.\$', '');
     srcUrl = safeGet(document, 'src-url.\$', '');
     documentDate = safeGet(document, 'date.\$', '');
+    final extras = safeGet(json, 'descriptionExtras', {});
+    List<Map> extra(String k) => [...safeGet(extras, k, [])];
+    titleInfoExtras = extra('titleInfo');
+    documentInfoExtras = extra('documentInfo');
+    descriptionExtras = extra('description');
     extraBodies = [...safeGet(json, 'extraBodies', <String>[])];
     id = safeGet(document, 'id.\$', '');
     version = safeGet(document, 'version.\$', '');
@@ -381,6 +389,12 @@ class ProjectModel {
     final _genre = values['genre'];
     final _sequence = values['sequence'];
     final _annotation = values['annotation'];
+    // fields the form may not carry (older callers) keep their value
+    id = values['bookId'] ?? id;
+    version = values['bookVersion'] ?? version;
+    lang = (values['bookLang'] ?? lang).toString().trim();
+    date = values['bookDate'] ?? date;
+    keywords = values['bookKeywords'] ?? keywords;
 
     final current = binaryResource.findBySectionId('cover');
     if (_bookCoverPage.isEmpty) {
@@ -409,13 +423,22 @@ class ProjectModel {
       'first-name': _authorFirst,
       'middle-name': _authorMid,
       'last-name': _authorLast,
-      'home-page': _authorHomePage
+      'home-page': _authorHomePage,
+      'email': values['authorEmail'] ?? author.email
     }, '');
   }
 
   addXml(tag, value) {
     return "<$tag>${escapeXml(value)}</$tag>";
   }
+
+  /// Carried-through description parts with these names, in file order.
+  static String _raw(List<Map> extras, Set<String> names) =>
+      extras.where((e) => names.contains(e['name'])).map((e) => e['xml']).join();
+
+  /// Carried-through parts whose name is not one of [placed].
+  static String _rest(List<Map> extras, Set<String> placed) =>
+      extras.where((e) => !placed.contains(e['name'])).map((e) => e['xml']).join();
 
   getBookXml() {
     List<String> xml = [];
@@ -429,6 +452,7 @@ class ProjectModel {
       xml.add(addXml('genre', element));
     });
     xml.add(author.toXml());
+    xml.add(_raw(titleInfoExtras, {'author'}));
     xml.add(addXml('book-title', bookTitle));
     if (annotation.length > 0) {
       xml.add('<annotation>');
@@ -440,6 +464,7 @@ class ProjectModel {
       });
       xml.add('</annotation>');
     }
+    if (keywords.isNotEmpty) xml.add(addXml('keywords', keywords));
     if (date.isNotEmpty) xml.add(addXml('date', date));
     final coverRes = binaryResource.findBySectionId('cover');
     if (coverRes.id.isNotEmpty) {
@@ -447,18 +472,26 @@ class ProjectModel {
           '<coverpage><image l:href="#${escapeXml(coverRes.id)}" alt="coverpage"/></coverpage>');
     }
     if (lang.isNotEmpty) xml.add(addXml('lang', lang));
+    xml.add(_raw(titleInfoExtras, {'src-lang', 'translator'}));
     sequence.forEach((element) {
       xml.add('<sequence name="${escapeXml(element)}"/>');
     });
+    xml.add(_rest(titleInfoExtras, {'author', 'src-lang', 'translator'}));
     xml.add('</title-info>');
+    xml.add(_raw(descriptionExtras, {'src-title-info'}));
     xml.add('<document-info>');
-    xml.add(author.toXml());
+    // the file's own authors (scanner, editor) if it had any, else the book author
+    final docAuthors = _raw(documentInfoExtras, {'author'});
+    xml.add(docAuthors.isEmpty ? author.toXml() : docAuthors);
     xml.add(addXml('program-used', programUsed));
     xml.add(addXml('date', documentDate.isNotEmpty ? documentDate : date));
     xml.add(addXml('src-url', srcUrl));
+    xml.add(_raw(documentInfoExtras, {'src-ocr'}));
     xml.add(addXml('id', id));
     xml.add(addXml('version', version));
+    xml.add(_rest(documentInfoExtras, {'author', 'src-ocr'}));
     xml.add('</document-info>');
+    xml.add(_rest(descriptionExtras, {'src-title-info'}));
     xml.add('</description>');
     xml.add('<body>');
     xml.add('<title><p>${escapeXml(bookTitle)}</p></title>');

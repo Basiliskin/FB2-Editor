@@ -60,7 +60,7 @@ void main() {
     final book = covered;
     await pump(tester, kit(book));
     for (final caption in [
-      'TITLE', 'AUTHOR', 'GENRE', 'SERIES', 'ANNOTATION', 'FILE INFO',
+      'TITLE', 'AUTHOR', 'GENRE', 'SERIES', 'ANNOTATION', 'BOOK DETAILS', 'FILE INFO',
     ]) {
       expect(find.text(caption), findsOneWidget);
     }
@@ -71,7 +71,7 @@ void main() {
     expect(find.text('text:authorLast=Lee'), findsOneWidget);
     expect(find.textContaining('labels:genre:'), findsOneWidget);
     expect(find.textContaining('labels:sequence:'), findsOneWidget);
-    expect(find.byType(Divider), findsNWidgets(4));
+    expect(find.byType(Divider), findsNWidgets(5));
   });
 
   testWidgets('uses Russian captions when the language is ru',

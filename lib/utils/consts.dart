@@ -63,6 +63,10 @@ enum LangTranslateItems {
   buttonLoadBook,
   bookVersion,
   bookId,
+  bookLang,
+  bookDate,
+  bookKeywords,
+  authorEmail,
   openErrorUnsupported,
   openErrorUnreadable,
   openErrorNoFb2InZip,
@@ -125,7 +129,11 @@ const LANG_TRANSLATE = {
     LangTranslateItems.titleLanguage: "Language",
     LangTranslateItems.buttonLoadBook: "Load Book",
     LangTranslateItems.bookVersion: "Book Version",
-    LangTranslateItems.bookId: "Book Id"
+    LangTranslateItems.bookId: "Book Id",
+    LangTranslateItems.bookLang: "Language (e.g. en, ru)",
+    LangTranslateItems.bookDate: "Written (year or date)",
+    LangTranslateItems.bookKeywords: "Keywords",
+    LangTranslateItems.authorEmail: "Author e-mail"
   },
   "ru": {
     LangTranslateItems.settingsSaved: "Настройки сохранены",
@@ -174,7 +182,11 @@ const LANG_TRANSLATE = {
     LangTranslateItems.titleLanguage: "Язык",
     LangTranslateItems.buttonLoadBook: "Загрузить книгу",
     LangTranslateItems.bookVersion: "Версия книги",
-    LangTranslateItems.bookId: "Идентификатор книги"
+    LangTranslateItems.bookId: "Идентификатор книги",
+    LangTranslateItems.bookLang: "Язык книги (например ru, en)",
+    LangTranslateItems.bookDate: "Дата написания (год или дата)",
+    LangTranslateItems.bookKeywords: "Ключевые слова",
+    LangTranslateItems.authorEmail: "E-mail автора"
   }
 };
 

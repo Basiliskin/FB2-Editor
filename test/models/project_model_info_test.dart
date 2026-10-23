@@ -79,6 +79,53 @@ void main() {
     });
   });
 
+  group('updateInfo file and language fields', () {
+    test('id, version, language, date, keywords and e-mail are saved', () async {
+      final m = (await _model())
+        ..updateInfo({
+          ..._values(),
+          'bookId': 'new-id',
+          'bookVersion': '2.3',
+          'bookLang': ' ru ',
+          'bookDate': '1999',
+          'bookKeywords': 'a, b',
+          'authorEmail': 'me@x.org',
+        });
+      final xml = m.getBookXml() as String;
+      expect(xml, contains('<id>new-id</id>'));
+      expect(xml, contains('<version>2.3</version>'));
+      expect(xml, contains('<lang>ru</lang>'));
+      expect(xml, contains('<date>1999</date>'));
+      expect(xml, contains('<keywords>a, b</keywords>'));
+      expect(xml, contains('<email>me@x.org</email>'));
+      // and they come back after a reload
+      final again = ProjectModel.fromJson(await Fb2Service().convertXmlToJson(xml));
+      expect([again.id, again.version, again.lang, again.date, again.keywords, again.author.email],
+          ['new-id', '2.3', 'ru', '1999', 'a, b', 'me@x.org']);
+    });
+
+    test('leaving them out keeps the current values', () async {
+      final m = (await _model())..updateInfo(_values());
+      expect([m.id, m.lang], ['doc-1', 'en']);
+    });
+
+    test('values with markup characters are escaped', () async {
+      final m = (await _model())
+        ..updateInfo({..._values(), 'bookKeywords': 'a<b & c', 'bookId': 'x&y'});
+      final again = ProjectModel.fromJson(
+          await Fb2Service().convertXmlToJson(m.getBookXml() as String));
+      expect([again.keywords, again.id], ['a<b & c', 'x&y']);
+    });
+
+    test('empty optional author parts are not written', () async {
+      final m = (await _model())..updateInfo({..._values(), 'authorMid': '', 'authorHomePage': ''});
+      final xml = m.getBookXml() as String;
+      expect(xml, isNot(contains('<middle-name>')));
+      expect(xml, isNot(contains('<home-page>')));
+      expect(xml, isNot(contains('<nickname>')));
+    });
+  });
+
   group('updateInfo', () {
     test('updates title, author, genre, sequence and annotation', () async {
       final m = (await _model())..updateInfo(_values());

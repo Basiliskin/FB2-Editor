@@ -46,6 +46,44 @@ class Fb2Service {
   tryParse(xml, level) async => _tryParseSync(xml, level);
 }
 
+// Description elements the book model edits itself; everything else is carried through.
+const _titleInfoKnown = {
+  'genre', 'book-title', 'annotation', 'keywords', 'date', 'coverpage', 'lang',
+  'sequence'
+};
+const _documentInfoKnown = {'program-used', 'date', 'src-url', 'id', 'version'};
+const _descriptionKnown = {'title-info', 'document-info'};
+
+/// Raw XML of the description parts the editor does not model (more authors,
+/// translator, src-lang, publisher, history, publish-info, custom-info ...),
+/// as `{name, xml}` lists, so a save writes them back as they were.
+Map<String, List<Map<String, String>>> describeExtras(XmlElement description) {
+  List<Map<String, String>> pick(XmlElement? parent, Set<String> known,
+      {bool skipFirstAuthor = false}) {
+    if (parent == null) return [];
+    var seenAuthor = false;
+    final out = <Map<String, String>>[];
+    for (final e in parent.childElements) {
+      final name = e.name.local;
+      if (known.contains(name)) continue;
+      if (skipFirstAuthor && name == 'author' && !seenAuthor) {
+        seenAuthor = true;
+        continue;
+      }
+      out.add({'name': name, 'xml': e.outerXml});
+    }
+    return out;
+  }
+
+  XmlElement? child(String n) => description.findElements(n).firstOrNull;
+  return {
+    // the first title-info author is edited in the form
+    'titleInfo': pick(child('title-info'), _titleInfoKnown, skipFirstAuthor: true),
+    'documentInfo': pick(child('document-info'), _documentInfoKnown),
+    'description': pick(description, _descriptionKnown),
+  };
+}
+
 /// Max number of stray characters dropped while repairing malformed XML.
 const _maxRepairs = 100;
 
@@ -91,6 +129,7 @@ Map<String, dynamic>? _convertXml(String xml) {
         "sectionId": elm.getAttribute('section-id')
       };
     }).toList();
+    final extras = describeExtras(description);
     final bodyTitle = service.safeGetXmlText(body.first, 'title');
     final sections = parseSectionXml(document);
     return {
@@ -99,6 +138,7 @@ Map<String, dynamic>? _convertXml(String xml) {
       "resources": resources,
       "sections": sections,
       // bodies after the main one (e.g. footnotes) are carried through untouched
+      "descriptionExtras": extras,
       "extraBodies": body.skip(1).map((b) => b.outerXml).toList()
     };
   } catch (e) {

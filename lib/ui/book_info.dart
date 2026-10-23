@@ -98,6 +98,7 @@ class BookInfoLayout extends StatelessWidget {
                 flat: true),
             k.text(LangTranslateItems.authorHomePage, k.book.author.homePage,
                 flat: true)),
+        k.text(LangTranslateItems.authorEmail, k.book.author.email, flat: true),
       ]),
       const Divider(height: 28),
       sec(tr(k.s, 'Genre', 'Жанр'), [
@@ -110,6 +111,13 @@ class BookInfoLayout extends StatelessWidget {
       ]),
       const Divider(height: 28),
       sec(tr(k.s, 'Annotation', 'Аннотация'), [k.annotation()]),
+      const Divider(height: 28),
+      sec(tr(k.s, 'Book details', 'О книге'), [
+        two(k.text(LangTranslateItems.bookLang, k.book.lang, flat: true),
+            k.text(LangTranslateItems.bookDate, k.book.date, flat: true)),
+        k.text(LangTranslateItems.bookKeywords, k.book.keywords,
+            maxLines: 2, flat: true),
+      ]),
       const Divider(height: 28),
       sec(tr(k.s, 'File info', 'О файле'), [
         two(k.text(LangTranslateItems.bookVersion, k.book.version, flat: true),

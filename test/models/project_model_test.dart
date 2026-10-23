@@ -56,15 +56,22 @@ void main() {
       expect(a.firstName + a.lastName + a.nickname, '');
     });
 
-    test('toXml serializes every field', () {
+    test('toXml writes names always and the other fields when filled in', () {
       final a = Author({})
         ..firstName = 'F'
         ..lastName = 'L';
+      expect(a.toXml(), '<author><first-name>F</first-name><last-name>L</last-name></author>');
+      a
+        ..middleName = 'M'
+        ..nickname = 'n'
+        ..homePage = 'h'
+        ..email = 'e'
+        ..id = 'i';
       expect(
           a.toXml(),
-          '<author><first-name>F</first-name><middle-name></middle-name>'
-          '<last-name>L</last-name><home-page></home-page><id></id>'
-          '<nickname></nickname></author>');
+          '<author><first-name>F</first-name><middle-name>M</middle-name>'
+          '<last-name>L</last-name><nickname>n</nickname><home-page>h</home-page>'
+          '<email>e</email><id>i</id></author>');
     });
   });
 

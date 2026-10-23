@@ -299,7 +299,7 @@ picture up or down.
 
 ---
 
-## 10. id / version / lang / translator and other tags — Medium [code]
+## 10. id / version / lang / translator and other tags — Medium [code] — fixed
 
 **Reviews:** "changes to id and version fields aren't saved"; "more description sections (language,
 translator, email)"; "annotation pasted from the clipboard can't be edited afterwards".
@@ -310,6 +310,14 @@ no inputs for language, translator, publisher, date, keywords.
 
 **Fix.** Extend `ProjectModel.update` and `book_form.dart` with language, date, translator, id,
 version, keywords; support multiple authors; make the annotation fully editable (multi-paragraph).
+
+**Status.** Fixed: the form edits id, version, language, written date, keywords and the author's
+e-mail, and they are saved and reloaded. Also found and fixed on the way: saving dropped every
+second author, the translator, `src-lang`, publisher, history, `publish-info` and `custom-info`;
+the document's scanner author was replaced by the book author; the book's author got the document
+id written into its `<id>`; empty `<middle-name>`/`<nickname>`/... elements were written. These parts
+are now carried through unchanged and written in schema order. Not done: editing the translator or a
+second author in the app (they are preserved but have no form), and annotation with inline markup.
 
 ---
 

@@ -218,6 +218,73 @@ void main() {
     });
   });
 
+  group('description parts the editor does not model survive a save', () {
+    const full = '''<?xml version="1.0" encoding="UTF-8"?>
+<FictionBook xmlns="http://www.gribuser.ru/xml/fictionbook/2.0" xmlns:l="http://www.w3.org/1999/xlink">
+<description>
+<title-info><genre>prose</genre>
+<author><first-name>Ann</first-name><last-name>Lee</last-name><email>a@x.org</email></author>
+<author><first-name>Bo</first-name><last-name>Kay</last-name></author>
+<book-title>T</book-title><keywords>one, two</keywords><date value="2001-01-01">2001</date>
+<lang>ru</lang><src-lang>en</src-lang>
+<translator><first-name>Tim</first-name><last-name>Roe</last-name></translator>
+<sequence name="S" number="2"/></title-info>
+<document-info><author><nickname>scanner</nickname></author><program-used>P</program-used>
+<date>2020</date><src-ocr>ocr</src-ocr><id>doc-1</id><version>1.1</version>
+<history><p>fixed</p></history><publisher><nickname>pub</nickname></publisher></document-info>
+<publish-info><publisher>House</publisher><year>1999</year></publish-info>
+<custom-info info-type="x">note</custom-info>
+</description>
+<body><section><p>x</p></section></body></FictionBook>''';
+
+    Future<XmlDocument> resave() async => XmlDocument.parse(
+        ProjectModel.fromJson(await Fb2Service().convertXmlToJson(full)).getBookXml()
+            as String);
+
+    List<String> names(XmlElement e) => e.childElements.map((c) => c.name.local).toList();
+
+    test('second author, translator, src-lang and keywords stay in schema order', () async {
+      final info = _all(await resave(), 'title-info').single;
+      expect(names(info), [
+        'genre', 'author', 'author', 'book-title', 'keywords', 'date', 'lang',
+        'src-lang', 'translator', 'sequence'
+      ]);
+      expect(info.findElements('author').last.innerText, contains('Kay'));
+      expect(info.findElements('translator').single.innerText, contains('Roe'));
+      expect(info.findElements('keywords').single.innerText, 'one, two');
+      expect(info.findElements('author').first.findElements('email').single.innerText, 'a@x.org');
+    });
+
+    test('document-info keeps its own author, history and publisher', () async {
+      final doc = _all(await resave(), 'document-info').single;
+      expect(names(doc), [
+        'author', 'program-used', 'date', 'src-url', 'src-ocr', 'id', 'version',
+        'history', 'publisher'
+      ]);
+      expect(doc.findElements('author').single.innerText, 'scanner');
+      expect(doc.findElements('id').single.innerText, 'doc-1');
+    });
+
+    test('publish-info and custom-info stay after document-info', () async {
+      final d = await resave();
+      final desc = d.rootElement.findElements('description').single;
+      expect(names(desc), ['title-info', 'document-info', 'publish-info', 'custom-info']);
+    });
+
+    test('the author id is not overwritten by the document id', () async {
+      final m = ProjectModel.fromJson(await Fb2Service().convertXmlToJson(full));
+      expect(m.author.id, '');
+      expect(m.getBookXml(), isNot(contains('<id>doc-1</id></author>')));
+    });
+
+    test('a second round trip is stable', () async {
+      final first = (await resave()).toXmlString();
+      final again = ProjectModel.fromJson(await Fb2Service().convertXmlToJson(first))
+          .getBookXml() as String;
+      expect(XmlDocument.parse(again).toXmlString(), first);
+    });
+  });
+
   group('pictures stay where the author put them', () {
     test('order of text and pictures survives open and save', () async {
       const xml = '''<?xml version="1.0" encoding="UTF-8"?>
