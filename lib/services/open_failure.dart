@@ -12,6 +12,9 @@ enum OpenFailureKind {
   /// Readable, but not a FictionBook document.
   notFb2,
 
+  /// Readable, but not an EPUB book.
+  notEpub,
+
   /// Parsing did not finish in time.
   timeout,
 }

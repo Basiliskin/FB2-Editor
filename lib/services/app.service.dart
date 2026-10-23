@@ -14,6 +14,7 @@ import 'package:quill_fb2/utils/file_download.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:flutter_file_dialog/flutter_file_dialog.dart';
 
+import 'epub.service.dart';
 import 'fb2.service.dart';
 import 'open_failure.dart';
 
@@ -112,6 +113,23 @@ class AppService {
     // coverage:ignore-end
     final file = File('${await _localPath}/${model.projectId}.txt');
     await file.writeAsString(text);
+    return FlutterFileDialog.saveFile(
+        params: SaveFileDialogParams(sourceFilePath: file.path, fileName: name));
+  }
+
+  /// Saves the book as an .epub file wherever the user chooses (a download on
+  /// the web); null when cancelled.
+  Future<String?> exportEpub(ProjectModel model) async {
+    final bytes = projectToEpub(model);
+    final name = '${model.exportBaseName}.epub';
+    // coverage:ignore-start
+    if (kIsWeb) {
+      await downloadBytes(name, bytes, 'application/epub+zip');
+      return name;
+    }
+    // coverage:ignore-end
+    final file = File('${await _localPath}/${model.projectId}.epub');
+    await file.writeAsBytes(bytes);
     return FlutterFileDialog.saveFile(
         params: SaveFileDialogParams(sourceFilePath: file.path, fileName: name));
   }
@@ -321,6 +339,14 @@ class AppService {
     return cloneMap(defaultValue);
   }
 
+  String _epubXml(List<int> bytes) {
+    try {
+      return epubToFb2Xml(bytes);
+    } on EpubException catch (e) {
+      throw OpenFailure(OpenFailureKind.notEpub, e.message);
+    }
+  }
+
   /// Throws [OpenFailure] when the text is not an FB2 book or parsing times out.
   convertXmlToJson(xml) async {
     final json = await timed(
@@ -409,9 +435,10 @@ class AppService {
     // coverage:ignore-start
     if (kIsWeb) {
       final bytes = file.bytes;
-      if (bytes == null || ext != 'fb2') {
+      if (bytes == null || (ext != 'fb2' && ext != 'epub')) {
         throw OpenFailure(OpenFailureKind.unsupportedType, ext);
       }
+      if (ext == 'epub') return FileInfo(_epubXml(bytes), file.name);
       return FileInfo(decodeFb2Bytes(bytes), file.name);
     }
     // coverage:ignore-end
@@ -424,6 +451,17 @@ class AppService {
       } catch (e) {
         throw OpenFailure(OpenFailureKind.unreadable, '$e');
       }
+    }
+    if (ext == 'epub') {
+      final String xml;
+      try {
+        xml = _epubXml(await File(path!).readAsBytes());
+      } on OpenFailure {
+        rethrow;
+      } catch (e) {
+        throw OpenFailure(OpenFailureKind.unreadable, '$e');
+      }
+      return await _storeNewBook(xml);
     }
     dynamic info;
     try {

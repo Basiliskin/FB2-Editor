@@ -4,3 +4,7 @@ import 'file_download_stub.dart'
 Future<void> downloadFile(String fileName, String contents) {
   return platform.downloadFile(fileName, contents);
 }
+
+Future<void> downloadBytes(String fileName, List<int> bytes, String mimeType) {
+  return platform.downloadBytes(fileName, bytes, mimeType);
+}

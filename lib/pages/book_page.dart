@@ -105,12 +105,12 @@ class _BookPageState extends State<BookPage>
     }
   }
 
-  /// Appends the chapters of another book (.fb2, .zip or .txt) to this one.
+  /// Appends the chapters of another book (.fb2, .epub, .zip or .txt) to this one.
   Future<void> _merge() async {
     final s = widget.service;
     await _flushForms();
     try {
-      final info = await s.openFile({'fb2': true, 'zip': true, 'txt': true});
+      final info = await s.openFile({'fb2': true, 'epub': true, 'zip': true, 'txt': true});
       if (info == null) return; // cancelled
       final other = ProjectModel.fromJson(await s.convertXmlToJson(info.data));
       final added = widget.book.mergeFrom(other);
@@ -134,6 +134,17 @@ class _BookPageState extends State<BookPage>
     if (!mounted) return;
     final changed = await showFindReplace(context, widget.service, widget.book);
     if (changed && mounted) setChangedString('{}');
+  }
+
+  Future<void> _exportEpub() async {
+    final s = widget.service;
+    await _flushForms();
+    final path = await s.exportEpub(widget.book);
+    if (path != null && mounted) {
+      ScaffoldMessenger.of(context)
+        ..clearSnackBars()
+        ..showSnackBar(SnackBar(content: Text(tr(s, 'Saved: $path', 'Сохранено: $path'))));
+    }
   }
 
   Future<void> _exportText() async {
@@ -249,6 +260,7 @@ class _BookPageState extends State<BookPage>
               onSelected: (v) => switch (v) {
                     'find' => _findReplace(),
                     'merge' => _merge(),
+                    'epub' => _exportEpub(),
                     _ => _exportText(),
                   },
               itemBuilder: (_) => [
@@ -258,6 +270,9 @@ class _BookPageState extends State<BookPage>
                     PopupMenuItem(
                         value: 'merge',
                         child: Text(tr(s, 'Add another book', 'Добавить другую книгу'))),
+                    PopupMenuItem(
+                        value: 'epub',
+                        child: Text(tr(s, 'Export as e-book (.epub)', 'Экспорт в книгу (.epub)'))),
                     PopupMenuItem(
                         value: 'txt',
                         child: Text(tr(s, 'Export as text (.txt)', 'Экспорт в текст (.txt)'))),

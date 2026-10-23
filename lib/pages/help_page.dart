@@ -13,8 +13,8 @@ class HelpTopic {
 const helpTopics = <HelpTopic>[
   HelpTopic(Icons.local_library_outlined, ('Library', 'Библиотека'), [
     (
-      'Tap "Load book" to pick an .fb2 file, a .zip archive that contains one, or a plain .txt file (it becomes a book; lines like "Chapter 2" or "Глава 2" start new sections). "New book" starts an empty one.',
-      'Нажмите «Загрузить книгу», чтобы выбрать файл .fb2, архив .zip с книгой или обычный .txt (он станет книгой; строки вида «Глава 2» или "Chapter 2" начинают новые разделы). «Новая книга» создаёт пустую.'
+      'Tap "Load book" to pick an .fb2 or .epub file, a .zip archive that contains an .fb2, or a plain .txt file (it becomes a book; lines like "Chapter 2" or "Глава 2" start new sections). "New book" starts an empty one.',
+      'Нажмите «Загрузить книгу», чтобы выбрать файл .fb2 или .epub, архив .zip с книгой .fb2 или обычный .txt (он станет книгой; строки вида «Глава 2» или "Chapter 2" начинают новые разделы). «Новая книга» создаёт пустую.'
     ),
     (
       'Books you opened appear as covers, newest first. Tap a cover to continue editing.',
@@ -101,12 +101,12 @@ const helpTopics = <HelpTopic>[
       'Автосохранение (✨ на экране книги или в настройках) также сохраняет при выходе из редактора и сворачивании приложения. Зелёный значок — включено.'
     ),
     (
-      'Find and replace (magnifier with arrows on the book screen) works on the whole book: text only, never links or pictures. "Add another book" appends the chapters of an .fb2, .zip or .txt file after yours, with its pictures and footnotes; your cover and details stay.',
-      'Поиск и замена (лупа со стрелками на экране книги) работают по всей книге: только текст, ссылки и картинки не затрагиваются. «Добавить другую книгу» дописывает главы из файла .fb2, .zip или .txt после ваших вместе с картинками и сносками; ваша обложка и данные остаются.'
+      'Find and replace (magnifier with arrows on the book screen) works on the whole book: text only, never links or pictures. "Add another book" appends the chapters of an .fb2, .epub, .zip or .txt file after yours, with its pictures and footnotes; your cover and details stay.',
+      'Поиск и замена (лупа со стрелками на экране книги) работают по всей книге: только текст, ссылки и картинки не затрагиваются. «Добавить другую книгу» дописывает главы из файла .fb2, .epub, .zip или .txt после ваших вместе с картинками и сносками; ваша обложка и данные остаются.'
     ),
     (
-      'Export saves a ready .fb2 file where you choose (in the browser it downloads the file). The file is named "Author - Title.fb2" and always contains your latest edits.',
-      'Экспорт сохраняет готовый файл .fb2 в выбранное место (в браузере файл скачивается). Файл называется «Автор - Название.fb2» и всегда содержит последние правки.'
+      'Export saves a ready .fb2 file where you choose (in the browser it downloads the file). "Export as e-book (.epub)" in the ⋮ menu makes an EPUB for other readers. The file is named "Author - Title.fb2" and always contains your latest edits.',
+      'Экспорт сохраняет готовый файл .fb2 в выбранное место (в браузере файл скачивается). «Экспорт в книгу (.epub)» в меню ⋮ создаёт EPUB для других читалок. Файл называется «Автор - Название.fb2» и всегда содержит последние правки.'
     ),
     (
       'Your original file is never changed. Your reader may keep showing the old copy: remove the old book from the reader and add the exported file.',

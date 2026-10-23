@@ -71,6 +71,7 @@ enum LangTranslateItems {
   openErrorUnreadable,
   openErrorNoFb2InZip,
   openErrorNotFb2,
+  openErrorNotEpub,
   openErrorTimeout,
   messageSavedInApp,
   messageExported,
@@ -113,11 +114,13 @@ const LANG_TRANSLATE = {
     LangTranslateItems.unsavedBody: "Save your changes before leaving?",
     LangTranslateItems.buttonDiscard: "Don't save",
     LangTranslateItems.openErrorUnsupported:
-        "Unsupported file type. Choose an .fb2 file or a .zip archive with one.",
+        "Unsupported file type. Choose an .fb2 or .epub file, a .txt file or a .zip archive with a book.",
     LangTranslateItems.openErrorUnreadable: "The file could not be read.",
     LangTranslateItems.openErrorNoFb2InZip: "No .fb2 book found in the archive.",
     LangTranslateItems.openErrorNotFb2:
         "This file is not a valid FB2 book, or it is too damaged to open.",
+    LangTranslateItems.openErrorNotEpub:
+        "This file is not a valid EPUB book, or it is too damaged to open.",
     LangTranslateItems.openErrorTimeout:
         "Opening the book took too long and was stopped. The file may be too large or damaged.",
     LangTranslateItems.appTitle: "FB2 Editor",
@@ -166,11 +169,13 @@ const LANG_TRANSLATE = {
     LangTranslateItems.unsavedBody: "Сохранить изменения перед выходом?",
     LangTranslateItems.buttonDiscard: "Не сохранять",
     LangTranslateItems.openErrorUnsupported:
-        "Неподдерживаемый тип файла. Выберите файл .fb2 или архив .zip с ним.",
+        "Неподдерживаемый тип файла. Выберите файл .fb2 или .epub, .txt либо архив .zip с книгой.",
     LangTranslateItems.openErrorUnreadable: "Не удалось прочитать файл.",
     LangTranslateItems.openErrorNoFb2InZip: "В архиве не найдена книга .fb2.",
     LangTranslateItems.openErrorNotFb2:
         "Это не корректная книга FB2 или файл слишком повреждён.",
+    LangTranslateItems.openErrorNotEpub:
+        "Это не корректная книга EPUB или файл слишком повреждён.",
     LangTranslateItems.openErrorTimeout:
         "Открытие книги заняло слишком много времени и было остановлено. Файл может быть слишком большим или повреждённым.",
     LangTranslateItems.appTitle: "Редактор художественной литературы",

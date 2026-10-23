@@ -9,6 +9,7 @@ String openFailureMessage(AppService service, Object error) {
     OpenFailureKind.unreadable => LangTranslateItems.openErrorUnreadable,
     OpenFailureKind.noFb2InZip => LangTranslateItems.openErrorNoFb2InZip,
     OpenFailureKind.notFb2 => LangTranslateItems.openErrorNotFb2,
+    OpenFailureKind.notEpub => LangTranslateItems.openErrorNotEpub,
     OpenFailureKind.timeout => LangTranslateItems.openErrorTimeout,
   };
   return service.translate(item);

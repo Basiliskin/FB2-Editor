@@ -74,7 +74,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     });
     try {
       // null means the user cancelled the picker
-      final info = await widget.service.openFile({'fb2': true, 'zip': true, 'txt': true});
+      final info = await widget.service.openFile({'fb2': true, 'epub': true, 'zip': true, 'txt': true});
       if (info != null) await _showBook(info, null);
     } catch (e) {
       _reportOpenError(e);
