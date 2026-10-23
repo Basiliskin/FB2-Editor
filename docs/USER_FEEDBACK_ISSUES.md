@@ -376,6 +376,25 @@ second author in the app (they are preserved but have no form), and annotation w
 - Positive notes to protect: cover editing is the main reason for 5★ reviews ("saved my life",
   "only app on the Play Store"); keep that flow fast and lossless.
 
+### Status
+
+- *Permission*: `start_page.dart` asked for `Permission.storage` on every launch, although the manifest
+  declares no storage permission (so Android never showed a dialog). The call and the
+  `permission_handler` dependency are removed; files come from the system picker. A test pins the
+  release manifest to `AD_ID` only. The old review can be answered with this.
+- *Help*: the library screen has had a Help icon since issue 5; the editor app bar has one too.
+- *Tooltips*: editor toolbar buttons (undo, redo, bold, italic, quote, picture, poem, new section,
+  annotation) now have EN/RU tooltips. The stock rich-text buttons are not on the toolbar.
+- *Start screen*: the delayed init is a cancellable `Timer`, so it no longer runs after the screen is gone.
+- *Store listing*: not changed here (it is edited in Play Console, see `docs/RELEASE.md`). Suggested
+  wording for the next listing update:
+  - Title: "FB2 Editor: covers & metadata" (keeps FB2 searchable, says what it is good at).
+  - Short description: "Edit FB2 e-books: cover, title, author, chapters, pictures, poems. English and Russian."
+  - Full description should say: opens .fb2, .fb2.zip and .txt; edits cover, metadata, text and
+    pictures; find and replace; merge books; exports .fb2 and .txt; no table of contents (readers build
+    it from chapter titles); no EPUB.
+  - Reply to the Jul 2023 permission review and the Jul 2025 naming review after the release.
+
 ---
 
 ## Suggested order of work

@@ -25,21 +25,12 @@ void main() {
       TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
   late _FakeService service;
   late List<String> permissionCalls;
-  late int storageStatus; // PermissionStatus index: 0 denied, 1 granted
-  late bool permissionFails;
 
   setUp(() {
     service = _FakeService();
     permissionCalls = [];
-    storageStatus = 1;
-    permissionFails = false;
     messenger.setMockMethodCallHandler(channel, (call) async {
       permissionCalls.add(call.method);
-      if (permissionFails) throw PlatformException(code: 'nope');
-      if (call.method == 'checkPermissionStatus') return storageStatus;
-      if (call.method == 'requestPermissions') {
-        return {for (final p in call.arguments as List) p as int: 1};
-      }
       return null;
     });
   });
@@ -70,17 +61,8 @@ void main() {
     expect(service.inits, 1);
     expect(find.text('home'), findsOneWidget);
     expect(find.byType(StartScreen), findsNothing);
-    expect(permissionCalls, ['checkPermissionStatus']);
-  });
-
-  testWidgets('requests storage permission when it was denied',
-      (tester) async {
-    storageStatus = 0;
-    await pump(tester);
-    await tester.pump(const Duration(seconds: 1));
-    await tester.pumpAndSettle();
-    expect(permissionCalls, contains('requestPermissions'));
-    expect(find.text('home'), findsOneWidget);
+    // files come from the system picker, so no storage permission is asked for
+    expect(permissionCalls, isEmpty);
   });
 
   testWidgets('shows the error and stays when init fails', (tester) async {
@@ -93,16 +75,6 @@ void main() {
     expect(find.text('home'), findsNothing);
   });
 
-  testWidgets('shows the error when the permission check fails',
-      (tester) async {
-    permissionFails = true;
-    await pump(tester);
-    await tester.pump();
-    await tester.pump();
-    expect(find.byType(SnackBar), findsOneWidget);
-    expect(find.byType(StartScreen), findsOneWidget);
-  });
-
   testWidgets('hot reload starts the loading again', (tester) async {
     await pump(tester);
     tester.binding.reassembleApplication();
@@ -110,6 +82,5 @@ void main() {
     await tester.pump(const Duration(seconds: 1));
     await tester.pumpAndSettle();
     expect(service.inits, greaterThanOrEqualTo(1));
-    expect(permissionCalls.length, greaterThanOrEqualTo(2));
   });
 }

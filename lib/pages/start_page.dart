@@ -1,11 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart';
 import 'package:quill_fb2/routes.dart';
 import 'dart:async';
 
 import 'package:quill_fb2/services/app.service.dart';
 import 'package:quill_fb2/widgets/loading.dialog.dart';
-import 'package:permission_handler/permission_handler.dart';
 
 class StartScreen extends StatefulWidget {
   final AppService service;
@@ -16,6 +14,7 @@ class StartScreen extends StatefulWidget {
 
 class _StartScreenState extends State<StartScreen> {
   bool isLoading = true;
+  Timer? _timer;
   Future<Null> _loadUserData() async {
     try {
       await widget.service.init();
@@ -43,17 +42,17 @@ class _StartScreenState extends State<StartScreen> {
     ScaffoldMessenger.of(context).showSnackBar(snackBar);
   }
 
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
   startTime() async {
     try {
       var duration = new Duration(seconds: 1);
-      if (!kIsWeb) {
-        var status = await Permission.storage.status;
-        if (status == PermissionStatus.denied) {
-          await Permission.storage.request();
-        }
-      }
-
-      return Future.delayed(duration, _loadUserData);
+      _timer?.cancel();
+      _timer = Timer(duration, _loadUserData);
     } catch (e) {
       _log(e.toString());
     }

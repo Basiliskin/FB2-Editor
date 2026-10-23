@@ -364,8 +364,9 @@ Widget defaultToggleStyleButtonBuilderHandler(
   Attribute attribute,
   IconData icon,
   bool? isToggled,
-  VoidCallback? onPressed,
-) {
+  VoidCallback? onPressed, {
+  String? tooltip,
+}) {
   final theme = Theme.of(context);
   final isEnabled = onPressed != null;
   final iconColor = isEnabled
@@ -376,6 +377,7 @@ Widget defaultToggleStyleButtonBuilderHandler(
   final fillColor =
       isToggled == true ? theme.colorScheme.secondary : theme.canvasColor;
   return QuillIconButton(
+    tooltip: tooltip,
     highlightElevation: 0,
     hoverElevation: 0,
     size: iconSize * 1.77,
@@ -767,8 +769,11 @@ class HistoryButton extends StatefulWidget {
     required this.icon,
     required this.controller,
     required this.undo,
+    this.tooltip,
     Key? key,
   }) : super(key: key);
+
+  final String? tooltip;
 
   @override
   _HistoryButtonState createState() => _HistoryButtonState();
@@ -788,6 +793,7 @@ class _HistoryButtonState extends State<HistoryButton> {
       _setIconColor();
     });
     return QuillIconButton(
+      tooltip: widget.tooltip,
       highlightElevation: 0,
       hoverElevation: 0,
       size: iconSize * 1.77,
@@ -947,6 +953,8 @@ class CustomQuillToolbar extends StatefulWidget implements PreferredSizeWidget {
       bool showLink = true,
       bool showHistory = true,
       bool showHorizontalRule = false,
+      String? undoTooltip,
+      String? redoTooltip,
       OnImagePickCallback? onImagePickCallback,
       Key? key,
       List<Widget>? extensions}) {
@@ -958,6 +966,7 @@ class CustomQuillToolbar extends StatefulWidget implements PreferredSizeWidget {
           icon: Icons.undo_outlined,
           controller: controller,
           undo: true,
+          tooltip: undoTooltip,
         ),
       ),
       Visibility(
@@ -966,6 +975,7 @@ class CustomQuillToolbar extends StatefulWidget implements PreferredSizeWidget {
           icon: Icons.redo_outlined,
           controller: controller,
           undo: false,
+          tooltip: redoTooltip,
         ),
       ),
       const SizedBox(width: 0.6),
@@ -1015,10 +1025,12 @@ class QuillIconButton extends StatelessWidget {
   final Color? fillColor;
   final double hoverElevation;
   final double highlightElevation;
+  final String? tooltip;
 
   const QuillIconButton({
     required this.onPressed,
     this.icon,
+    this.tooltip,
     this.size = 40,
     this.fillColor,
     this.hoverElevation = 1,
@@ -1028,7 +1040,7 @@ class QuillIconButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ConstrainedBox(
+    final button = ConstrainedBox(
       constraints: BoxConstraints.tightFor(width: size, height: size),
       child: RawMaterialButton(
         visualDensity: VisualDensity.compact,
@@ -1041,6 +1053,7 @@ class QuillIconButton extends StatelessWidget {
         child: icon,
       ),
     );
+    return tooltip == null ? button : Tooltip(message: tooltip!, child: button);
   }
 }
 

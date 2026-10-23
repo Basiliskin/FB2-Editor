@@ -419,6 +419,17 @@ void main() {
   });
 
   group('HistoryButton', () {
+    testWidgets('shows its tooltip', (tester) async {
+      await pump(
+          tester,
+          HistoryButton(
+              icon: Icons.undo,
+              controller: controller,
+              undo: true,
+              tooltip: 'Undo'));
+      expect(find.byTooltip('Undo'), findsOneWidget);
+    });
+
     testWidgets('undo and redo', (tester) async {
       await pump(
           tester,

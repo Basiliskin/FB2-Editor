@@ -246,12 +246,12 @@ class _SectionEditorState extends State<SectionEditor>
         context, Attribute.unchecked, Icons.format_bold, startBookmark != -1,
         () async {
       if (_hasContentToEdit()) await _editContent(startBookmark, 'strong');
-    });
+    }, tooltip: tr(widget.service, 'Bold', 'Жирный'));
     final emphasisSection = defaultToggleStyleButtonBuilderHandler(
         context, Attribute.unchecked, Icons.format_italic, startBookmark != -1,
         () async {
       if (_hasContentToEdit()) await _editContent(startBookmark, 'emphasis');
-    });
+    }, tooltip: tr(widget.service, 'Italic', 'Курсив'));
     final citySection = defaultToggleStyleButtonBuilderHandler(
         context, Attribute.unchecked, Icons.format_quote, startBookmark != -1,
         () async {
@@ -271,7 +271,7 @@ class _SectionEditorState extends State<SectionEditor>
               ? "<cite><p>$value</p></cite>"
               : "<cite><p>$value</p><text-author>$author</text-author></cite>";
         });
-    });
+    }, tooltip: tr(widget.service, 'Quote', 'Цитата'));
     final addSection = defaultToggleStyleButtonBuilderHandler(
         context, Attribute.unchecked, Icons.book, false, () async {
       ClipboardData? data = await Clipboard.getData('text/plain');
@@ -304,7 +304,7 @@ class _SectionEditorState extends State<SectionEditor>
         final snackBar = SnackBar(content: BaseText.Text('$title Created'));
         ScaffoldMessenger.of(context).showSnackBar(snackBar);
       }
-    });
+    }, tooltip: tr(widget.service, 'New section from copied text', 'Новая глава из скопированного текста'));
     final addAnnotation = defaultToggleStyleButtonBuilderHandler(
         context, Attribute.unchecked, Icons.contact_page, false, () async {
       ClipboardData? data = await Clipboard.getData('text/plain');
@@ -322,11 +322,13 @@ class _SectionEditorState extends State<SectionEditor>
       });
       final snackBar = SnackBar(content: BaseText.Text('Annotation Added'));
       ScaffoldMessenger.of(context).showSnackBar(snackBar);
-    });
+    }, tooltip: tr(widget.service, 'Annotation from copied text', 'Аннотация из скопированного текста'));
     final poemButton = defaultToggleStyleButtonBuilderHandler(
-        context, Attribute.unchecked, Icons.lyrics_outlined, false, _insertPoem);
+        context, Attribute.unchecked, Icons.lyrics_outlined, false, _insertPoem,
+        tooltip: tr(widget.service, 'Poem from copied text', 'Стихотворение из скопированного текста'));
     final imageButton = defaultToggleStyleButtonBuilderHandler(
-        context, Attribute.unchecked, Icons.image, false, _insertPicture);
+        context, Attribute.unchecked, Icons.image, false, _insertPicture,
+        tooltip: tr(widget.service, 'Insert picture', 'Вставить картинку'));
     // final addBookmark = defaultToggleStyleButtonBuilderHandler(
     //     context,
     //     Attribute.unchecked,
@@ -586,6 +588,8 @@ class _SectionEditorState extends State<SectionEditor>
                 color: Theme.of(context).colorScheme.surface,
                 child: CustomQuillToolbar.basic(
               controller: _controller,
+              undoTooltip: tr(widget.service, 'Undo', 'Отменить'),
+              redoTooltip: tr(widget.service, 'Redo', 'Повторить'),
               extensions: _toolbarButtons(),
             )),
             const Divider(height: 1),
