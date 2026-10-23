@@ -269,9 +269,10 @@ class ProjectModel {
     binaryResource.removeSectionImage(section.sectionId);
     (section.images as List).clear();
     if (data.isNotEmpty) {
+      final type = sniffBase64ImageType(data);
       final json = {
-        "id": "${getRandomString(7)}.jpg",
-        "contentType": "image/jpeg",
+        "id": "${getRandomString(7)}.${type.ext}",
+        "contentType": type.contentType,
         "data": data,
         "sectionId": section.sectionId
       };
@@ -352,18 +353,22 @@ class ProjectModel {
     final _sequence = values['sequence'];
     final _annotation = values['annotation'];
 
-    binaryResource.removeSectionImage('cover');
-
+    final current = binaryResource.findBySectionId('cover');
     if (_bookCoverPage.isEmpty) {
+      binaryResource.removeSectionImage('cover');
       coverpage.href = '';
-    } else {
+    } else if (current.id.isEmpty || current.data != _bookCoverPage) {
+      // A new picture gets a new id so readers do not show their cached cover;
+      // an untouched cover keeps its id, type and bytes.
+      binaryResource.removeSectionImage('cover');
+      final type = sniffBase64ImageType(_bookCoverPage);
       final json = {
-        "id": "${getRandomString(7)}.png",
-        "contentType": "image/jpeg",
+        "id": "cover-${getRandomString(7)}.${type.ext}",
+        "contentType": type.contentType,
         "data": _bookCoverPage,
         "sectionId": 'cover'
       };
-      if (coverpage.href.isEmpty) coverpage.href = "#${json["id"]}.png";
+      coverpage.href = "#${json["id"]}";
       binaryResource.add(json);
     }
     genre = [..._genre.items];

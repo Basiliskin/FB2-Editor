@@ -252,7 +252,7 @@ and merge chunks again on save.
 
 ---
 
-## 8. Cover quality and fit — Medium [review]
+## 8. Cover quality and fit — Medium [review] — fixed
 
 **Reviews:** "new cover is ALWAYS much lower quality than what you add"; "cover doesn't fit";
 "cover doesn't change"; "only the cover was saved, the book stayed the same"; "set a cover, nothing
@@ -267,6 +267,13 @@ changed in the reader" (readers cache covers).
 **Fix.** Keep the original bytes when already JPEG/PNG and under a size cap, otherwise resize with a
 quality setting; set the correct content type and a clean id; add crop/fit preview; test that the
 `<coverpage>` href matches a `<binary id>`.
+
+**Status.** Fixed: the content type and id extension come from the image's first bytes (PNG, GIF,
+WebP, JPEG); `coverpage.href` always equals the `<binary id>`; saving without touching the cover keeps
+its id and bytes, a new picture gets a new id (readers cache by id); resizing never enlarges a small
+picture; the cover preview shows the whole image (`contain`) instead of cropping it. Not done: a
+crop tool, and the default setting "best" already keeps the original bytes, so the "lower quality"
+reports most likely came from a lowered quality/width setting or from the upscaling above.
 
 ---
 

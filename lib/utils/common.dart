@@ -99,8 +99,11 @@ toJSonString(Map map) {
 resizeImageBytes(bytes, width, quality) async {
   if (quality < 100) {
     try {
-      final image = decodeImage(bytes)!;
-      final thumbnail = copyResize(image, width: stringToInt(width));
+      final image = decodeImage(Uint8List.fromList(List<int>.from(bytes)))!;
+      final target = stringToInt(width) as int;
+      // never enlarge: a small picture stays as sharp as it was
+      final thumbnail =
+          image.width > target ? copyResize(image, width: target) : image;
       List<int> jpg = encodeJpg(thumbnail, quality: stringToInt(quality));
       return base64Encode(jpg);
     } catch (e) {
@@ -108,6 +111,40 @@ resizeImageBytes(bytes, width, quality) async {
     }
   }
   return bytes;
+}
+
+/// Content type and file extension of an image, read from its first bytes.
+/// Falls back to JPEG, which is what most pickers hand over.
+({String contentType, String ext}) sniffImageType(List<int> b) {
+  bool starts(List<int> sig, [int at = 0]) {
+    if (b.length < at + sig.length) return false;
+    for (var i = 0; i < sig.length; i++) {
+      if (b[at + i] != sig[i]) return false;
+    }
+    return true;
+  }
+
+  if (starts([0x89, 0x50, 0x4E, 0x47])) {
+    return (contentType: 'image/png', ext: 'png');
+  }
+  if (starts([0x47, 0x49, 0x46, 0x38])) {
+    return (contentType: 'image/gif', ext: 'gif');
+  }
+  if (starts([0x52, 0x49, 0x46, 0x46]) && starts([0x57, 0x45, 0x42, 0x50], 8)) {
+    return (contentType: 'image/webp', ext: 'webp');
+  }
+  return (contentType: 'image/jpeg', ext: 'jpg');
+}
+
+/// Same, for base64 text (only the head is decoded).
+({String contentType, String ext}) sniffBase64ImageType(String data) {
+  try {
+    final head = data.trim().replaceAll(RegExp(r'\s'), '');
+    final n = head.length < 24 ? head.length : 24;
+    return sniffImageType(base64Decode(base64.normalize(head.substring(0, n - n % 4))));
+  } catch (_) {
+    return (contentType: 'image/jpeg', ext: 'jpg');
+  }
 }
 
 /// Thumbnail as base64 jpg, or null. The native codec decodes and downscales

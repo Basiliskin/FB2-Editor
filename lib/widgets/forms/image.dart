@@ -73,9 +73,10 @@ class ImageField extends EasyFormGenericField<String> {
               height: coverWidth * 1.45,
               decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(10),
+                  color: c.surfaceContainerHighest,
                   border: Border.all(color: c.outlineVariant),
                   image: DecorationImage(
-                      fit: BoxFit.cover, image: base64Image(value, true))),
+                      fit: BoxFit.contain, image: base64Image(value, true))),
             )),
         Positioned(
             right: 4,

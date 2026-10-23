@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:image/image.dart' as img;
 import 'package:quill_fb2/utils/common.dart';
 import 'package:quill_fb2/utils/consts.dart';
 import 'package:xml/xml.dart';
@@ -157,6 +158,33 @@ void main() {
   group('resizeImage', () {
     test('returns undefined (null) for invalid image data', () async {
       expect(await resizeImage(base64Encode([1, 2, 3]), 10), isNull);
+    });
+  });
+
+  group('resizeImageBytes sizing', () {
+    List<int> png(int w) => img.encodePng(img.Image(width: w, height: w));
+    test('shrinks a wide picture to the target width', () async {
+      final out = await resizeImageBytes(png(800), 400, 75);
+      expect(img.decodeJpg(base64Decode(out as String))!.width, 400);
+    });
+    test('does not enlarge a small picture', () async {
+      final out = await resizeImageBytes(png(200), 600, 75);
+      expect(img.decodeJpg(base64Decode(out as String))!.width, 200);
+    });
+  });
+
+  group('sniffImageType', () {
+    test('tells PNG, GIF, WebP and JPEG apart', () {
+      expect(sniffImageType([0x89, 0x50, 0x4E, 0x47, 0]).ext, 'png');
+      expect(sniffImageType([0x47, 0x49, 0x46, 0x38, 0]).ext, 'gif');
+      expect(sniffImageType([...'RIFF'.codeUnits, 0, 0, 0, 0, ...'WEBP'.codeUnits]).contentType,
+          'image/webp');
+      expect(sniffImageType([0xFF, 0xD8, 0xFF]).contentType, 'image/jpeg');
+      expect(sniffImageType([]).ext, 'jpg');
+    });
+    test('reads base64 text and tolerates junk', () {
+      expect(sniffBase64ImageType(base64Encode([0x89, 0x50, 0x4E, 0x47, 1, 2, 3])).ext, 'png');
+      expect(sniffBase64ImageType('%%%').ext, 'jpg');
     });
   });
 

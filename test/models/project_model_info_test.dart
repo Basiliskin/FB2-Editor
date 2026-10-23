@@ -106,6 +106,55 @@ void main() {
     });
   });
 
+  group('cover type and identity', () {
+    String png() => base64Encode(img.encodePng(img.Image(width: 8, height: 8)));
+    String jpg() => base64Encode(img.encodeJpg(img.Image(width: 8, height: 8)));
+
+    test('a PNG cover is saved as image/png with a matching id', () async {
+      final m = (await _model())..updateInfo(_values(cover: png()));
+      final r = m.binaryResource.findBySectionId('cover');
+      expect(r.contentType, 'image/png');
+      expect(r.id, endsWith('.png'));
+      expect(r.id, isNot(contains('.png.png')));
+      expect(m.coverpage.href, '#${r.id}');
+      expect(m.getBookXml(), contains('<coverpage><image l:href="#${r.id}"'));
+      expect(m.getBookXml(), contains('content-type="image/png" id="${r.id}"'));
+    });
+
+    test('a JPEG cover stays image/jpeg', () async {
+      final m = (await _model())..updateInfo(_values(cover: jpg()));
+      final r = m.binaryResource.findBySectionId('cover');
+      expect([r.contentType, r.id.split('.').last], ['image/jpeg', 'jpg']);
+    });
+
+    test('saving again without touching the cover keeps id and bytes', () async {
+      final m = (await _model())..updateInfo(_values(cover: png()));
+      final before = m.binaryResource.findBySectionId('cover');
+      final id = before.id;
+      m.updateInfo(_values(cover: png()));
+      final after = m.binaryResource.findBySectionId('cover');
+      expect([after.id, after.data], [id, png()]);
+      expect(m.coverpage.href, '#$id');
+    });
+
+    test('a different picture gets a new id so readers drop the old one', () async {
+      final m = (await _model())..updateInfo(_values(cover: png()));
+      final id = m.binaryResource.findBySectionId('cover').id;
+      m.updateInfo(_values(cover: jpg()));
+      final r = m.binaryResource.findBySectionId('cover');
+      expect(r.id, isNot(id));
+      expect(m.coverpage.href, '#${r.id}');
+      expect(m.binaryResource.resources.where((e) => e.sectionId == 'cover'), hasLength(1));
+    });
+
+    test('a section picture keeps its real type too', () async {
+      final m = await _model();
+      final s = m.addSection();
+      m.addSecionImage(s, png());
+      expect(m.binaryResource.findBySectionId(s.sectionId).contentType, 'image/png');
+    });
+  });
+
   group('addSecionImage', () {
     test('sets and then clears the section image', () async {
       final m = await _model();
