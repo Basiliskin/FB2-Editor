@@ -308,7 +308,8 @@ class _BookPageState extends State<BookPage>
         ),
       ),
       body: TabBarView(controller: controller, children: [
-        BookComponent(s, book, changeController!.stream.asBroadcastStream()),
+        BookComponent(s, book, changeController!.stream.asBroadcastStream(),
+            onStoryMap: _storyMap),
         SectionList(s, book, changeController!.stream.asBroadcastStream(), _markToDelete),
       ]),
       floatingActionButton: AnimatedBuilder(

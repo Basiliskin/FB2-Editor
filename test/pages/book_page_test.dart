@@ -414,7 +414,19 @@ void main() {
       expect(find.byIcon(Icons.hub_outlined), findsNothing);
       await tester.tap(find.byType(PopupMenuButton<String>));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Story map'));
+      await tester.tap(find.descendant(of: find.byType(PopupMenuItem<String>), matching: find.text('Story map')));
+      await tester.pumpAndSettle();
+      expect(find.byType(StoryMapPage), findsOneWidget);
+    });
+
+    testWidgets('the Info tab has a Story map button under the cover', (tester) async {
+      await tester.runAsync(() => book.loadStoryMap());
+      tester.view.physicalSize = const Size(400, 800);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      await tester.pumpWidget(MaterialApp(home: BookPage(service, book, StreamController<void>.broadcast())));
+      await tester.pump();
+      await tester.tap(find.widgetWithText(TextButton, 'Story map'));
       await tester.pumpAndSettle();
       expect(find.byType(StoryMapPage), findsOneWidget);
     });

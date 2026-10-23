@@ -20,7 +20,8 @@ class BookComponent extends StatefulWidget {
   final ProjectModel book;
   final AppService service;
   final Stream<void>? triggerSave;
-  BookComponent(this.service, this.book, this.triggerSave);
+  final VoidCallback? onStoryMap;
+  BookComponent(this.service, this.book, this.triggerSave, {this.onStoryMap});
   @override
   _BookComponentState createState() => _BookComponentState();
 }
@@ -79,6 +80,7 @@ class _BookComponentState extends State<BookComponent> {
       Map setting = widget.service.getSettings();
       final book = widget.book;
       final kit = InfoKit(widget.service, book,
+          onStoryMap: widget.onStoryMap,
           text: (n, val, {style, maxLines = 1, flat = false}) =>
               _createFormField(n, val,
                   style: style, maxLines: maxLines, flat: flat),

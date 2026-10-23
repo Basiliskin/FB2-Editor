@@ -15,11 +15,13 @@ class InfoKit {
   final Widget Function(double width) cover;
   final Widget Function(String name, String hint, List<String> items) labels;
   final Widget Function() annotation;
+  final VoidCallback? onStoryMap;
   InfoKit(this.s, this.book,
       {required this.text,
       required this.cover,
       required this.labels,
-      required this.annotation});
+      required this.annotation,
+      this.onStoryMap});
 
   String get title => trimSpecialChar(book.bookTitle, ' ');
   Widget caption(BuildContext c, String t) => Padding(
@@ -77,7 +79,14 @@ class BookInfoLayout extends StatelessWidget {
                     ]),
                 child: Padding(
                     padding: const EdgeInsets.fromLTRB(8, 8, 8, 0),
-                    child: k.cover(132)))),
+                    child: Column(mainAxisSize: MainAxisSize.min, children: [
+                      k.cover(132),
+                      if (k.onStoryMap != null)
+                        TextButton.icon(
+                            onPressed: k.onStoryMap,
+                            icon: const Icon(Icons.timeline, size: 16),
+                            label: Text(tr(k.s, 'Story map', 'Карта сюжета'))),
+                    ])))),
       ]),
       sec(tr(k.s, 'Title', 'Название'), [
         k.text(LangTranslateItems.bookTitle, k.title,
