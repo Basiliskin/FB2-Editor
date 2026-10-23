@@ -124,4 +124,17 @@ void main() {
       expect(s.getIfEmpty('v', 'fb'), 'v');
     });
   });
+
+  group('Section paging', () {
+    Section make() => Section({
+          'p': ['<p>a</p>', '<p>b</p>', '<p>c</p>', '<p>d</p>']
+        }, _res());
+
+    test('loadRange replaces only the page and returns the new end', () {
+      final s = make();
+      final end = s.loadRange(1, 3, 'x\ny\nz\n');
+      expect(s.p, ['<p>a</p>', '<p>x</p>', '<p>y</p>', '<p>z</p>', '<p>d</p>']);
+      expect(end, 4);
+    });
+  });
 }

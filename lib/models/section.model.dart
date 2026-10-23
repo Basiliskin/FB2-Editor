@@ -70,6 +70,15 @@ class Section {
     });
   }
 
+  /// Replaces paragraphs [start, end) with the lines of [text]; returns the new end.
+  int loadRange(int start, int end, String text) {
+    final List<String> lines = [
+      for (final String l in splitStringByEof(text)) addXml('p', l)
+    ];
+    p.replaceRange(start, end, lines);
+    return start + lines.length;
+  }
+
   addXml(tag, value) {
     return "<$tag>$value</$tag>";
   }

@@ -33,7 +33,14 @@ class SectionEditor extends StatefulWidget {
 class _SectionEditorState extends State<SectionEditor>
     with WidgetsBindingObserver {
   bool isLoading = false;
-  late QuillController _controller;
+  // Quill lays out its whole document eagerly, so a large section would jank on
+  // scroll. The section is shown as a lazy list of plain paragraphs and only the
+  // paragraph being edited (_active) gets a real Quill editor.
+  QuillController _controller = QuillController.basic();
+  int _active = -1;
+  String _activeText = '';
+  final _activeKey = GlobalKey();
+  final Map<String, String> _textCache = {};
   late int currentIndex;
   int startBookmark = -1;
   // bool _selected = false;
@@ -41,6 +48,7 @@ class _SectionEditorState extends State<SectionEditor>
   Map state = {};
   final picker = ImagePicker();
   final _scrollController = ScrollController();
+  final _innerScroll = ScrollController();
   final _focusNode = FocusNode();
 
   void changePage(int? index) {
@@ -54,22 +62,60 @@ class _SectionEditorState extends State<SectionEditor>
     WidgetsBinding.instance.addObserver(this);
     super.initState();
     currentIndex = 0;
-    final quillDelta = widget.service.sectionToDeltaJson(widget.section);
+  }
 
-    // const delta =
-    //     r'[{"insert":"\n","attributes":{"blockquote":true}},{"insert":"Hello "},{"insert":"Markdown","attributes":{"bold":true}},{"insert":"\n"}]';
-    // final myJSON = jsonDecode(delta);
-    try {
-      final document = Document.fromJson(quillDelta);
-      _controller = QuillController(
-        document: document,
-        selection: TextSelection.collapsed(offset: 0),
-        // onSelectionChanged: (TextSelection textSelection) =>
-        //     _selectionChanged(textSelection),
-      );
-    } catch (e) {
-      print(e);
+  /// Editable text of one stored paragraph (inline markup shows as its own lines).
+  String _paragraphText(String xml) {
+    if (_textCache.length > 800) _textCache.clear();
+    return _textCache.putIfAbsent(xml, () {
+      try {
+        return widget.section
+            .parseP(xml)
+            .map((d) => d['insert'] as String)
+            .join()
+            .replaceFirst(RegExp(r'\n$'), '');
+      } catch (e) {
+        print(e);
+        return xml;
+      }
+    });
+  }
+
+  /// Writes the active paragraph back. Returns the number of paragraphs it now
+  /// occupies (1 when its structure is unchanged).
+  int _commitActive() {
+    if (_active < 0) return 1;
+    final text = _controller.document.toPlainText().replaceFirst(RegExp(r'\n$'), '');
+    if (text == _activeText) return 1;
+    final end = widget.section.loadRange(_active, _active + 1, text);
+    _activeText = text;
+    return end - _active;
+  }
+
+  void _activate(int index) {
+    var target = index;
+    if (_active >= 0) {
+      if (index == _active) return;
+      final count = _commitActive();
+      if (index > _active) target += count - 1;
+      _controller.dispose();
     }
+    final text = _paragraphText(widget.section.p[target]);
+    setState(() {
+      _active = target;
+      _activeText = text;
+      _controller = QuillController(
+          document: Document.fromJson([
+            {"insert": "$text\n"}
+          ]),
+          selection: TextSelection.collapsed(offset: text.length));
+    });
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final ctx = _activeKey.currentContext;
+      if (ctx != null) {
+        Scrollable.ensureVisible(ctx, duration: const Duration(milliseconds: 150));
+      }
+    });
   }
 
   // _selectionChanged(TextSelection textSelection) async {
@@ -93,6 +139,8 @@ class _SectionEditorState extends State<SectionEditor>
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _scrollController.dispose();
+    _innerScroll.dispose();
+    _controller.dispose();
     _focusNode.dispose();
     super.dispose();
   }
@@ -110,8 +158,10 @@ class _SectionEditorState extends State<SectionEditor>
 
   _save() async {
     print('save');
-    final docText = _controller.document.toPlainText();
-    widget.section.load(docText);
+    if (_commitActive() != 1) {
+      // the paragraph split or vanished; drop the stale editor
+      setState(() => _active = -1);
+    }
     await widget.service.saveProject(widget.book);
     final snackBar =
         SnackBar(content: BaseText.Text('${widget.book.bookTitle} Saved'));
@@ -361,6 +411,50 @@ class _SectionEditorState extends State<SectionEditor>
         ));
   }
 
+  Widget _paragraphList(double fontSize) {
+    final style = TextStyle(
+        fontSize: fontSize, color: ColorUtils.stringToColor("0"), height: 1.3);
+    final paragraphs = widget.section.p;
+    return ListView.builder(
+      controller: _scrollController,
+      itemCount: paragraphs.length,
+      itemBuilder: (context, i) {
+        if (i == _active) {
+          return QuillEditor(
+              key: _activeKey,
+              controller: _controller,
+              focusNode: _focusNode,
+              scrollController: _innerScroll,
+              config: QuillEditorConfig(
+                autoFocus: true,
+                scrollable: false,
+                padding: const EdgeInsets.symmetric(vertical: 4),
+                customStyles: DefaultStyles(
+                  bold: TextStyle(fontSize: fontSize, fontWeight: FontWeight.bold),
+                  italic: TextStyle(fontSize: fontSize, fontStyle: FontStyle.italic),
+                  paragraph: DefaultTextBlockStyle(
+                    style,
+                    HorizontalSpacing.zero,
+                    VerticalSpacing.zero,
+                    VerticalSpacing.zero,
+                    null,
+                  ),
+                ),
+              ));
+        }
+        return InkWell(
+          onTap: () => _activate(i),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 4),
+            child: SizedBox(
+                width: double.infinity,
+                child: BaseText.Text(_paragraphText(paragraphs[i]), style: style)),
+          ),
+        );
+      },
+    );
+  }
+
   _navigateBack(BuildContext context) async {
     Map settings = widget.service.getSettings();
     bool autoSave = stringToBool(settings["auto-save"]) ?? false;
@@ -419,29 +513,7 @@ class _SectionEditorState extends State<SectionEditor>
             )),
             const Divider(height: 1),
             Expanded(
-              child: EditorPage(
-                  child: QuillEditor(
-                      controller: _controller,
-                      scrollController: _scrollController,
-                      focusNode: _focusNode,
-                      config: QuillEditorConfig(
-                        autoFocus: true,
-                        customStyles: DefaultStyles(
-                          bold: TextStyle(
-                              fontSize: fontSize, fontWeight: FontWeight.bold),
-                          italic: TextStyle(
-                              fontSize: fontSize, fontStyle: FontStyle.italic),
-                          paragraph: DefaultTextBlockStyle(
-                            TextStyle(
-                                fontSize: fontSize,
-                                color: ColorUtils.stringToColor("0")),
-                            HorizontalSpacing.zero,
-                            VerticalSpacing.zero,
-                            VerticalSpacing.zero,
-                            null,
-                          ),
-                        ),
-                      ))),
+              child: EditorPage(child: _paragraphList(fontSize)),
             )
           ],
         ),
