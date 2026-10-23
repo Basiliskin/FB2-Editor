@@ -7,7 +7,7 @@ import 'package:quill_fb2/pages/book_page.dart';
 import 'package:quill_fb2/pages/help_page.dart';
 import 'package:quill_fb2/pages/settings_page.dart';
 import 'package:quill_fb2/services/app.service.dart';
-import 'package:quill_fb2/services/open_failure.dart';
+import 'package:quill_fb2/services/open_failure_text.dart';
 import 'package:quill_fb2/utils/common.dart';
 import 'package:quill_fb2/utils/consts.dart';
 import 'package:quill_fb2/widgets/loading.dialog.dart';
@@ -116,15 +116,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   _reportOpenError(Object error) {
     print(error);
     if (!mounted) return;
-    final item = switch (error is OpenFailure ? error.kind : OpenFailureKind.unreadable) {
-      OpenFailureKind.unsupportedType => LangTranslateItems.openErrorUnsupported,
-      OpenFailureKind.unreadable => LangTranslateItems.openErrorUnreadable,
-      OpenFailureKind.noFb2InZip => LangTranslateItems.openErrorNoFb2InZip,
-      OpenFailureKind.notFb2 => LangTranslateItems.openErrorNotFb2,
-      OpenFailureKind.timeout => LangTranslateItems.openErrorTimeout,
-    };
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('${widget.service.translate(item)}')),
+      SnackBar(content: Text(openFailureMessage(widget.service, error))),
     );
   }
 

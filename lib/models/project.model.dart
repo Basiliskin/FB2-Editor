@@ -505,6 +505,73 @@ class ProjectModel {
     return xml.join('\n');
   }
 
+  static final _hrefRef = RegExp(r'((?:xlink|l):href=")#([^"]+)"');
+  static final _idAttr = RegExp(r'(\sid=")([^"]+)"');
+
+  /// Appends the chapters of [other] after this book's own, behind a heading
+  /// section named after it. Pictures and footnotes come along under new ids
+  /// (every id of [other] gets a prefix) so nothing clashes; the cover and
+  /// metadata of this book stay as they are. Returns the number of sections added.
+  int mergeFrom(ProjectModel other) {
+    final taken = {
+      ...binaryResource.resources.map((r) => r.id),
+      ...extraBodies.expand((b) => _idAttr.allMatches(b).map((m) => m.group(2)!)),
+    };
+    var n = 1;
+    String prefix() => 'm${n}_';
+    while (taken.any((id) => id.startsWith(prefix()))) n++;
+    final pre = prefix();
+
+    final idMap = <String, String>{
+      for (final r in other.binaryResource.resources) r.id: '$pre${r.id}',
+      for (final b in other.extraBodies)
+        for (final m in _idAttr.allMatches(b)) m.group(2)!: '$pre${m.group(2)}',
+    };
+    String rewrite(String xml) => xml.replaceAllMapped(_hrefRef,
+        (m) => '${m.group(1)}#${idMap[m.group(2)] ?? m.group(2)}"');
+
+    final used = <String>{};
+    void note(String xml) {
+      for (final m in _hrefRef.allMatches(xml)) {
+        used.add(m.group(2)!);
+      }
+    }
+
+    final added = <Section>[];
+    if (other.bookTitle.isNotEmpty) {
+      added.add(Section({"title": other.bookTitle, "p": [], "img": []}, binaryResource));
+    }
+    for (final sec in other.section) {
+      final p = [for (final block in sec.p) rewrite(block)];
+      p.forEach(note);
+      added.add(Section({"title": sec.title, "p": p, "img": []}, binaryResource));
+    }
+    final bodies = [
+      for (final b in other.extraBodies)
+        b.replaceAllMapped(_idAttr, (m) => '${m.group(1)}${idMap[m.group(2)]}"')
+    ];
+    bodies.forEach(note);
+    for (final r in other.binaryResource.resources) {
+      if (!used.contains('$pre${r.id}')) continue;
+      binaryResource.add({
+        "id": '$pre${r.id}',
+        "contentType": r.contentType,
+        "data": r.data,
+        "sectionId": ''
+      });
+    }
+    // pictures are owned by the section that shows them
+    for (final sec in added) {
+      for (final ref in sec.pictureRefs) {
+        final res = binaryResource.find(ref);
+        if (res.id.isNotEmpty && res.sectionId.isEmpty) res.sectionId = sec.sectionId;
+      }
+    }
+    section.addAll(added);
+    extraBodies = [...extraBodies, ...bodies.map(rewrite)];
+    return added.length;
+  }
+
   removeSelected(Map<String, Section> list) {
     final newList = section
         .where((element) => list.containsKey(element.sectionId) == false)

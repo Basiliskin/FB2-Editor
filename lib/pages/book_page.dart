@@ -12,6 +12,7 @@ import 'package:quill_fb2/utils/consts.dart';
 import 'package:quill_fb2/widgets/forms/book_form.dart';
 import 'package:quill_fb2/widgets/leave_dialog.dart';
 import 'package:quill_fb2/widgets/find_replace_dialog.dart';
+import 'package:quill_fb2/services/open_failure_text.dart';
 import 'package:quill_fb2/widgets/section/list.dart';
 import 'package:quill_fb2/ui/widgets.dart';
 
@@ -104,6 +105,30 @@ class _BookPageState extends State<BookPage>
     }
   }
 
+  /// Appends the chapters of another book (.fb2, .zip or .txt) to this one.
+  Future<void> _merge() async {
+    final s = widget.service;
+    await _flushForms();
+    try {
+      final info = await s.openFile({'fb2': true, 'zip': true, 'txt': true});
+      if (info == null) return; // cancelled
+      final other = ProjectModel.fromJson(await s.convertXmlToJson(info.data));
+      final added = widget.book.mergeFrom(other);
+      if (!mounted) return;
+      setChangedString('{}');
+      // drop the "saved" notice the flush raised so this result shows now
+      ScaffoldMessenger.of(context).clearSnackBars();
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(tr(s, 'Added $added sections from "${other.bookTitle}"',
+              'Добавлено разделов: $added из «${other.bookTitle}»'))));
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+        ..clearSnackBars()
+        ..showSnackBar(SnackBar(content: Text(openFailureMessage(s, e))));
+    }
+  }
+
   Future<void> _findReplace() async {
     await _flushForms();
     if (!mounted) return;
@@ -188,6 +213,10 @@ class _BookPageState extends State<BookPage>
           ),
         ]),
         actions: [
+          IconButton(
+              tooltip: tr(s, 'Add another book', 'Добавить другую книгу'),
+              icon: const Icon(Icons.library_add_outlined),
+              onPressed: _merge),
           IconButton(
               tooltip: tr(s, 'Find and replace', 'Поиск и замена'),
               icon: const Icon(Icons.find_replace),

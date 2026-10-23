@@ -23,6 +23,8 @@ class _FakeService extends AppService {
   int saves = 0;
   final exported = <ProjectModel>[];
   String? exportResult = '/exported/book.fb2';
+  dynamic openResult;
+  Object? openThrows;
 
   @override
   saveProject(ProjectModel model) async => saves++;
@@ -31,6 +33,12 @@ class _FakeService extends AppService {
   exportProject(ProjectModel model) async {
     exported.add(model);
     return exportResult;
+  }
+
+  @override
+  openFile(Map extensionNames) async {
+    if (openThrows != null) throw openThrows!;
+    return openResult;
   }
 
   @override
@@ -256,5 +264,38 @@ void main() {
     expect(find.byTooltip('Справка'), findsOneWidget);
     expect(find.byTooltip('Автосохранение: выкл'), findsOneWidget);
     expect(find.byTooltip('Экспорт .fb2'), findsOneWidget);
+  });
+
+  Future<void> tapMerge(WidgetTester tester) async {
+    await tester.runAsync(() async {
+      await tester.tap(find.byTooltip('Add another book'));
+      await tester.pump();
+      await Future<void>.delayed(const Duration(milliseconds: 500));
+    });
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+  }
+
+  testWidgets('Add another book appends its chapters', (tester) async {
+    service.openResult = FileInfo(
+        _fb2.replaceAll('Sample', 'Second').replaceAll('>Ch<', '>Other<'), '/x.fb2');
+    await pump(tester);
+    await tapMerge(tester);
+    expect(book.section.map((s) => s.title), ['Ch', 'Second', 'Other']);
+    expect(find.textContaining('Added 2 sections'), findsOneWidget);
+  });
+
+  testWidgets('Add another book: cancelling changes nothing', (tester) async {
+    await pump(tester);
+    await tapMerge(tester);
+    expect(book.section.length, 1);
+  });
+
+  testWidgets('Add another book: a failure is explained', (tester) async {
+    service.openThrows = StateError('boom');
+    await pump(tester);
+    await tapMerge(tester);
+    expect(book.section.length, 1);
+    expect(find.textContaining('read'), findsOneWidget);
   });
 }

@@ -101,6 +101,10 @@ const helpTopics = <HelpTopic>[
       'Автосохранение (✨ на экране книги или в настройках) также сохраняет при выходе из редактора и сворачивании приложения. Зелёный значок — включено.'
     ),
     (
+      'Find and replace (magnifier with arrows on the book screen) works on the whole book: text only, never links or pictures. "Add another book" appends the chapters of an .fb2, .zip or .txt file after yours, with its pictures and footnotes; your cover and details stay.',
+      'Поиск и замена (лупа со стрелками на экране книги) работают по всей книге: только текст, ссылки и картинки не затрагиваются. «Добавить другую книгу» дописывает главы из файла .fb2, .zip или .txt после ваших вместе с картинками и сносками; ваша обложка и данные остаются.'
+    ),
+    (
       'Export saves a ready .fb2 file where you choose (in the browser it downloads the file). The file is named "Author - Title.fb2" and always contains your latest edits.',
       'Экспорт сохраняет готовый файл .fb2 в выбранное место (в браузере файл скачивается). Файл называется «Автор - Название.fb2» и всегда содержит последние правки.'
     ),
