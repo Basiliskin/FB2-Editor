@@ -58,6 +58,16 @@ void main() {
     expect(harness.lastValues['cover'], '');
   });
 
+  testWidgets('remove from outside the card clears the value and marks the form changed', (tester) async {
+    final c = ImageController(_png(4, 4));
+    await harness.pump(tester, ImageFormField(name: 'cover', controller: c, showRemove: false));
+    expect(find.byIcon(Icons.delete_outline), findsNothing);
+    c.remove();
+    await tester.pumpAndSettle();
+    await harness.save(tester);
+    expect(harness.lastValues['cover'], '');
+  });
+
   testWidgets('an invalid image falls back to the placeholder without crashing',
       (tester) async {
     await pump(tester, '###');

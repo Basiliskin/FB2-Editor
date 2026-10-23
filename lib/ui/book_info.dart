@@ -5,6 +5,7 @@ import 'package:quill_fb2/services/app.service.dart';
 import 'package:quill_fb2/utils/common.dart';
 import 'package:quill_fb2/utils/consts.dart';
 import 'package:quill_fb2/ui/widgets.dart';
+import 'package:quill_fb2/widgets/forms/image.dart';
 
 /// Real form fields, handed to the layout so it only decides placement.
 class InfoKit {
@@ -16,12 +17,16 @@ class InfoKit {
   final Widget Function(String name, String hint, List<String> items) labels;
   final Widget Function() annotation;
   final VoidCallback? onStoryMap;
+
+  /// When given, the layout shows the remove-cover button itself.
+  final ImageController? coverController;
   InfoKit(this.s, this.book,
       {required this.text,
       required this.cover,
       required this.labels,
       required this.annotation,
-      this.onStoryMap});
+      this.onStoryMap,
+      this.coverController});
 
   String get title => trimSpecialChar(book.bookTitle, ' ');
   Widget caption(BuildContext c, String t) => Padding(
@@ -80,6 +85,19 @@ class BookInfoLayout extends StatelessWidget {
                 child: Padding(
                     padding: const EdgeInsets.fromLTRB(8, 8, 8, 0),
                     child: k.cover(132)))),
+        if (k.coverController != null)
+          Positioned(
+              bottom: 12,
+              right: 12,
+              child: ValueListenableBuilder<String?>(
+                  valueListenable: k.coverController!,
+                  builder: (_, v, __) => (v ?? '').isEmpty
+                      ? const SizedBox.shrink()
+                      : FloatingActionButton.small(
+                          heroTag: 'remove-cover-fab',
+                          tooltip: tr(k.s, 'Remove cover', 'Удалить обложку'),
+                          onPressed: k.coverController!.remove,
+                          child: const Icon(Icons.delete_outline)))),
         if (k.onStoryMap != null)
           Positioned(
               top: 12,

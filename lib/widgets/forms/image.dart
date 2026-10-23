@@ -8,6 +8,14 @@ import 'package:quill_fb2/widgets/easy_form_kit/easy_form_kit.dart';
 
 class ImageController extends EasyFormFieldController<String> {
   ImageController(String value) : super(value);
+
+  /// Set by the field this controls, so a removal made from outside it still marks the form changed.
+  ValueChanged<String?>? onUserChange;
+
+  void remove() {
+    value = '';
+    onUserChange?.call('');
+  }
 }
 
 class ImageField extends EasyFormGenericField<String> {
@@ -15,12 +23,16 @@ class ImageField extends EasyFormGenericField<String> {
   int? _width = 600;
   int? _quality = 75;
   final double coverWidth;
+
+  /// False when the layout offers its own remove button (see [ImageController.remove]).
+  final bool showRemove;
   ImageField(
       {Key? key,
       @required ImageController? controller,
       ValueChanged<String?>? onChange,
       int? width,
       int? quality,
+      this.showRemove = true,
       this.coverWidth = 110})
       : super(
           key: key,
@@ -78,6 +90,7 @@ class ImageField extends EasyFormGenericField<String> {
                   image: DecorationImage(
                       fit: BoxFit.contain, image: base64Image(value, true))),
             )),
+        if (showRemove)
         Positioned(
             right: 4,
             top: 4,
@@ -109,15 +122,18 @@ class ImageFormField extends EasyCustomFormField<String?, ImageController> {
       String? initialValue,
       int? width,
       int? quality,
+      bool showRemove = true,
       double coverWidth = 110})
       : super(
           key: key,
           name: (name as String),
           controller: controller,
-          initialValue: initialValue ?? '',
+          initialValue: controller == null ? (initialValue ?? '') : null,
           controllerBuilder: (value) => ImageController(value!),
           builder: (state, onChangedHandler) {
+            (state.controller as ImageController).onUserChange = onChangedHandler;
             return ImageField(
+              showRemove: showRemove,
               controller: (state.controller as ImageController),
               onChange: onChangedHandler,
               width: width,

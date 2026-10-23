@@ -28,6 +28,18 @@ class BookComponent extends StatefulWidget {
 
 class _BookComponentState extends State<BookComponent> {
   bool isLoading = false;
+  late final ImageController _cover = ImageController(_coverOf(widget.book));
+
+  static String _coverOf(ProjectModel b) {
+    final img = b.getImageBySectionId('cover');
+    return img is String ? img : '';
+  }
+
+  @override
+  void dispose() {
+    _cover.dispose();
+    super.dispose();
+  }
 
   Future<dynamic> _save(Map<String, dynamic> values, EasyFormState form) async {
     setState(() {
@@ -81,12 +93,14 @@ class _BookComponentState extends State<BookComponent> {
       final book = widget.book;
       final kit = InfoKit(widget.service, book,
           onStoryMap: widget.onStoryMap,
+          coverController: _cover,
           text: (n, val, {style, maxLines = 1, flat = false}) =>
               _createFormField(n, val,
                   style: style, maxLines: maxLines, flat: flat),
           cover: (w) => ImageFormField(
                 name: 'bookCoverPage',
-                initialValue: book.getImageBySectionId('cover'),
+                controller: _cover,
+                showRemove: false,
                 width: stringToInt(setting["image-width"]),
                 quality: stringToInt(setting["image-quality"]),
                 coverWidth: w,
