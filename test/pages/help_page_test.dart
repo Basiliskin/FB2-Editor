@@ -81,4 +81,47 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byType(HelpScreen), findsOneWidget);
   });
+
+  group('story map topic', () {
+    final topic = helpTopics.firstWhere((t) => t.id == 'story-map');
+
+    testWidgets('exists in both languages', (tester) async {
+      expect(topic.title.$1, 'Story map');
+      expect(topic.title.$2, 'Карта истории');
+    });
+
+    testWidgets('explains adding, changing, removing and connecting', (tester) async {
+      final text = topic.tips.map((t) => t.$1).join(' ');
+      for (final word in ['"+"', 'rename', 'remove', '"Undo"', 'Connections', 'pencil', 'Apply', 'Reset', 'Rebuild']) {
+        expect(text, contains(word), reason: 'the help should mention $word');
+      }
+      final ru = topic.tips.map((t) => t.$2).join(' ');
+      for (final word in ['«+»', '«Отменить»', 'Связи', '«Применить»', '«Сбросить»', '«Пересобрать']) {
+        expect(ru, contains(word), reason: 'the Russian help should mention $word');
+      }
+    });
+
+    testWidgets('openHelp with a topic shows it first and open', (tester) async {
+      await _pump(
+          tester,
+          Builder(
+              builder: (context) =>
+                  TextButton(onPressed: () => openHelp(context, service, topic: 'story-map'), child: const Text('go'))));
+      await tester.tap(find.text('go'));
+      await tester.pumpAndSettle();
+      expect(find.text(topic.tips.first.$1), findsOneWidget);
+      expect(tester.getTopLeft(find.text(topic.title.$1)).dy, lessThan(150));
+    });
+
+    testWidgets('without a topic nothing is open and the order is unchanged', (tester) async {
+      await _pump(tester, HelpScreen(service));
+      expect(find.text(topic.tips.first.$1), findsNothing);
+      expect(tester.getTopLeft(find.text(helpTopics.first.title.$1)).dy, lessThan(tester.getTopLeft(find.text(topic.title.$1)).dy));
+    });
+
+    testWidgets('an unknown topic id changes nothing', (tester) async {
+      await _pump(tester, HelpScreen(service, topic: 'nope'));
+      expect(find.text(helpTopics.first.title.$1), findsOneWidget);
+    });
+  });
 }

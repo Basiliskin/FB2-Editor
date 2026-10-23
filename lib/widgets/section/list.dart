@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:quill_fb2/widgets/story_map/section_sheet.dart';
 import 'package:quill_fb2/models/project.model.dart';
 import 'package:quill_fb2/models/section.model.dart';
 import 'package:quill_fb2/services/app.service.dart';
@@ -160,6 +161,7 @@ class _SectionListState extends State<SectionList> with WidgetsBindingObserver {
                         contentPadding: EdgeInsets.symmetric(vertical: 4))),
                 Text('${item.p.length} ${tr(widget.service, 'paragraphs', 'абзацев')}',
                     style: t.textTheme.bodySmall),
+                SectionCastLine(widget.book, item),
               ]),
             ),
             IconButton(

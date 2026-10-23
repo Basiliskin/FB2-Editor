@@ -1,3 +1,4 @@
+import 'package:quill_fb2/widgets/story_map/section_sheet.dart';
 import 'dart:convert';
 import 'dart:typed_data';
 
@@ -556,6 +557,13 @@ class _SectionEditorState extends State<SectionEditor>
                   onPressed: () => _navigateBack(context)),
               title: BaseText.Text(trimSpecialChar(widget.section.title)),
               actions: [
+                IconButton(
+                    tooltip: tr(widget.service, 'Story map', 'Карта истории'),
+                    icon: const Icon(Icons.hub_outlined),
+                    onPressed: () {
+                      _flushActive();
+                      openSectionStory(context, widget.service, widget.book, widget.section);
+                    }),
                 IconButton(
                     tooltip: tr(widget.service, 'Help', 'Справка'),
                     icon: const Icon(Icons.help_outline),

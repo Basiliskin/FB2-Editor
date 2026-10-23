@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:prompt_dialog/prompt_dialog.dart';
 import 'package:quill_fb2/models/project.model.dart';
 import 'package:quill_fb2/pages/help_page.dart';
+import 'package:quill_fb2/pages/story_map_page.dart';
 import 'package:quill_fb2/models/section.model.dart';
 import 'package:quill_fb2/services/app.service.dart';
 import 'package:quill_fb2/utils/color.utils.dart';
@@ -128,6 +129,11 @@ class _BookPageState extends State<BookPage>
         ..clearSnackBars()
         ..showSnackBar(SnackBar(content: Text(openFailureMessage(s, e))));
     }
+  }
+
+  /// Opens the story map; hand edits to it are saved with the book.
+  Future<void> _storyMap() async {
+    if (await openStoryMap(context, widget.service, widget.book) && mounted) setChangedString('{}');
   }
 
   Future<void> _findReplace() async {
@@ -255,6 +261,11 @@ class _BookPageState extends State<BookPage>
           ),
         ]),
         actions: [
+          if (MediaQuery.sizeOf(context).width >= 520)
+            IconButton(
+                tooltip: tr(s, 'Story map', 'Карта истории'),
+                icon: const Icon(Icons.hub_outlined),
+                onPressed: _storyMap),
           IconButton(
               tooltip: tr(s, 'Help', 'Справка'),
               icon: const Icon(Icons.help_outline),
@@ -272,9 +283,13 @@ class _BookPageState extends State<BookPage>
               tooltip: tr(s, 'More', 'Ещё'),
               onSelected: (v) => switch (v) {
                     'find' => _findReplace(),
+                    'map' => _storyMap(),
                     _ => _merge(),
                   },
               itemBuilder: (_) => [
+                    if (MediaQuery.sizeOf(context).width < 520)
+                      PopupMenuItem(
+                          value: 'map', child: Text(tr(s, 'Story map', 'Карта истории'))),
                     PopupMenuItem(
                         value: 'find',
                         child: Text(tr(s, 'Find and replace', 'Поиск и замена'))),

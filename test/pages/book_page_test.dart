@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:quill_fb2/models/project.model.dart';
 import 'package:quill_fb2/pages/book_page.dart';
 import 'package:quill_fb2/pages/help_page.dart';
+import 'package:quill_fb2/pages/story_map_page.dart';
 import 'package:quill_fb2/services/app.service.dart';
 
 import '../support/form_harness.dart';
@@ -392,5 +393,55 @@ void main() {
     await tester.tap(find.text('Find and replace'));
     await tester.pumpAndSettle();
     expect(find.text('Replace with'), findsOneWidget);
+  });
+
+  group('story map', () {
+    testWidgets('a button on a wide screen opens it', (tester) async {
+      await tester.runAsync(() => book.loadStoryMap());
+      await pump(tester);
+      await tester.tap(find.byTooltip('Story map'));
+      await tester.pumpAndSettle();
+      expect(find.byType(StoryMapPage), findsOneWidget);
+    });
+
+    testWidgets('on a narrow screen it is in the More menu', (tester) async {
+      await tester.runAsync(() => book.loadStoryMap());
+      tester.view.physicalSize = const Size(400, 800);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      await tester.pumpWidget(MaterialApp(home: BookPage(service, book, StreamController<void>.broadcast())));
+      await tester.pump();
+      expect(find.byIcon(Icons.hub_outlined), findsNothing);
+      await tester.tap(find.byType(PopupMenuButton<String>));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Story map'));
+      await tester.pumpAndSettle();
+      expect(find.byType(StoryMapPage), findsOneWidget);
+    });
+
+    testWidgets('editing the map and coming back saves the book; just looking does not', (tester) async {
+      await tester.runAsync(() => book.loadStoryMap());
+      await pump(tester);
+      final before = service.saves;
+      await tester.tap(find.byTooltip('Story map'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byType(BackButton));
+      await tester.pumpAndSettle();
+      expect(service.saves, before);
+
+      await tester.tap(find.byTooltip('Story map'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byIcon(Icons.edit_outlined));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byIcon(Icons.add));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.widgetWithText(TextField, 'Name'), 'Маяк');
+      await tester.tap(find.text('Save'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byType(BackButton));
+      await tester.pumpAndSettle();
+      expect(service.saves, greaterThan(before));
+      expect(book.getBookXml(), contains('Маяк'));
+    });
   });
 }

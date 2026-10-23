@@ -7,7 +7,10 @@ class HelpTopic {
   final IconData icon;
   final (String, String) title;
   final List<(String, String)> tips;
-  const HelpTopic(this.icon, this.title, this.tips);
+
+  /// Lets a screen open the help on this topic; empty when no screen links to it.
+  final String id;
+  const HelpTopic(this.icon, this.title, this.tips, {this.id = ''});
 }
 
 const helpTopics = <HelpTopic>[
@@ -91,6 +94,60 @@ const helpTopics = <HelpTopic>[
       'Кнопка стихов: сначала скопируйте стихи (пустая строка начинает новую строфу), затем нажмите её. Стихотворение вставится после редактируемого абзаца; нажмите на него, чтобы изменить строки.'
     ),
   ]),
+  HelpTopic(
+      Icons.hub_outlined,
+      ('Story map', 'Карта истории'),
+      id: 'story-map',
+      [
+    (
+      'Open it with the Story map button (three linked dots) on the book screen; on a narrow screen it is in the ⋮ menu. The map is built automatically from your text: names that keep their capital letter inside a sentence become people, and it counts who appears in which section. Nothing leaves your device.',
+      'Откройте её кнопкой «Карта истории» (три связанные точки) на экране книги; на узком экране она в меню ⋮. Карта строится сама по вашему тексту: слова, которые остаются с заглавной буквы внутри предложения, становятся героями, и считается, кто в каких разделах встречается. Ничего не покидает ваше устройство.'
+    ),
+    (
+      'Reading it: sections run down the side in book order; people, places, events and lore run across the top, in groups. A coloured cell means that item appears in that section, a darker one means more mentions. The book is split into three acts; tap an act\'s name to fold it.',
+      'Как читать: разделы идут сверху вниз в порядке книги, а герои, места, события и мир — слева направо группами. Цветная ячейка — объект встречается в разделе, чем темнее, тем чаще. Книга делится на три акта; нажмите название акта, чтобы свернуть его.'
+    ),
+    (
+      'Colours: people are blue (protagonist), green (major) or purple (minor). Places, events and lore have their own icons and colours.',
+      'Цвета: герои бывают синими (главный), зелёными (важные) и фиолетовыми (второстепенные). У мест, событий и мира свои значки и цвета.'
+    ),
+    (
+      'Tap a section to see who and what is in it. Tap a column title to toggle it; toggle several, then "Apply" keeps only those columns and "Reset" brings them all back. The filter button lists every item with checkboxes. The search box narrows the columns and the sort button orders them.',
+      'Нажмите на раздел, чтобы увидеть, кто и что в нём есть. Нажмите заголовок колонки, чтобы отметить её; отметьте несколько, и «Применить» оставит только их, а «Сбросить» вернёт все. Кнопка фильтра показывает все объекты с галочками. Поле поиска сужает колонки, кнопка сортировки задаёт их порядок.'
+    ),
+    (
+      'Zoom buttons switch between roomy, compact and "fit to width" (every column on screen). The map button shows an overview of the whole book: tap or drag it to jump. Tap a group header (People, Places…) to widen just that group and read its names.',
+      'Кнопки масштаба переключают крупный, компактный и «по ширине» (все колонки на экране) вид. Кнопка с картой показывает обзор всей книги: нажмите или проведите по ней, чтобы перейти. Нажмите заголовок группы (Герои, Места…), чтобы расширить только её и прочитать имена.'
+    ),
+    (
+      'Add, change, remove: tap the pencil, then "+" to add a person, place, event or piece of lore (name, kind, role, note). Tap a column title to rename it, change its kind, role or note, connect it to others, or remove it. "Undo" in the message brings a removed item back.',
+      'Добавить, изменить, убрать: нажмите карандаш, затем «+», чтобы добавить героя, место, событие или элемент мира (название, вид, роль, заметка). Нажмите заголовок колонки, чтобы переименовать её, сменить вид, роль или заметку, связать с другими или убрать. «Отменить» в сообщении вернёт убранное.'
+    ),
+    (
+      'While editing, tap a cell to mark or unmark where something appears. A mark you make by hand counts as one mention.',
+      'В режиме правки нажмите ячейку, чтобы отметить или снять отметку, где что встречается. Ручная отметка считается одним упоминанием.'
+    ),
+    (
+      'Connections: in an item\'s editor, "Add" connects it to another item with a short label such as "brother of", "lives in" or "caused by". Tap a connection to change its label, or the broken-link icon to remove it. Items that share paragraphs are connected automatically.',
+      'Связи: в окне правки объекта «Добавить» связывает его с другим объектом короткой подписью, например «брат», «живёт в» или «вызвано». Нажмите связь, чтобы изменить подпись, или значок разорванной цепи, чтобы убрать её. Объекты, которые встречаются в одних абзацах, связываются сами.'
+    ),
+    (
+      'In the section editor, the same button shows the same map for just that section, so you can add or remove who is in it while you write. Section cards in the Sections tab show who is in them.',
+      'В редакторе раздела та же кнопка показывает карту только этого раздела, чтобы вы могли добавлять и убирать героев, пока пишете. Карточки на вкладке «Разделы» показывают, кто в них есть.'
+    ),
+    (
+      'The flag button lists people to check, for example someone important who disappears for a whole act.',
+      'Кнопка с флажком показывает, что стоит проверить, например важного героя, который пропадает на целый акт.'
+    ),
+    (
+      'Saving: the map is kept inside the book, in the FB2 file\'s description where other readers ignore it, and is written when you save or export the book. EPUB and TXT files do not include it. "Rebuild from the text" in the ⋮ menu throws away your edits and builds a fresh map.',
+      'Сохранение: карта хранится внутри книги, в описании файла FB2, где другие программы её игнорируют, и записывается, когда вы сохраняете или экспортируете книгу. В файлы EPUB и TXT она не попадает. «Пересобрать по тексту» в меню ⋮ отбрасывает ваши правки и строит новую карту.'
+    ),
+    (
+      'Good to know: names are found by their capital letters, so someone always called by a title or a nickname may be missed, and two people who share a surname can get mixed up. Fix these by hand.',
+      'Полезно знать: имена находятся по заглавным буквам, поэтому героя, которого всегда называют по титулу или прозвищу, можно пропустить, а двух героев с общей фамилией — перепутать. Исправьте это вручную.'
+    ),
+  ]),
   HelpTopic(Icons.save_outlined, ('Saving & export', 'Сохранение и экспорт'), [
     (
       '"Save & export" (top right of the book screen) opens one menu: "Save in the app" keeps the book in the app\'s private workspace, and the other entries export a file. It also shows whether you have unsaved changes.',
@@ -152,37 +209,47 @@ const helpTopics = <HelpTopic>[
 ];
 
 /// Pushes the help screen. Shared by every screen that has a help button.
-Future<void> openHelp(BuildContext context, AppService service) =>
+Future<void> openHelp(BuildContext context, AppService service, {String? topic}) =>
     Navigator.push(
-        context, MaterialPageRoute(builder: (_) => HelpScreen(service)));
+        context, MaterialPageRoute(builder: (_) => HelpScreen(service, topic: topic)));
 
 class HelpScreen extends StatelessWidget {
   final AppService service;
-  const HelpScreen(this.service, {super.key});
+
+  /// The id of a [HelpTopic] to show first and open.
+  final String? topic;
+  const HelpScreen(this.service, {this.topic, super.key});
+
+  /// The requested topic first, so it is in view when it opens.
+  List<HelpTopic> get _ordered => [
+        ...helpTopics.where((x) => topic != null && x.id == topic),
+        ...helpTopics.where((x) => topic == null || x.id != topic),
+      ];
 
   @override
   Widget build(BuildContext context) {
-    final t = Theme.of(context);
+    final theme = Theme.of(context);
     return Scaffold(
       appBar: appBarFor(context, title: Text(tr(service, 'Help', 'Справка'))),
       body: PageBody(
         child: ListView(
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
           children: [
-            for (final topic in helpTopics)
+            for (final t in _ordered)
               Card(
                 margin: const EdgeInsets.only(bottom: 12),
                 clipBehavior: Clip.antiAlias,
                 child: ExpansionTile(
-                  leading: Icon(topic.icon, color: t.colorScheme.primary),
-                  title: Text(tr(service, topic.title.$1, topic.title.$2),
+                  initiallyExpanded: topic != null && t.id == topic,
+                  leading: Icon(t.icon, color: theme.colorScheme.primary),
+                  title: Text(tr(service, t.title.$1, t.title.$2),
                       style: const TextStyle(fontWeight: FontWeight.w600)),
                   shape: const Border(),
                   collapsedShape: const Border(),
                   childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
                   expandedCrossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    for (final tip in topic.tips)
+                    for (final tip in t.tips)
                       Padding(
                         padding: const EdgeInsets.only(bottom: 10),
                         child: Row(
@@ -191,7 +258,7 @@ class HelpScreen extends StatelessWidget {
                               const Text('•  '),
                               Expanded(
                                   child: Text(tr(service, tip.$1, tip.$2),
-                                      style: t.textTheme.bodyMedium)),
+                                      style: theme.textTheme.bodyMedium)),
                             ]),
                       ),
                   ],
