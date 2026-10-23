@@ -79,14 +79,16 @@ class BookInfoLayout extends StatelessWidget {
                     ]),
                 child: Padding(
                     padding: const EdgeInsets.fromLTRB(8, 8, 8, 0),
-                    child: Column(mainAxisSize: MainAxisSize.min, children: [
-                      k.cover(132),
-                      if (k.onStoryMap != null)
-                        TextButton.icon(
-                            onPressed: k.onStoryMap,
-                            icon: const Icon(Icons.timeline, size: 16),
-                            label: Text(tr(k.s, 'Story map', 'Карта сюжета'))),
-                    ])))),
+                    child: k.cover(132)))),
+        if (k.onStoryMap != null)
+          Positioned(
+              top: 12,
+              right: 12,
+              child: FloatingActionButton.small(
+                  heroTag: 'story-map-fab',
+                  tooltip: tr(k.s, 'Open the story map', 'Открыть карту сюжета'),
+                  onPressed: k.onStoryMap,
+                  child: const Icon(Icons.timeline))),
       ]),
       sec(tr(k.s, 'Title', 'Название'), [
         k.text(LangTranslateItems.bookTitle, k.title,

@@ -102,7 +102,8 @@ void main() {
     await pump(tester);
     expect(find.text('Sample'), findsWidgets);
     expect(find.text(book.getAuthor()), findsWidgets);
-    expect(find.byType(FloatingActionButton), findsNothing);
+    // the only FAB is the story map one on the Info tab
+    expect(find.byType(FloatingActionButton), findsOneWidget);
   });
 
   testWidgets('reacts to app lifecycle changes without errors', (tester) async {
@@ -419,14 +420,14 @@ void main() {
       expect(find.byType(StoryMapPage), findsOneWidget);
     });
 
-    testWidgets('the Info tab has a Story map button under the cover', (tester) async {
+    testWidgets('the Info tab has a Story map button in the corner of the cover banner', (tester) async {
       await tester.runAsync(() => book.loadStoryMap());
       tester.view.physicalSize = const Size(400, 800);
       tester.view.devicePixelRatio = 1;
       addTearDown(tester.view.reset);
       await tester.pumpWidget(MaterialApp(home: BookPage(service, book, StreamController<void>.broadcast())));
       await tester.pump();
-      await tester.tap(find.widgetWithText(TextButton, 'Story map'));
+      await tester.tap(find.byType(FloatingActionButton));
       await tester.pumpAndSettle();
       expect(find.byType(StoryMapPage), findsOneWidget);
     });
