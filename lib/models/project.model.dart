@@ -1,5 +1,8 @@
 import 'dart:io';
 
+import 'package:flutter/foundation.dart' show compute;
+import 'package:quill_fb2/models/story_map.model.dart';
+import 'package:quill_fb2/services/story_map_analyzer.dart';
 import 'package:xml/xml.dart';
 
 import 'package:quill_fb2/utils/common.dart';
@@ -544,6 +547,64 @@ class ProjectModel {
     xml.add(binaryResource.toXml());
     xml.add('</FictionBook>');
     return xml.join('\n');
+  }
+
+  // ---- story map ----
+  // The map is kept in the book's description as <custom-info info-type="story-map">: a
+  // standard FB2 element other readers ignore, carried through save and load like the other
+  // description parts the editor does not model.
+
+  StoryMap? _storyMap;
+
+  static bool _isStoryMapPart(Map e) =>
+      e['name'] == 'custom-info' && '${e['xml']}'.contains('info-type="story-map"');
+
+  List<String> get _sectionIds => [for (final s in section) s.sectionId];
+  List<String> get _sectionTitles => [
+        for (var i = 0; i < section.length; i++)
+          section[i].title.trim().isEmpty ? 'Section ${i + 1}' : trimSpecialChar(section[i].title, ' ')
+      ];
+
+  /// The map if it has been loaded already, lined up with the current sections; else null.
+  StoryMap? get loadedStoryMap {
+    final m = _storyMap;
+    m?.realign(_sectionIds, _sectionTitles);
+    return m;
+  }
+
+  /// The saved map, or one built from the text (people only), lined up with the current
+  /// sections. Building runs off the main thread. Nothing is written to the book until
+  /// [saveStoryMap], so merely opening the map never marks the book as changed.
+  Future<StoryMap> loadStoryMap() async {
+    var m = _storyMap;
+    if (m == null) {
+      for (final part in descriptionExtras) {
+        if (!_isStoryMapPart(part)) continue;
+        try {
+          m = StoryMap.decode(XmlDocument.parse('${part['xml']}').rootElement.innerText, _sectionIds, _sectionTitles);
+        } catch (_) {}
+        if (m != null) break;
+      }
+    }
+    final StoryMap map = m ?? await compute(analyzeSections, [for (final s in section) StorySection(s.sectionId, s.title, List.of(s.p))]);
+    map.realign(_sectionIds, _sectionTitles);
+    return _storyMap = map;
+  }
+
+  /// Writes [map] into the book so the next save or export carries it.
+  void saveStoryMap(StoryMap map) {
+    _storyMap = map;
+    descriptionExtras.removeWhere(_isStoryMapPart);
+    descriptionExtras.add({
+      'name': 'custom-info',
+      'xml': '<custom-info info-type="story-map">${escapeText(map.encode())}</custom-info>',
+    });
+  }
+
+  /// Drops the saved map and any hand edits; the next [loadStoryMap] builds a fresh one.
+  void discardStoryMap() {
+    _storyMap = null;
+    descriptionExtras.removeWhere(_isStoryMapPart);
   }
 
   static final _hrefRef = RegExp(r'((?:xlink|l):href=")#([^"]+)"');

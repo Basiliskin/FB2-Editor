@@ -1,0 +1,5 @@
+# The story map is built from the text on the device and saved inside the FB2
+
+The Story map lists people automatically with a local heuristic (names that keep their capital letter inside a sentence, Russian endings trimmed, a surname folded into its first name), and the user adds places, events and lore and corrects the rest by hand. It is stored as one JSON string in a standard `<custom-info info-type="story-map">` element of the FB2 description, keyed by Section id, so the book stays one file, other readers ignore the element, and the map follows its sections when they are added, removed or reordered. EPUB and TXT exports leave it out.
+
+We rejected asking an LLM Provider to build the map: it would send the whole book to a vendor for a feature that must work offline, and it would make the first open slow and billable. The cost is that detection is crude: titles ("Лорд"), nicknames and a surname shared by two first names are missed or mixed up, which is why every part of the map is editable and "Rebuild from the text" exists. A Provider could later fill the same map shape. We also rejected a sidecar file, which gets lost when the book is moved or emailed.

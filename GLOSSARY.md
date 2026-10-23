@@ -12,6 +12,28 @@ _Avoid_: Chapter, page
 A contiguous run of paragraphs within one Section.
 _Avoid_: Block, chunk
 
+## Story map
+
+**Story map**:
+A book's record of which Entities appear in which Section, and how they are tied together. People are found automatically from the text; everything else is added by hand. It is saved inside the FB2 file.
+_Avoid_: Plot, outline, character sheet
+
+**Entity**:
+One person, place, event or piece of lore on the Story map. It has a name, a kind, an optional note, and, for a person, a role (protagonist, major or minor).
+_Avoid_: Character, item, object
+
+**Presence**:
+That an Entity appears in a Section. Counted from the text for people; a mark made by hand counts as one mention.
+_Avoid_: Appearance, occurrence
+
+**Tie**:
+A link between two Entities, counted from paragraphs where both appear or drawn by hand, with an optional label such as "brother of".
+_Avoid_: Relationship, edge, connection (in code)
+
+**Act**:
+One of up to three consecutive groups of Sections that the Story map cuts the book into by length. It is a way to read the timeline, not the book's plot structure.
+_Avoid_: Part, volume
+
 ## AI assistance
 
 **Provider**:
