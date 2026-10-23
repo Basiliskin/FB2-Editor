@@ -12,6 +12,7 @@ import 'package:plugin_platform_interface/plugin_platform_interface.dart';
 import 'package:quill_fb2/models/project.model.dart';
 import 'package:quill_fb2/services/app.service.dart' as app;
 import 'package:quill_fb2/services/app.service.dart' show AppService;
+import 'package:quill_fb2/services/fb2.service.dart';
 import 'package:quill_fb2/services/open_failure.dart';
 import 'package:quill_fb2/utils/consts.dart';
 
@@ -263,6 +264,32 @@ void main() {
     test('returns null when the user cancels', () async {
       picker.result = null;
       expect(await service.openFile(exts), isNull);
+    });
+
+    test('turns a text file into a book named after the file', () async {
+      final src = Directory.systemTemp.createTempSync('picked');
+      addTearDown(() => src.deleteSync(recursive: true));
+      final f = File('${src.path}/My Story.txt')
+        ..writeAsStringSync('Chapter 1\nHello & <welcome>\n\nGlava\nChapter 2\nBye');
+      picker.result = FilePickerResult([_pf('My Story.txt', f.path)]);
+      final info = await service.openFile({...exts, 'txt': true});
+      final json = await Fb2Service().convertXmlToJson(info.data);
+      final book = ProjectModel.fromJson(json);
+      expect(book.bookTitle, 'My Story');
+      expect(book.section.map((s) => s.title), ['Chapter 1', 'Chapter 2']);
+      expect(book.section[0].p, ['<p>Hello &amp; &lt;welcome></p>', '<p>Glava</p>']);
+      expect(File(info.path).existsSync(), isTrue);
+    });
+
+    test('reads a Windows-1251 text file', () async {
+      final src = Directory.systemTemp.createTempSync('picked');
+      addTearDown(() => src.deleteSync(recursive: true));
+      // "Привет" in cp1251
+      final f = File('${src.path}/r.txt')
+        ..writeAsBytesSync([0xCF, 0xF0, 0xE8, 0xE2, 0xE5, 0xF2]);
+      picker.result = FilePickerResult([_pf('r.txt', f.path)]);
+      final info = await service.openFile({...exts, 'txt': true});
+      expect(info.data, contains('<p>Привет</p>'));
     });
 
     test('rejects an extension that is not accepted', () async {

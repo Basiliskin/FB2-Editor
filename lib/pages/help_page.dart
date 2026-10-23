@@ -13,8 +13,8 @@ class HelpTopic {
 const helpTopics = <HelpTopic>[
   HelpTopic(Icons.local_library_outlined, ('Library', 'Библиотека'), [
     (
-      'Tap "Load book" to pick an .fb2 file, or a .zip archive that contains one.',
-      'Нажмите «Загрузить книгу», чтобы выбрать файл .fb2 или архив .zip с книгой.'
+      'Tap "Load book" to pick an .fb2 file, a .zip archive that contains one, or a plain .txt file (it becomes a book; lines like "Chapter 2" or "Глава 2" start new sections). "New book" starts an empty one.',
+      'Нажмите «Загрузить книгу», чтобы выбрать файл .fb2, архив .zip с книгой или обычный .txt (он станет книгой; строки вида «Глава 2» или "Chapter 2" начинают новые разделы). «Новая книга» создаёт пустую.'
     ),
     (
       'Books you opened appear as covers, newest first. Tap a cover to continue editing.',

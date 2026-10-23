@@ -366,8 +366,10 @@ class AppService {
   }
 
   /// An empty book with one empty chapter, ready to open like any picked file.
-  Future<FileInfo> createBook(String title, String chapter) async {
-    final xml = newBookXml(title, chapter);
+  Future<FileInfo> createBook(String title, String chapter) =>
+      _storeNewBook(newBookXml(title, chapter));
+
+  Future<FileInfo> _storeNewBook(String xml) async {
     final name = 'new-${getRandomString(8)}$BOOK_EXT';
     if (kIsWeb) return FileInfo(xml, name); // coverage:ignore-line
     final file = File('${await _localPath}/$name');
@@ -398,6 +400,15 @@ class AppService {
     }
     // coverage:ignore-end
     final path = file.path;
+    if (ext == 'txt') {
+      try {
+        final text = decodeFb2Bytes(await File(path!).readAsBytes());
+        final title = file.name.replaceFirst(RegExp(r'\.txt$', caseSensitive: false), '');
+        return await _storeNewBook(txtToFb2Xml(text, title));
+      } catch (e) {
+        throw OpenFailure(OpenFailureKind.unreadable, '$e');
+      }
+    }
     dynamic info;
     try {
       info = ext == 'fb2' ? await loadFile(path) : await loadZipFile(path);

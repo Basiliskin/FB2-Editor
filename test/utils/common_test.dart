@@ -173,6 +173,36 @@ void main() {
     });
   });
 
+  group('txtToFb2Xml', () {
+    XmlDocument parse(String t, [String title = 'T']) => XmlDocument.parse(txtToFb2Xml(t, title));
+    List<String> titles(XmlDocument d) => d.findAllElements('section')
+        .map((s) => s.getElement('title')!.innerText).toList();
+
+    test('a text without headings is one section named after the book', () {
+      final d = parse('one\r\ntwo\n\n  three  ');
+      expect(titles(d), ['T']);
+      expect(d.findAllElements('section').single.findElements('p').map((p) => p.innerText),
+          ['one', 'two', 'three']);
+    });
+
+    test('chapter headings, in English and Russian, split the text', () {
+      final d = parse('intro\nГлава 1\na\nCHAPTER II\nb\nПролог\nc');
+      expect(titles(d), ['T', 'Глава 1', 'CHAPTER II', 'Пролог']);
+    });
+
+    test('a long line starting with "Part" is text, not a heading', () {
+      final long = 'Part of the problem is that ${'x' * 80}';
+      expect(titles(parse(long)), ['T']);
+    });
+
+    test('markup characters and a BOM are handled; an empty file still gives a book', () {
+      expect(parse('\uFEFFa < b & c').findAllElements('p').last.innerText, 'a < b & c');
+      final d = parse('   \n\n');
+      expect(titles(d), ['T']);
+      expect(d.findAllElements('p').length, 2); // body title + section title
+    });
+  });
+
   group('sniffImageType', () {
     test('tells PNG, GIF, WebP and JPEG apart', () {
       expect(sniffImageType([0x89, 0x50, 0x4E, 0x47, 0]).ext, 'png');

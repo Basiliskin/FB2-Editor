@@ -441,3 +441,30 @@ String newBookXml(String title, String chapter) =>
     '<body><title><p>${escapeXml(title)}</p></title>'
     '<section><title><p>${escapeXml(chapter)}</p></title></section></body>\n'
     '</FictionBook>';
+
+final _chapterHeading = RegExp(
+    r'^(chapter|part|book|prologue|epilogue|глава|часть|книга|пролог|эпилог)(?![\p{L}\p{N}_])',
+    caseSensitive: false, unicode: true);
+
+/// Plain text as a book: one paragraph per non-empty line; a short line that
+/// starts like a chapter heading ("Chapter 3", "Глава 2", "Prologue") opens a new
+/// section. Without any heading the whole text is one section named [title].
+String txtToFb2Xml(String text, String title) {
+  final sections = <(String, StringBuffer)>[];
+  for (final raw in text.replaceFirst('\uFEFF', '').split(RegExp(r'\r\n|\r|\n'))) {
+    final line = raw.trim();
+    if (line.isEmpty) continue;
+    if (line.length <= 80 && _chapterHeading.hasMatch(line)) {
+      sections.add((line, StringBuffer()));
+      continue;
+    }
+    if (sections.isEmpty) sections.add((title, StringBuffer()));
+    sections.last.$2.write('<p>${escapeXml(line)}</p>');
+  }
+  if (sections.isEmpty) sections.add((title, StringBuffer()));
+  final body = sections
+      .map((s) => '<section><title><p>${escapeXml(s.$1)}</p></title>${s.$2}</section>')
+      .join();
+  return newBookXml(title, '')
+      .replaceFirst(RegExp(r'<section>.*</section>', dotAll: true), body);
+}

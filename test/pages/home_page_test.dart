@@ -45,7 +45,7 @@ class _FakeService extends AppService {
   @override
   openFile(Map extensionNames) async {
     openCalls++;
-    expect(extensionNames, {'fb2': true, 'zip': true});
+    expect(extensionNames, {'fb2': true, 'zip': true, 'txt': true});
     if (openThrows != null) throw openThrows!;
     return openResult;
   }
