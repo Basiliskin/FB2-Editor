@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:http/http.dart' as http;
 import 'package:quill_fb2/services/llm/llm_client.dart';
 
@@ -96,6 +98,25 @@ class GeminiClient extends HttpLlmClient {
       (json['candidates'][0]['content']['parts'] as List)
           .map((p) => p['text'] as String)
           .join();
+}
+
+/// Sends a one-word request to see whether [provider] is usable. Returns null
+/// when it answered, otherwise why it did not.
+Future<LlmException?> testConnection(Provider provider, http.Client client,
+    {Duration timeout = const Duration(seconds: 20)}) async {
+  try {
+    await createLlmClient(provider, client)
+        .complete(const LlmRequest(
+            system: 'Answer with the single word OK.', user: 'Say OK.'))
+        .timeout(timeout);
+    return null;
+  } on LlmException catch (e) {
+    return e;
+  } on TimeoutException {
+    return const LlmException(LlmFailure.network, 'timed out');
+  } finally {
+    client.close();
+  }
 }
 
 LlmClient createLlmClient(Provider provider, http.Client httpClient) {

@@ -1,6 +1,8 @@
 import 'package:flutter/foundation.dart';
+import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
 import 'package:quill_fb2/services/app.service.dart';
+import 'package:quill_fb2/services/llm/adapters.dart';
 import 'package:quill_fb2/services/llm/llm_client.dart';
 import 'package:quill_fb2/ui/widgets.dart';
 import 'package:quill_fb2/utils/common.dart';
@@ -20,7 +22,11 @@ const _defaultModels = {
 /// Settings group listing the saved AI Providers, with add, edit and delete.
 class ProvidersSection extends StatefulWidget {
   final AppService service;
-  const ProvidersSection(this.service, {super.key});
+
+  /// Makes the HTTP client used by "Test connection" (replaced in tests).
+  final http.Client Function() httpFactory;
+  const ProvidersSection(this.service,
+      {super.key, this.httpFactory = http.Client.new});
   @override
   State<ProvidersSection> createState() => _ProvidersSectionState();
 }
@@ -43,7 +49,8 @@ class _ProvidersSectionState extends State<ProvidersSection> {
 
   Future<void> _edit([Provider? existing]) async {
     final result = await showDialog<Provider>(
-        context: context, builder: (_) => _ProviderDialog(_s, existing));
+        context: context,
+        builder: (_) => _ProviderDialog(_s, existing, widget.httpFactory));
     if (result == null) return;
     await _s.providerStore
         .save(result, makeDefault: existing == null && _providers.isEmpty);
@@ -100,7 +107,8 @@ class _ProvidersSectionState extends State<ProvidersSection> {
 class _ProviderDialog extends StatefulWidget {
   final AppService service;
   final Provider? existing;
-  const _ProviderDialog(this.service, this.existing);
+  final http.Client Function() httpFactory;
+  const _ProviderDialog(this.service, this.existing, this.httpFactory);
   @override
   State<_ProviderDialog> createState() => _ProviderDialogState();
 }
@@ -119,6 +127,51 @@ class _ProviderDialogState extends State<_ProviderDialog> {
       c.dispose();
     }
     super.dispose();
+  }
+
+  bool _testing = false;
+  String? _result; // null: not tested; '' : worked; else the problem
+  bool get _worked => _result == '';
+
+  Provider get _draft => Provider(
+      id: widget.existing?.id ?? 'test',
+      name: _name.text.trim(),
+      vendor: _vendor,
+      model: _model.text.trim(),
+      apiKey: _key.text.trim(),
+      baseUrl: _url.text.trim());
+
+  Future<void> _test() async {
+    setState(() {
+      _testing = true;
+      _result = null;
+    });
+    final failure = await testConnection(_draft, widget.httpFactory());
+    if (!mounted) return;
+    final s = widget.service;
+    var text = '';
+    if (failure != null) {
+      switch (failure.failure) {
+        case LlmFailure.invalidKey:
+          text = tr(s, 'The API key was rejected', 'API-ключ отклонён');
+        case LlmFailure.rateLimited:
+          text = tr(s, 'Reachable, but the rate limit is reached',
+              'Сервер доступен, но лимит запросов исчерпан');
+        case LlmFailure.network:
+          text = tr(s, 'Could not reach the server', 'Нет связи с сервером');
+          if (_url.text.trim().startsWith('http://')) {
+            text += tr(s, ' (Android may block plain http, try https)',
+                ' (Android может блокировать http, нужен https)');
+          }
+        case LlmFailure.badResponse:
+          text = tr(s, 'Unexpected answer (${failure.message}): check the model and base URL',
+              'Неожиданный ответ (${failure.message}): проверьте модель и URL');
+      }
+    }
+    setState(() {
+      _testing = false;
+      _result = text;
+    });
   }
 
   bool get _valid =>
@@ -167,6 +220,33 @@ class _ProviderDialogState extends State<_ProviderDialog> {
               decoration: InputDecoration(
                   labelText: tr(s, 'Base URL (optional)',
                       'Базовый URL (необязательно)'))),
+          const SizedBox(height: 12),
+          Row(children: [
+            OutlinedButton.icon(
+                icon: _testing
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2))
+                    : const Icon(Icons.wifi_tethering),
+                label: Text(tr(s, 'Test connection', 'Проверить связь')),
+                onPressed: _valid && !_testing ? _test : null),
+          ]),
+          if (_result != null)
+            Padding(
+                padding: const EdgeInsets.only(top: 8),
+                child: Row(children: [
+                  Icon(_worked ? Icons.check_circle : Icons.error_outline,
+                      size: 18,
+                      color: _worked
+                          ? Colors.green
+                          : Theme.of(context).colorScheme.error),
+                  const SizedBox(width: 6),
+                  Expanded(
+                      child: Text(_worked
+                          ? tr(s, 'Connected', 'Связь есть')
+                          : _result!)),
+                ])),
         ]),
       ),
       actions: [
