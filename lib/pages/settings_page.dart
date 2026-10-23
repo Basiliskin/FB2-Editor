@@ -3,8 +3,7 @@ import 'dart:async';
 
 import 'package:quill_fb2/services/app.service.dart';
 import 'package:quill_fb2/widgets/forms/settings.form.dart';
-import 'package:quill_fb2/prototype/modern_widgets.dart'; // PROTOTYPE
-import 'package:quill_fb2/prototype/prototype_switcher.dart'; // PROTOTYPE
+import 'package:quill_fb2/ui/widgets.dart';
 
 class SettingsScreen extends StatefulWidget {
   final AppService service;
@@ -51,40 +50,13 @@ class _SettingsScreenState extends State<SettingsScreen>
     print(autoSave);
   }
 
-  _build() {
-    try {
-      Map settings = widget.service.getSettings();
-      return SafeArea(
-        child: Column(children: <Widget>[
-          Stack(children: [
-            SettingsComponent(widget.service, settings,
-                changeController!.stream.asBroadcastStream()),
-          ]),
-        ]),
-      );
-    } catch (e) {
-      print(e);
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
-    if (Proto.modern) {
-      return Scaffold(
-          key: _scaffoldKey,
-          appBar: modernAppBar(context, title: Text(tr(widget.service, 'Settings', 'Настройки'))),
-          body: SettingsComponent(widget.service, widget.service.getSettings(),
-              changeController!.stream.asBroadcastStream()));
-    }
     return Scaffold(
         key: _scaffoldKey,
-        appBar: AppBar(
-          title: Text('Settings'),
-          centerTitle: true,
-        ),
-        body: Padding(
-          padding: EdgeInsets.all(16.0),
-          child: _build(),
-        ));
+        appBar: appBarFor(context,
+            title: Text(tr(widget.service, 'Settings', 'Настройки'))),
+        body: SettingsComponent(widget.service, widget.service.getSettings(),
+            changeController!.stream.asBroadcastStream()));
   }
 }

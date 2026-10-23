@@ -5,8 +5,7 @@ import 'package:quill_fb2/models/section.model.dart';
 import 'package:quill_fb2/services/app.service.dart';
 import 'package:quill_fb2/utils/common.dart';
 import 'package:quill_fb2/widgets/section_editor/editor.dart';
-import 'package:quill_fb2/prototype/modern_widgets.dart'; // PROTOTYPE
-import 'package:quill_fb2/prototype/prototype_switcher.dart'; // PROTOTYPE
+import 'package:quill_fb2/ui/widgets.dart';
 
 class SectionTitle extends StatefulWidget {
   final String title;
@@ -90,87 +89,12 @@ class _SectionListState extends State<SectionList> with WidgetsBindingObserver {
     widget.service.saveProject(widget.book);
   }
 
-  _getListItems() => items
-      .asMap()
-      .map((i, item) => MapEntry(i, _buildTenableListTile(item, i)))
-      .values
-      .toList();
-
   _changeTitle(item, text) {
     item.title = text;
     // widget.service.saveProject(widget.book);
   }
 
-  Widget _buildTenableListTile(Section item, int index) {
-    return Dismissible(
-      key: Key(item.sectionId),
-      onDismissed: (direction) {
-        setState(() {
-          items.removeAt(index);
-        });
-      },
-      background: Container(color: Colors.red),
-      child: ListTile(
-        key: ValueKey(item.sectionId),
-        title: Row(
-          children: [
-            Expanded(
-                flex: 1,
-                child: MaterialButton(
-                  onPressed: () {
-                    final isDeleted = widget.onMarkToDelete(item);
-                    setState(() {
-                      if (isDeleted)
-                        _isDeleted[item.sectionId] = isDeleted;
-                      else
-                        _isDeleted.remove(item.sectionId);
-                    });
-                  },
-                  color: _isDeleted.containsKey(item.sectionId)
-                      ? Colors.red
-                      : Colors.blue,
-                  textColor: Colors.white,
-                  child: Icon(
-                    _isDeleted.containsKey(item.sectionId)
-                        ? Icons.remove
-                        : Icons.delete,
-                    size: 32,
-                  ),
-                  padding: EdgeInsets.all(2),
-                  shape: CircleBorder(),
-                )),
-            Expanded(
-                flex: 6,
-                child: SectionTitle(trimSpecialChar(item.title, ' '),
-                    (text) => {_changeTitle(item, text)})),
-            Expanded(
-                flex: 1,
-                child: MaterialButton(
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) =>
-                            SectionEditor(widget.service, widget.book, item),
-                      ),
-                    ).then((value) => setState(() {}));
-                  },
-                  color: Colors.blue,
-                  textColor: Colors.white,
-                  child: Icon(
-                    Icons.edit,
-                    size: 18,
-                  ),
-                  padding: EdgeInsets.all(2),
-                  shape: CircleBorder(),
-                ))
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _modernTile(Section item, int index) {
+  Widget _tile(Section item, int index) {
     final t = Theme.of(context);
     final marked = _isDeleted.containsKey(item.sectionId);
     void toggle() {
@@ -254,26 +178,15 @@ class _SectionListState extends State<SectionList> with WidgetsBindingObserver {
   @override
   Widget build(BuildContext context) {
     items = widget.book.section;
-    if (Proto.modern) {
-      return ModernPage(
+    {
+      return PageBody(
           child: ReorderableListView.builder(
         padding: const EdgeInsets.fromLTRB(16, 16, 16, 120),
         buildDefaultDragHandles: false,
         itemCount: items.length,
         onReorder: onReorder,
-        itemBuilder: (c, i) => _modernTile(items[i], i),
+        itemBuilder: (c, i) => _tile(items[i], i),
       ));
     }
-    return SingleChildScrollView(
-        child: SafeArea(
-            child: Container(
-                child: Column(children: <Widget>[
-      Container(
-          height: 500,
-          child: ReorderableListView(
-            onReorder: onReorder,
-            children: _getListItems(),
-          )) //_content(context)
-    ]))));
   }
 }

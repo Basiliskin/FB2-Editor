@@ -9,8 +9,7 @@ import 'package:quill_fb2/widgets/easy_form_kit/easy_form_kit.dart';
 import 'package:quill_fb2/widgets/forms/image.dart';
 import 'package:quill_fb2/widgets/loading.dialog.dart';
 
-import 'package:quill_fb2/prototype/modern_widgets.dart'; // PROTOTYPE
-import 'package:quill_fb2/prototype/prototype_switcher.dart'; // PROTOTYPE
+import 'package:quill_fb2/ui/widgets.dart';
 import 'annotation.dart';
 import 'label.dart';
 
@@ -78,15 +77,15 @@ class _BookComponentState extends State<BookComponent> {
     try {
       Map setting = widget.service.getSettings();
       final book = widget.book;
-      if (Proto.modern) {
+      {
         final s = widget.service;
         final labelForm = (String name, String hint, List<String> items) =>
             LabelFormField(name: name, initialValue: LabelData(hint, items));
-        return ModernPage(
+        return PageBody(
             child: ListView(
                 padding: const EdgeInsets.fromLTRB(16, 20, 16, 120),
                 children: [
-              ModernGroup(tr(s, 'Cover & title', 'Обложка и название'), icon: Icons.menu_book_outlined, [
+              SettingsGroup(tr(s, 'Cover & title', 'Обложка и название'), icon: Icons.menu_book_outlined, [
                 Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
                   ImageFormField(
                     name: 'bookCoverPage',
@@ -104,7 +103,7 @@ class _BookComponentState extends State<BookComponent> {
                   ])),
                 ]),
               ]),
-              ModernGroup(tr(s, 'Author', 'Автор'), icon: Icons.person_outline, [
+              SettingsGroup(tr(s, 'Author', 'Автор'), icon: Icons.person_outline, [
                 Row(children: [
                   Expanded(child: _createFormField(LangTranslateItems.authorFirst, book.author.firstName)),
                   const SizedBox(width: 12),
@@ -114,13 +113,13 @@ class _BookComponentState extends State<BookComponent> {
                 ]),
                 _createFormField(LangTranslateItems.authorHomePage, book.author.homePage),
               ]),
-              ModernGroup(tr(s, 'Genre', 'Жанр'), icon: Icons.sell_outlined, [
+              SettingsGroup(tr(s, 'Genre', 'Жанр'), icon: Icons.sell_outlined, [
                 labelForm('genre', s.translate(LangTranslateItems.bookGenre), book.genre),
               ]),
-              ModernGroup(tr(s, 'Series', 'Серия'), icon: Icons.collections_bookmark_outlined, [
+              SettingsGroup(tr(s, 'Series', 'Серия'), icon: Icons.collections_bookmark_outlined, [
                 labelForm('sequence', s.translate(LangTranslateItems.bookSequence), book.sequence),
               ]),
-              ModernGroup(tr(s, 'Annotation', 'Аннотация'), icon: Icons.notes, [
+              SettingsGroup(tr(s, 'Annotation', 'Аннотация'), icon: Icons.notes, [
                 AnnotationFormField(
                     name: 'annotation',
                     initialValue: AnnotationData(
@@ -128,110 +127,6 @@ class _BookComponentState extends State<BookComponent> {
               ]),
             ]));
       }
-      return Column(
-        children: <Widget>[
-          Expanded(
-            child: Card(
-              elevation: 0.25,
-              child: SingleChildScrollView(
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(2, 0, 2, 0),
-                  child: Column(mainAxisSize: MainAxisSize.max, children: [
-                    Row(
-                      children: [
-                        Padding(padding: const EdgeInsets.fromLTRB(2, 0, 2, 0)),
-                        Expanded(
-                            child: Column(children: <Widget>[
-                          ImageFormField(
-                            name: 'bookCoverPage',
-                            initialValue: book.getImageBySectionId('cover'),
-                            width: stringToInt(setting["image-width"]),
-                            quality: stringToInt(setting["image-quality"]),
-                          )
-                        ])),
-                        Padding(
-                            padding: const EdgeInsets.fromLTRB(2, 0, 10, 0)),
-                        Expanded(
-                            flex: 2,
-                            child: Column(
-                              children: <Widget>[
-                                _createFormField(LangTranslateItems.authorFirst,
-                                    book.author.firstName),
-                                _createFormField(LangTranslateItems.authorMid,
-                                    book.author.middleName),
-                                _createFormField(LangTranslateItems.authorLast,
-                                    book.author.lastName),
-                                _createFormField(LangTranslateItems.bookVersion,
-                                    book.version),
-                                _createFormField(
-                                    LangTranslateItems.bookId, book.id)
-                              ],
-                            )),
-                        Padding(padding: const EdgeInsets.fromLTRB(2, 0, 2, 0)),
-                      ],
-                    ),
-                    Row(
-                      children: <Widget>[
-                        Expanded(
-                            child: _createFormField(
-                                LangTranslateItems.bookTitle,
-                                trimSpecialChar(book.bookTitle, ' ')))
-                      ],
-                    ),
-                    Row(
-                      children: <Widget>[
-                        Expanded(
-                            child: _createFormField(
-                                LangTranslateItems.authorHomePage,
-                                book.author.homePage))
-                      ],
-                    ),
-                    Row(
-                      children: [
-                        Expanded(
-                            child: Column(children: <Widget>[
-                          LabelFormField(
-                              name: 'genre',
-                              initialValue: LabelData(
-                                  widget.service
-                                      .translate(LangTranslateItems.bookGenre),
-                                  book.genre))
-                        ]))
-                      ],
-                    ),
-                    Row(
-                      children: [
-                        Expanded(
-                            child: Column(children: <Widget>[
-                          LabelFormField(
-                              name: 'sequence',
-                              initialValue: LabelData(
-                                  widget.service.translate(
-                                      LangTranslateItems.bookSequence),
-                                  book.sequence))
-                        ]))
-                      ],
-                    ),
-                    Row(
-                      children: [
-                        Expanded(
-                            child: Column(children: <Widget>[
-                          AnnotationFormField(
-                              name: 'annotation',
-                              initialValue: AnnotationData(
-                                  widget.service.translate(
-                                      LangTranslateItems.bookAnnotation),
-                                  book.annotation))
-                        ]))
-                      ],
-                    ),
-                  ]),
-                ),
-              ),
-            ),
-          )
-        ],
-      );
     } catch (e) {
       _log(e.toString());
       return Text(widget.service.translate(LangTranslateItems.messageError));

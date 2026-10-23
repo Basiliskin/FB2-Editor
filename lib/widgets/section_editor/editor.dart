@@ -18,8 +18,7 @@ import 'package:quill_fb2/widgets/loading.dialog.dart';
 import 'package:quill_fb2/widgets/section_editor/toolbar.dart';
 import 'package:prompt_dialog/prompt_dialog.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:quill_fb2/prototype/modern_widgets.dart'; // PROTOTYPE
-import 'package:quill_fb2/prototype/prototype_switcher.dart'; // PROTOTYPE
+import 'package:quill_fb2/ui/widgets.dart';
 
 class SectionEditor extends StatefulWidget {
   final ProjectModel book;
@@ -374,11 +373,9 @@ class _SectionEditorState extends State<SectionEditor>
     final ModalRoundedProgressBar progressBar =
         ModalRoundedProgressBar(0.95, "Loading");
     List<Widget> stackItems = [];
-    final modern = Proto.modern; // PROTOTYPE
     final scaffold = Scaffold(
-      backgroundColor: modern ? Theme.of(context).colorScheme.surfaceContainer : null,
-      appBar: modern
-          ? modernAppBar(
+      backgroundColor: Theme.of(context).colorScheme.surfaceContainer,
+      appBar: appBarFor(
               context,
               leading: IconButton(
                   tooltip: tr(widget.service, 'Back', 'Назад'),
@@ -401,54 +398,19 @@ class _SectionEditorState extends State<SectionEditor>
                           content: BaseText.Text('${widget.book.bookTitle} Saved\n$filePath')));
                     }),
               ],
-            )
-          : AppBar(
-        leading: Padding(
-          padding: const EdgeInsets.all(8.0),
-          child: GestureDetector(
-            onTap: () => _navigateBack(context),
-            child: Icon(Icons.arrow_back),
-          ),
-        ),
-        title: BaseText.Text(trimSpecialChar(widget.section.title)),
-        centerTitle: true,
-        actions: [
-          Padding(
-            padding: EdgeInsets.all(8.0),
-            child: GestureDetector(
-                onTap: () async {
-                  _save();
-                },
-                child: Icon(Icons.save)),
-          ),
-          Padding(
-            padding: EdgeInsets.all(8.0),
-            child: GestureDetector(
-                onTap: () async {
-                  final filePath =
-                      await widget.service.exportProject(widget.book);
-                  final snackBar = SnackBar(
-                      content: BaseText.Text(
-                          '${widget.book.bookTitle} Saved\n$filePath'));
-                  ScaffoldMessenger.of(context).showSnackBar(snackBar);
-                },
-                child: Icon(Icons.fact_check)),
-          )
-        ],
-      ),
+            ),
       body: Stack(children: [
         Column(
           children: [
             Material(
-                color: modern ? Theme.of(context).colorScheme.surface : Colors.transparent,
+                color: Theme.of(context).colorScheme.surface,
                 child: CustomQuillToolbar.basic(
               controller: _controller,
               extensions: _toolbarButtons(),
             )),
-            if (modern) const Divider(height: 1),
+            const Divider(height: 1),
             Expanded(
-              child: ModernPageIf(
-                  modern: modern,
+              child: EditorPage(
                   child: QuillEditor(
                       controller: _controller,
                       scrollController: ScrollController(),
@@ -499,16 +461,14 @@ class _SectionEditorState extends State<SectionEditor>
   }
 }
 
-/// PROTOTYPE: wraps the editor in a centred "page" card when modern.
-class ModernPageIf extends StatelessWidget {
-  final bool modern;
+/// Wraps the editor in a centred "page" card.
+class EditorPage extends StatelessWidget {
   final Widget child;
-  const ModernPageIf({super.key, required this.modern, required this.child});
+  const EditorPage({super.key, required this.child});
   @override
   Widget build(BuildContext context) {
-    if (!modern) return Container(child: child);
     final c = Theme.of(context).colorScheme;
-    return ModernPage(
+    return PageBody(
         max: 760,
         child: Container(
           margin: const EdgeInsets.fromLTRB(12, 16, 12, 72),

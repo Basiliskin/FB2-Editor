@@ -1,7 +1,7 @@
-// PROTOTYPE - THROWAWAY. Modern theme keeps the familiar blue brand colour.
+// App theme: Material 3, keeps the familiar blue brand colour.
 import 'package:flutter/material.dart';
 
-ThemeData modernTheme() {
+ThemeData appTheme() {
   final scheme = ColorScheme.fromSeed(seedColor: Colors.blue);
   return ThemeData(
     useMaterial3: true,

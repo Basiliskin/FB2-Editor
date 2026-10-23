@@ -10,8 +10,7 @@ import 'package:quill_fb2/utils/common.dart';
 import 'package:quill_fb2/utils/consts.dart';
 import 'package:quill_fb2/widgets/forms/book_form.dart';
 import 'package:quill_fb2/widgets/section/list.dart';
-import 'package:quill_fb2/prototype/modern_widgets.dart'; // PROTOTYPE
-import 'package:quill_fb2/prototype/prototype_switcher.dart'; // PROTOTYPE
+import 'package:quill_fb2/ui/widgets.dart';
 
 class BookPage extends StatefulWidget {
   final ProjectModel book;
@@ -120,15 +119,15 @@ class _BookPageState extends State<BookPage>
     }
   }
 
-  // PROTOTYPE: new design, same actions
-  Widget _modernBuild() {
+  @override
+  Widget build(BuildContext context) {
     final t = Theme.of(context);
     final s = widget.service;
     final book = widget.book;
     final autoSave = stringToBool(s.getSettings()["auto-save"]) ?? false;
     return Scaffold(
       key: _scaffoldKey,
-      appBar: modernAppBar(
+      appBar: appBarFor(
         context,
         title: Row(children: [
           ClipRRect(
@@ -200,145 +199,5 @@ class _BookPageState extends State<BookPage>
         },
       ),
     );
-  }
-
-  _build() {
-    try {
-      return SafeArea(
-          child: Column(
-        children: <Widget>[
-          TabBar(
-            onTap: (_) => setChangedString('{}'),
-            labelColor: Theme.of(context).colorScheme.primary,
-            controller: controller,
-            tabs: <Widget>[
-              Tab(
-                  text: widget.service
-                      .translate(LangTranslateItems.bookPageInfo)),
-              Tab(
-                  text: widget.service
-                      .translate(LangTranslateItems.bookPageSection))
-            ],
-          ),
-          Expanded(
-              child: TabBarView(controller: controller, children: <Widget>[
-            /// Simple Form Builder with custom form UI, Extension Syntax
-            BookComponent(widget.service, widget.book,
-                changeController!.stream.asBroadcastStream()),
-            Stack(
-              children: [
-                SectionList(
-                    widget.service,
-                    widget.book,
-                    changeController!.stream.asBroadcastStream(),
-                    _markToDelete),
-                Align(
-                    alignment: Alignment.bottomLeft,
-                    child: Container(
-                        width: 40.0,
-                        height: 40.0,
-                        child: FloatingActionButton(
-                          heroTag: 'bookPage',
-                          backgroundColor: _toDelete.keys.length > 0
-                              ? Colors.red
-                              : Colors.blue,
-                          onPressed: () async {
-                            if (_toDelete.keys.length > 0) {
-                              return _removeSelectedSections();
-                            }
-                            String? title = await prompt(
-                              context,
-                              title: Text(widget.service.translate(
-                                  LangTranslateItems.bookPagePromptEnterName)),
-                              textOK: Text(widget.service
-                                  .translate(LangTranslateItems.buttonSave)),
-                              textCancel: Text(widget.service
-                                  .translate(LangTranslateItems.buttonCancel)),
-                              autoFocus: true,
-                              obscureText: false,
-                              obscuringCharacter: '•',
-                              textCapitalization: TextCapitalization.words,
-                            );
-                            if (title != null) {
-                              print('Add Section');
-                              setState(() {
-                                widget.book.addSection(title);
-                              });
-                              setChangedString('{}');
-                              final snackBar = SnackBar(
-                                  content: Text(
-                                      '$title ${widget.service.translate(LangTranslateItems.messageCreated)}'));
-                              ScaffoldMessenger.of(context)
-                                  .showSnackBar(snackBar);
-                            }
-                          },
-                          child: Icon(_toDelete.keys.length > 0
-                              ? Icons.delete_forever
-                              : Icons.add),
-                          shape: BeveledRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                        )))
-              ],
-            ),
-          ]))
-        ],
-      ));
-    } catch (e) {
-      print(e);
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    if (Proto.modern) return _modernBuild();
-    Map settings = widget.service.getSettings();
-    bool autoSave = stringToBool(settings["auto-save"]) ?? false;
-    Color? autoSaveIconColor = autoSave
-        ? ColorUtils.stringToColor('#00FF0000')
-        : ColorUtils.stringToColor('#000000');
-
-    return Scaffold(
-        key: _scaffoldKey,
-        appBar: AppBar(
-          title: Text(trimSpecialChar(widget.book.bookTitle, ' ')),
-          centerTitle: true,
-          actions: [
-            Padding(
-              padding: EdgeInsets.all(8.0),
-              child: GestureDetector(
-                  onTap: () async {
-                    await widget.service.setSettings({"auto-save": !autoSave});
-                    setChangedString('{}');
-                  },
-                  child: Icon(Icons.auto_awesome, color: autoSaveIconColor)),
-            ),
-            Padding(
-              padding: EdgeInsets.all(8.0),
-              child: GestureDetector(
-                  onTap: () async {
-                    setChangedString('{}');
-                  },
-                  child: Icon(Icons.save)),
-            ),
-            Padding(
-              padding: EdgeInsets.all(8.0),
-              child: GestureDetector(
-                  onTap: () async {
-                    final filePath =
-                        await widget.service.exportProject(widget.book);
-                    final snackBar = SnackBar(
-                        content: Text(
-                            '${widget.book.bookTitle} ${widget.service.translate(LangTranslateItems.messageSaved)}\n$filePath'));
-                    ScaffoldMessenger.of(context).showSnackBar(snackBar);
-                  },
-                  child: Icon(Icons.storage)),
-            )
-          ],
-        ),
-        body: Padding(
-          padding: EdgeInsets.all(16.0),
-          child: _build(),
-        ));
   }
 }

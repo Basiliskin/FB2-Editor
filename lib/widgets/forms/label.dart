@@ -4,7 +4,6 @@ import 'package:quill_fb2/utils/consts.dart';
 import 'package:quill_fb2/widgets/badge/src/badge.dart' as custom_badge;
 import 'package:quill_fb2/widgets/badge/src/badge_shape.dart';
 import 'package:quill_fb2/widgets/easy_form_kit/easy_form_kit.dart';
-import 'package:quill_fb2/prototype/prototype_switcher.dart'; // PROTOTYPE
 
 typedef LabelDataChanged<LabelData> = void Function(LabelData value);
 
@@ -87,67 +86,21 @@ class LabelField extends EasyFormGenericField<LabelData?> {
     _onUpdate?.call(value);
   }
 
-  Widget _content(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: <Widget>[
-        Expanded(
-          child: ListView.builder(
-              scrollDirection: Axis.horizontal,
-              itemCount: value!.items.length,
-              itemBuilder: (context, index) {
-                final badge = custom_badge.Badge(
-                    badgeColor:
-                        index % 2 != 0 ? LABEL_ODD_COLOR : LABEL_EVEN_COLOR,
-                    shape: BadgeShape.square,
-                    borderRadius: 5,
-                    toAnimate: false,
-                    badgeContent: Text(
-                        toBeginningOfSentenceCase(value!.items[index])!,
-                        style: TextStyle(color: Colors.black)));
-
-                return Row(children: <Widget>[
-                  Padding(padding: EdgeInsets.only(right: 5.0)),
-                  GestureDetector(
-                      onTap: () => {_removeLabel(value!.items[index])},
-                      child: badge)
-                ]);
-              }),
-        ),
-      ],
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
-    if (Proto.modern) {
-      // PROTOTYPE: chips + input; same add/remove behaviour
-      return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        if (value!.items.isNotEmpty)
-          Padding(
-            padding: const EdgeInsets.only(bottom: 10),
-            child: Wrap(spacing: 8, runSpacing: 4, children: [
-              for (final item in value!.items)
-                InputChip(
-                    label: Text(toBeginningOfSentenceCase(item)!),
-                    onDeleted: () => _removeLabel(item)),
-            ]),
-          ),
-        Label(value!.name, _addLabel),
-      ]);
-    }
-    return SingleChildScrollView(
-        child: SafeArea(
-            child: Container(
-                margin: const EdgeInsets.all(3.0),
-                padding: const EdgeInsets.all(3.0),
-                decoration:
-                    BoxDecoration(border: Border.all(color: Colors.blueAccent)),
-                child: Column(children: <Widget>[
-                  Label(value!.name, _addLabel),
-                  Padding(padding: const EdgeInsets.symmetric(vertical: 2.0)),
-                  Container(width: 400, height: 40, child: _content(context))
-                ]))));
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      if (value!.items.isNotEmpty)
+        Padding(
+          padding: const EdgeInsets.only(bottom: 10),
+          child: Wrap(spacing: 8, runSpacing: 4, children: [
+            for (final item in value!.items)
+              InputChip(
+                  label: Text(toBeginningOfSentenceCase(item)!),
+                  onDeleted: () => _removeLabel(item)),
+          ]),
+        ),
+      Label(value!.name, _addLabel),
+    ]);
   }
 }
 

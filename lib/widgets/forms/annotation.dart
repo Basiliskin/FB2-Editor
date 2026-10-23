@@ -1,73 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:quill_fb2/widgets/easy_form_kit/easy_form_kit.dart';
-import 'package:quill_fb2/prototype/prototype_switcher.dart'; // PROTOTYPE
 
 class AnnotationData {
   String name;
   List<String> items;
   AnnotationData(this.name, this.items);
-}
-
-class Annotation extends StatefulWidget {
-  final String label;
-  final Function(String) onTextSubmitted;
-  Annotation(this.label, this.onTextSubmitted);
-  @override
-  _AnnotationState createState() => _AnnotationState();
-}
-
-class _AnnotationState extends State<Annotation> {
-  final maxLines = 3;
-  TextEditingController editingController = TextEditingController();
-  final FocusNode _focusNode = FocusNode();
-  @override
-  void dispose() {
-    // Clean up the controller when the widget is disposed.
-    editingController.dispose();
-    super.dispose();
-  }
-
-  _input() {
-    return Material(
-        child: TextField(
-      focusNode: _focusNode,
-      expands: false,
-      textInputAction: TextInputAction.newline,
-      keyboardType: TextInputType.multiline,
-      maxLines: maxLines,
-      onSubmitted: (text) => setState(() {
-        widget.onTextSubmitted(text);
-        editingController.text = "";
-        editingController.clear();
-      }),
-      decoration: InputDecoration(
-          border: OutlineInputBorder(),
-          hintText: widget.label,
-          isDense: true, // Added this
-          contentPadding: EdgeInsets.all(8)), // Added this),
-      controller: editingController,
-    ));
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      margin: EdgeInsets.all(2),
-      height: 124,
-      child: Column(
-        children: [
-          _input(),
-          ElevatedButton(
-            child: Icon(Icons.save),
-            onPressed: () {
-              widget.onTextSubmitted(editingController.text);
-              editingController.text = "";
-            },
-          )
-        ],
-      ),
-    );
-  }
 }
 
 class AnnotationController extends EasyFormFieldController<AnnotationData?> {
@@ -100,80 +37,24 @@ class AnnotationField extends EasyFormGenericField<AnnotationData?> {
     value = AnnotationData(value!.name, items);
   }
 
-  Widget _content(BuildContext context) {
-    return Container(
-        margin: EdgeInsets.all(2),
-        height: 260,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: <Widget>[
-            Expanded(
-              child: ListView.builder(
-                  scrollDirection: Axis.vertical,
-                  itemCount: value!.items.length,
-                  itemBuilder: (context, index) {
-                    return Column(children: <Widget>[
-                      Stack(
-                        children: [
-                          Text(value!.items[index],
-                              overflow: TextOverflow.clip),
-                          Align(
-                              alignment: Alignment.topRight,
-                              child: Container(
-                                  width: 32.0,
-                                  height: 32.0,
-                                  child: FloatingActionButton(
-                                    heroTag: 'annotation_$index',
-                                    onPressed: () {
-                                      _removeLabel(index);
-                                    },
-                                    child: Icon(Icons.delete),
-                                    shape: BeveledRectangleBorder(
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                  )))
-                        ],
-                      )
-                    ]);
-                  }),
-            ),
-          ],
-        ));
-  }
-
   @override
   Widget build(BuildContext context) {
-    if (Proto.modern) {
-      // PROTOTYPE: paragraphs as a readable list + one add box
-      return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        for (var i = 0; i < value!.items.length; i++)
-          Padding(
-            padding: const EdgeInsets.only(bottom: 8),
-            child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Expanded(child: Text(value!.items[i])),
-              IconButton(
-                  tooltip: 'Remove',
-                  visualDensity: VisualDensity.compact,
-                  icon: const Icon(Icons.close, size: 18),
-                  onPressed: () => _removeLabel(i)),
-            ]),
-          ),
-        if (value!.items.isNotEmpty) const Divider(),
-        _ModernAnnotationInput(value!.name, _addLabel),
-      ]);
-    }
-    return SingleChildScrollView(
-        child: SafeArea(
-            child: Container(
-                margin: const EdgeInsets.all(3.0),
-                padding: const EdgeInsets.all(3.0),
-                decoration:
-                    BoxDecoration(border: Border.all(color: Colors.blueAccent)),
-                child: Column(children: <Widget>[
-                  Annotation(value!.name, _addLabel),
-                  Padding(padding: const EdgeInsets.symmetric(vertical: 2.0)),
-                  Container(child: _content(context))
-                ]))));
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      for (var i = 0; i < value!.items.length; i++)
+        Padding(
+          padding: const EdgeInsets.only(bottom: 8),
+          child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Expanded(child: Text(value!.items[i])),
+            IconButton(
+                tooltip: 'Remove',
+                visualDensity: VisualDensity.compact,
+                icon: const Icon(Icons.close, size: 18),
+                onPressed: () => _removeLabel(i)),
+          ]),
+        ),
+      if (value!.items.isNotEmpty) const Divider(),
+      _AnnotationInput(value!.name, _addLabel),
+    ]);
   }
 }
 
@@ -198,15 +79,15 @@ class AnnotationFormField
         );
 }
 
-class _ModernAnnotationInput extends StatefulWidget {
+class _AnnotationInput extends StatefulWidget {
   final String hint;
   final Function(String) onAdd;
-  const _ModernAnnotationInput(this.hint, this.onAdd);
+  const _AnnotationInput(this.hint, this.onAdd);
   @override
-  State<_ModernAnnotationInput> createState() => _ModernAnnotationInputState();
+  State<_AnnotationInput> createState() => _AnnotationInputState();
 }
 
-class _ModernAnnotationInputState extends State<_ModernAnnotationInput> {
+class _AnnotationInputState extends State<_AnnotationInput> {
   final c = TextEditingController();
   @override
   void dispose() {
@@ -215,8 +96,8 @@ class _ModernAnnotationInputState extends State<_ModernAnnotationInput> {
   }
 
   @override
-  Widget build(BuildContext context) => Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+  Widget build(BuildContext context) =>
+      Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
         TextField(
             controller: c,
             minLines: 3,

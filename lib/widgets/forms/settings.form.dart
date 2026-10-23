@@ -6,8 +6,7 @@ import 'package:quill_fb2/utils/common.dart';
 import 'package:quill_fb2/utils/consts.dart';
 import 'package:quill_fb2/widgets/easy_form_kit/easy_form_kit.dart';
 import 'package:quill_fb2/widgets/loading.dialog.dart';
-import 'package:quill_fb2/prototype/modern_widgets.dart'; // PROTOTYPE
-import 'package:quill_fb2/prototype/prototype_switcher.dart'; // PROTOTYPE
+import 'package:quill_fb2/ui/widgets.dart';
 
 const Map<String, dynamic> defaultMap = {};
 
@@ -104,13 +103,12 @@ class _SettingsComponentState extends State<SettingsComponent> {
         ),
       );
 
-  // PROTOTYPE: same six settings, grouped; saving still needs the Save button
-  Widget _modernBuild() {
+  Widget _buildBody() {
     final s = widget.service;
-    return ModernPage(
+    return PageBody(
         max: 600,
         child: ListView(padding: const EdgeInsets.fromLTRB(16, 16, 16, 120), children: [
-          ModernGroup(tr(s, 'Editing', 'Редактирование'), icon: Icons.edit_outlined, [
+          SettingsGroup(tr(s, 'Editing', 'Редактирование'), icon: Icons.edit_outlined, [
             SwitchListTile(
                 contentPadding: EdgeInsets.zero,
                 title: Text(s.translate(LangTranslateItems.autoSave)),
@@ -125,187 +123,17 @@ class _SettingsComponentState extends State<SettingsComponent> {
                 [12, 14, 16, 18, 20, 22, 24, 26, 28, 30, 32], (v) => _fontSize = v,
                 icon: Icons.format_size),
           ]),
-          ModernGroup(tr(s, 'Images', 'Изображения'), icon: Icons.image_outlined, [
+          SettingsGroup(tr(s, 'Images', 'Изображения'), icon: Icons.image_outlined, [
             _dd<int>(s.translate(LangTranslateItems.imageSize), _imageWidth,
                 [600, 800, 1024], (v) => _imageWidth = v),
             _dd<int>(s.translate(LangTranslateItems.imageQuality), _imageQuality,
                 [50, 75, 90, 100], (v) => _imageQuality = v),
           ]),
-          ModernGroup(s.translate(LangTranslateItems.titleLanguage), icon: Icons.language, [
+          SettingsGroup(s.translate(LangTranslateItems.titleLanguage), icon: Icons.language, [
             _dd<String>(s.translate(LangTranslateItems.titleLanguage), _language,
                 ["eng", "ru"], (v) => _language = v, show: (k) => LANGUAGES[k]!),
           ]),
         ]));
-  }
-
-  _build() {
-    if (Proto.modern) return _modernBuild();
-    try {
-      return SafeArea(
-          child: Container(
-              margin: const EdgeInsets.all(13.0),
-              padding: const EdgeInsets.all(15.0),
-              decoration:
-                  BoxDecoration(border: Border.all(color: Colors.blueAccent)),
-              child: Column(children: <Widget>[
-                Row(
-                  children: [
-                    Expanded(
-                        child: Column(children: <Widget>[
-                      Row(children: [
-                        Switch(
-                          value: _autoSave,
-                          onChanged: (value) {
-                            setState(() {
-                              _autoSave = value;
-                              print(_autoSave);
-                            });
-                          },
-                          activeTrackColor: Colors.lightGreenAccent,
-                          activeColor: Colors.green,
-                        ),
-                        Text(widget.service
-                            .translate(LangTranslateItems.autoSave))
-                      ])
-                    ]))
-                  ],
-                ),
-                Row(
-                  children: [
-                    Expanded(
-                        child: Column(children: <Widget>[
-                      Row(children: [
-                        Switch(
-                          value: _showImage,
-                          onChanged: (value) {
-                            setState(() {
-                              _showImage = value;
-                              print(_showImage);
-                            });
-                          },
-                          activeTrackColor: Colors.lightGreenAccent,
-                          activeColor: Colors.green,
-                        ),
-                        Text(widget.service
-                            .translate(LangTranslateItems.buttonShowPageImage))
-                      ])
-                    ]))
-                  ],
-                ),
-                Row(
-                  children: [
-                    Expanded(
-                        child: Column(children: <Widget>[
-                      Row(children: [
-                        Padding(
-                            padding: const EdgeInsets.fromLTRB(12, 0, 0, 0)),
-                        DropdownButton(
-                          value: _imageWidth,
-                          onChanged: (newValue) {
-                            setState(() {
-                              _imageWidth = newValue! as int;
-                            });
-                          },
-                          items: [600, 800, 1024].map((num) {
-                            return new DropdownMenuItem(
-                              child: new Text("$num"),
-                              value: num,
-                            );
-                          }).toList(),
-                        ),
-                        Text(widget.service
-                            .translate(LangTranslateItems.imageSize))
-                      ])
-                    ]))
-                  ],
-                ),
-                Row(
-                  children: [
-                    Expanded(
-                        child: Column(children: <Widget>[
-                      Row(children: [
-                        Padding(
-                            padding: const EdgeInsets.fromLTRB(12, 0, 0, 0)),
-                        DropdownButton(
-                          value: _fontSize,
-                          onChanged: (newValue) {
-                            setState(() {
-                              _fontSize = newValue! as int;
-                            });
-                          },
-                          items: [12, 14, 16, 18, 20, 22, 24, 26, 28, 30, 32]
-                              .map((num) {
-                            return new DropdownMenuItem(
-                              child: new Text("$num"),
-                              value: num,
-                            );
-                          }).toList(),
-                        ),
-                        Text(widget.service
-                            .translate(LangTranslateItems.fontSize))
-                      ])
-                    ]))
-                  ],
-                ),
-                Row(
-                  children: [
-                    Expanded(
-                        child: Column(children: <Widget>[
-                      Row(children: [
-                        Padding(
-                            padding: const EdgeInsets.fromLTRB(12, 0, 0, 0)),
-                        DropdownButton(
-                          value: _imageQuality,
-                          onChanged: (newValue) {
-                            setState(() {
-                              _imageQuality = newValue! as int;
-                            });
-                          },
-                          items: [50, 75, 90, 100].map((num) {
-                            return new DropdownMenuItem(
-                              child: new Text("$num"),
-                              value: num,
-                            );
-                          }).toList(),
-                        ),
-                        Text(widget.service
-                            .translate(LangTranslateItems.imageQuality))
-                      ])
-                    ]))
-                  ],
-                ),
-                Row(
-                  children: [
-                    Expanded(
-                        child: Column(children: <Widget>[
-                      Row(children: [
-                        Padding(
-                            padding: const EdgeInsets.fromLTRB(12, 0, 0, 0)),
-                        DropdownButton(
-                          value: _language,
-                          onChanged: (newValue) {
-                            setState(() {
-                              _language = newValue! as String;
-                            });
-                          },
-                          items: ["eng", "ru"].map((num) {
-                            return new DropdownMenuItem(
-                              child: new Text(LANGUAGES[num]!),
-                              value: num,
-                            );
-                          }).toList(),
-                        ),
-                        Text(widget.service
-                            .translate(LangTranslateItems.titleLanguage))
-                      ])
-                    ]))
-                  ],
-                )
-              ])));
-    } catch (e) {
-      _log(e.toString());
-      return Text(widget.service.translate(LangTranslateItems.messageError));
-    }
   }
 
   @override
@@ -317,42 +145,21 @@ class _SettingsComponentState extends State<SettingsComponent> {
     stackItems.add(EasyForm(
         onSave: _save,
         onSaved: _saved,
-        child: _build(),
+        child: _buildBody(),
         triggerSave: widget.triggerSave,
         rebuildOnChange: false));
     if (isLoading) stackItems.add(progressBar);
-    if (Proto.modern) {
-      stackItems.add(Positioned(
-          right: 16,
-          bottom: 72,
-          child: FloatingActionButton.extended(
-            heroTag: 'btnSaveSettings',
-            icon: const Icon(Icons.save_outlined),
-            label: Text(widget.service.translate(LangTranslateItems.buttonSave)),
-            onPressed: () async {
-              _saveSettings();
-            },
-          )));
-      return Stack(children: stackItems);
-    }
-    stackItems.add(Align(
-        alignment: Alignment.bottomRight,
-        child: Container(
-            width: 40.0,
-            height: 40.0,
-            child: FloatingActionButton(
-              heroTag: 'btnSaveSettings',
-              backgroundColor: Colors.red,
-              onPressed: () async {
-                _saveSettings();
-              },
-              child: Icon(Icons.save),
-              shape: BeveledRectangleBorder(
-                borderRadius: BorderRadius.circular(6),
-              ),
-            ))));
-    return Stack(
-      children: stackItems,
-    );
+    stackItems.add(Positioned(
+        right: 16,
+        bottom: 72,
+        child: FloatingActionButton.extended(
+          heroTag: 'btnSaveSettings',
+          icon: const Icon(Icons.save_outlined),
+          label: Text(widget.service.translate(LangTranslateItems.buttonSave)),
+          onPressed: () async {
+            _saveSettings();
+          },
+        )));
+    return Stack(children: stackItems);
   }
 }

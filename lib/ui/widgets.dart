@@ -1,4 +1,4 @@
-// PROTOTYPE - THROWAWAY. Shared pieces of the "Library shelf" design language.
+// Shared pieces of the library-shelf design language.
 import 'package:flutter/material.dart';
 import 'package:quill_fb2/services/app.service.dart';
 
@@ -6,21 +6,21 @@ import 'package:quill_fb2/services/app.service.dart';
 String tr(AppService s, String en, String ru) =>
     s.getSettings()['language'] == 'ru' ? ru : en;
 
-class ModernPage extends StatelessWidget {
+class PageBody extends StatelessWidget {
   final Widget child;
   final double max;
-  const ModernPage({super.key, required this.child, this.max = 760});
+  const PageBody({super.key, required this.child, this.max = 760});
   @override
   Widget build(BuildContext context) => Align(
       alignment: Alignment.topCenter,
       child: ConstrainedBox(constraints: BoxConstraints(maxWidth: max), child: child));
 }
 
-class ModernGroup extends StatelessWidget {
+class SettingsGroup extends StatelessWidget {
   final String title;
   final IconData? icon;
   final List<Widget> children;
-  const ModernGroup(this.title, this.children, {super.key, this.icon});
+  const SettingsGroup(this.title, this.children, {super.key, this.icon});
   @override
   Widget build(BuildContext context) {
     final t = Theme.of(context);
@@ -49,7 +49,7 @@ class ModernGroup extends StatelessWidget {
   }
 }
 
-AppBar modernAppBar(BuildContext context,
+AppBar appBarFor(BuildContext context,
     {required Widget title, List<Widget>? actions, PreferredSizeWidget? bottom, Widget? leading}) {
   final c = Theme.of(context).colorScheme;
   return AppBar(

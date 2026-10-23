@@ -4,7 +4,6 @@ import 'package:quill_fb2/services/app.service.dart';
 import 'package:quill_fb2/utils/common.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:quill_fb2/widgets/easy_form_kit/easy_form_kit.dart';
-import 'package:quill_fb2/prototype/prototype_switcher.dart'; // PROTOTYPE
 
 class ImageController extends EasyFormFieldController<String> {
   ImageController(String value) : super(value);
@@ -74,7 +73,7 @@ class ImageField extends EasyFormGenericField<String> {
         ));
   }
 
-  _modernBuild(BuildContext context) {
+  _buildBody(BuildContext context) {
     final c = Theme.of(context).colorScheme;
     return Column(children: [
       Stack(children: [
@@ -106,34 +105,9 @@ class ImageField extends EasyFormGenericField<String> {
     ]);
   }
 
-  _build() {
-    return Stack(
-      children: [
-        _image(),
-        Align(
-            alignment: Alignment.topRight,
-            child: Container(
-                width: 32.0,
-                height: 32.0,
-                child: FloatingActionButton(
-                  heroTag: 'imageBtn',
-                  onPressed: () {
-                    print('Remove');
-                    value = '';
-                  },
-                  child: Icon(Icons.delete),
-                  shape: BeveledRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                )))
-      ],
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
-    if (Proto.modern) return _modernBuild(context);
-    return _build();
+    return _buildBody(context);
   }
 }
 
