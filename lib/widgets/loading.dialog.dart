@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:quill_fb2/utils/consts.dart';
-import 'package:quill_fb2/widgets/wave.progress.dart';
+import 'package:quill_fb2/widgets/logo_loader.dart';
 
 class ModalRoundedProgressBar extends StatelessWidget {
   final double opacity;
   final String textMessage;
-  ModalRoundedProgressBar(this.opacity, this.textMessage);
+  const ModalRoundedProgressBar(this.opacity, this.textMessage);
   @override
   Widget build(BuildContext context) {
     return Container(child: buildContent(context));
@@ -29,7 +29,7 @@ class ModalRoundedProgressBar extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.center,
               mainAxisAlignment: MainAxisAlignment.center,
               children: <Widget>[
-                WaveProgress(180.0, PROGRESSBAR_COLOR, PROGRESSBAR_COLOR, 40.0),
+                const LogoLoader(size: 160),
                 Padding(
                   padding: const EdgeInsets.symmetric(vertical: 16.0),
                   child: Text(textMessage),
