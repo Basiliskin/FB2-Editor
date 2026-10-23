@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:quill_fb2/services/app.service.dart';
 import 'package:quill_fb2/services/llm/improvement.dart';
 import 'package:quill_fb2/services/llm/llm_client.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:quill_fb2/ui/widgets.dart';
+import 'package:quill_fb2/widgets/network_message.dart';
 import 'package:quill_fb2/utils/common.dart';
 import 'package:quill_fb2/widgets/section_editor/diff_text.dart';
 import 'package:quill_fb2/widgets/section_editor/improve_controller.dart';
@@ -16,7 +18,7 @@ String _errorText(AppService s, ImproveController c) {
       return tr(s, 'Rate limit reached, try again later',
           'Лимит запросов исчерпан, попробуйте позже');
     case ImproveError.network:
-      return tr(s, 'Could not reach the provider', 'Нет связи с провайдером');
+      return networkMessage(s, web: kIsWeb, baseUrl: c.current?.baseUrl ?? '');
     case ImproveError.badResponse:
       return tr(s, 'The provider sent an unusable answer$detail',
           'Провайдер прислал непригодный ответ$detail');

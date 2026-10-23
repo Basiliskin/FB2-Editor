@@ -6,6 +6,7 @@ import 'package:quill_fb2/services/llm/adapters.dart';
 import 'package:quill_fb2/services/llm/llm_client.dart';
 import 'package:quill_fb2/ui/widgets.dart';
 import 'package:quill_fb2/utils/common.dart';
+import 'package:quill_fb2/widgets/network_message.dart';
 
 const _vendorNames = {
   LlmVendor.gemini: 'Gemini',
@@ -158,11 +159,7 @@ class _ProviderDialogState extends State<_ProviderDialog> {
           text = tr(s, 'Reachable, but the rate limit is reached',
               'Сервер доступен, но лимит запросов исчерпан');
         case LlmFailure.network:
-          text = tr(s, 'Could not reach the server', 'Нет связи с сервером');
-          if (_url.text.trim().startsWith('http://')) {
-            text += tr(s, ' (Android may block plain http, try https)',
-                ' (Android может блокировать http, нужен https)');
-          }
+          text = networkMessage(s, web: kIsWeb, baseUrl: _url.text);
         case LlmFailure.badResponse:
           text = tr(s, 'Unexpected answer (${failure.message}): check the model and base URL',
               'Неожиданный ответ (${failure.message}): проверьте модель и URL');
