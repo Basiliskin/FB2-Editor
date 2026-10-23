@@ -124,4 +124,34 @@ void main() {
       expect(img.decodeJpg(base64Decode(thumb))!.width, 120);
     });
   });
+
+  group('cover thumbnail cache', () {
+    String png(int w, [int? h]) =>
+        base64Encode(img.encodePng(img.Image(width: w, height: h ?? w)));
+
+    test('reuses the thumbnail while the cover data is unchanged', () async {
+      final m = (await _model())..updateInfo(_values(cover: png(300)));
+      final res = m.binaryResource.findBySectionId('cover');
+      final first = await m.getImage(res);
+      final second = await m.getImage(res);
+      expect(identical(first, second), isTrue);
+    });
+
+    test('regenerates the thumbnail when the cover changes', () async {
+      final m = (await _model())..updateInfo(_values(cover: png(300)));
+      final first = await m.getCoverPageImage();
+      m.updateInfo(_values(cover: png(300, 150)));
+      final second = await m.getCoverPageImage();
+      expect(second, isNot(first));
+      final decoded = img.decodeJpg(base64Decode(second))!;
+      expect([decoded.width, decoded.height], [120, 60]);
+    });
+
+    test('getInfo twice returns the same cover thumbnail', () async {
+      final m = (await _model())..updateInfo(_values(cover: png(300)));
+      final a = await m.getInfo(null, '/a.fb2');
+      final b = await m.getInfo(null, '/a.fb2');
+      expect(b['cover'], a['cover']);
+    });
+  });
 }

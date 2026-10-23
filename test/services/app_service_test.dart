@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_quill/quill_delta.dart' show Operation;
 import 'package:flutter_test/flutter_test.dart';
+import 'package:image/image.dart' as img;
 import 'package:quill_fb2/models/project.model.dart';
 import 'package:quill_fb2/services/app.service.dart';
 import 'package:quill_fb2/utils/consts.dart';
@@ -192,6 +193,40 @@ void main() {
     test('returns null when the archive cannot be read', () async {
       final f = File('${docs.path}/broken.zip')..writeAsStringSync('not a zip');
       expect(await service.loadZipFile(f.path), isNull);
+    });
+  });
+
+  group('base64Image cache', () {
+    String png(int w) =>
+        base64Encode(img.encodePng(img.Image(width: w, height: 4)));
+
+    test('returns providers that share decoded bytes for the same data', () {
+      final b = png(8);
+      final a1 = service.base64Image(b, true) as MemoryImage;
+      final a2 = service.base64Image(b, true) as MemoryImage;
+      expect(identical(a1.bytes, a2.bytes), isTrue);
+      expect(a1, equals(a2));
+    });
+
+    test('different data yields different bytes', () {
+      final a = service.base64Image(png(8), true) as MemoryImage;
+      final b = service.base64Image(png(9), true) as MemoryImage;
+      expect(identical(a.bytes, b.bytes), isFalse);
+    });
+
+    test('still decodes correctly after the cache has evicted entries', () {
+      final first = png(2);
+      final firstBytes = (service.base64Image(first, true) as MemoryImage).bytes;
+      for (var i = 3; i < 25; i++) {
+        service.base64Image(png(i), true);
+      }
+      final again = (service.base64Image(first, true) as MemoryImage).bytes;
+      expect(again, firstBytes); // equal content, re-decoded
+    });
+
+    test('invalid data is not cached and falls back to the asset', () {
+      expect(service.base64Image('!!bad!!', true), isA<AssetImage>());
+      expect(service.base64Image('!!bad!!', true), isA<AssetImage>());
     });
   });
 

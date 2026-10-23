@@ -90,7 +90,43 @@ void main() {
     });
   });
 
+  group('tryParse repair limit', () {
+    String stray(int n) => '<a>${List.filled(n, 'x < y').join()}</a>';
+
+    test('repairs many stray characters within the level budget', () async {
+      final r = await service.tryParse(stray(50), 100);
+      expect(r.valid, isTrue);
+      expect(r.level, 50);
+    });
+
+    test('gives up once the level budget is spent', () async {
+      final r = await service.tryParse(stray(10), 5);
+      expect(r.valid, isFalse);
+      expect(r.level, 0);
+    });
+  });
+
   group('convertXmlToJson', () {
+    test('loads a book with a few stray "<" characters', () async {
+      final xml = _fb2.replaceFirst('<p>First</p>', '<p>a < b</p>');
+      final json = await service.convertXmlToJson(xml) as Map;
+      expect(json['sections'], hasLength(1));
+    });
+
+    test('returns null instead of repairing past the 100-character cap',
+        () async {
+      final bad = List.filled(150, '<p>a < b</p>').join();
+      final xml = _fb2.replaceFirst('<p>First</p>', bad);
+      expect(await service.convertXmlToJson(xml), isNull);
+    });
+
+    test('result is plain data that crossed the isolate boundary', () async {
+      final json = await service.convertXmlToJson(_fb2) as Map;
+      expect(json['resources'], isA<List>());
+      expect((json['resources'] as List).single, isA<Map>());
+      expect(json['description'], isA<Map>());
+    });
+
     test('extracts body title, resources and sections', () async {
       final json = await service.convertXmlToJson(_fb2) as Map;
       expect(json['bodyTitle'], 'Sample Body');
