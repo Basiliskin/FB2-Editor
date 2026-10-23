@@ -203,6 +203,22 @@ void main() {
     });
   });
 
+  group('toPlainText', () {
+    test('title, author, section titles and paragraphs; no markup, pictures or empties', () async {
+      final m = await _model();
+      m.section.clear();
+      m.addSection('One').p = [
+        '<p>Hello <strong>big</strong> &amp; world</p>',
+        '<image xlink:href="#x.jpg"/>',
+        '<p>   </p>',
+        '<poem><stanza><v>a</v><v>b</v></stanza><stanza><v>c</v></stanza></poem>',
+      ];
+      m.addSection('Two').p = ['<p>end</p>'];
+      expect(m.toPlainText(),
+          'Sample\nAnn Lee\n\nOne\n\nHello big & world\n\na\nb\n\nc\n\nTwo\n\nend\n');
+    });
+  });
+
   group('inline pictures', () {
     String png() => base64Encode(img.encodePng(img.Image(width: 8, height: 8)));
 

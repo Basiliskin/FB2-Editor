@@ -1,5 +1,7 @@
 import 'dart:io';
 
+import 'package:xml/xml.dart';
+
 import 'package:quill_fb2/utils/common.dart';
 import 'package:quill_fb2/utils/consts.dart';
 
@@ -336,12 +338,44 @@ class ProjectModel {
     return "${author.firstName} ${author.lastName}";
   }
 
+  /// The book as plain text: title and author, then each section's title and
+  /// paragraphs, separated by blank lines. Pictures are left out.
+  String toPlainText() {
+    String textOf(String block) {
+      try {
+        final root = XmlDocument.parse(block).rootElement;
+        if (root.name.local == 'image') return '';
+        if (root.name.local == 'poem') {
+          return root
+              .findAllElements('stanza')
+              .map((st) => st.findElements('v').map((v) => v.innerText).join('\n'))
+              .join('\n\n');
+        }
+        return root.innerText.trim();
+      } catch (_) {
+        return '';
+      }
+    }
+
+    final out = <String>[
+      [bookTitle, getAuthor().trim()].where((e) => e.isNotEmpty).join('\n')
+    ];
+    for (final sec in section) {
+      out.add(sec.title);
+      out.addAll(sec.p.map(textOf).where((t) => t.isNotEmpty));
+    }
+    return '${out.where((e) => e.isNotEmpty).join('\n\n')}\n';
+  }
+
   /// "Author - Title.fb2", falling back to the project id so the name is never empty.
-  String get exportFileName {
+  String get exportFileName => '$exportBaseName$BOOK_EXT';
+
+  /// "Author - Title" without an extension.
+  String get exportBaseName {
     final who = safeFileName('${author.lastName} ${author.firstName}');
     final what = safeFileName(bookTitle);
     final name = [who, what].where((s) => s.isNotEmpty).join(' - ');
-    return '${name.isEmpty ? projectId : name}$BOOK_EXT';
+    return name.isEmpty ? projectId : name;
   }
 
   getBookTitle() {

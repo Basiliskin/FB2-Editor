@@ -268,7 +268,9 @@ void main() {
 
   Future<void> tapMerge(WidgetTester tester) async {
     await tester.runAsync(() async {
-      await tester.tap(find.byTooltip('Add another book'));
+      await tester.tap(find.byTooltip('More'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Add another book'));
       await tester.pump();
       await Future<void>.delayed(const Duration(milliseconds: 500));
     });
@@ -297,5 +299,17 @@ void main() {
     await tapMerge(tester);
     expect(book.section.length, 1);
     expect(find.textContaining('read'), findsOneWidget);
+  });
+
+  testWidgets('the More menu offers find, merge and text export', (tester) async {
+    await pump(tester);
+    await tester.tap(find.byTooltip('More'));
+    await tester.pumpAndSettle();
+    expect(find.text('Find and replace'), findsOneWidget);
+    expect(find.text('Add another book'), findsOneWidget);
+    expect(find.text('Export as text (.txt)'), findsOneWidget);
+    await tester.tap(find.text('Find and replace'));
+    await tester.pumpAndSettle();
+    expect(find.text('Replace with'), findsOneWidget);
   });
 }

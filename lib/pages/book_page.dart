@@ -136,6 +136,17 @@ class _BookPageState extends State<BookPage>
     if (changed && mounted) setChangedString('{}');
   }
 
+  Future<void> _exportText() async {
+    final s = widget.service;
+    await _flushForms();
+    final path = await s.exportText(widget.book);
+    if (path != null && mounted) {
+      ScaffoldMessenger.of(context)
+        ..clearSnackBars()
+        ..showSnackBar(SnackBar(content: Text(tr(s, 'Saved: $path', 'Сохранено: $path'))));
+    }
+  }
+
   Future<void> _leave() async {
     await _flushForms();
     if (await confirmLeave(context, widget.service, widget.book) && mounted) {
@@ -214,14 +225,6 @@ class _BookPageState extends State<BookPage>
         ]),
         actions: [
           IconButton(
-              tooltip: tr(s, 'Add another book', 'Добавить другую книгу'),
-              icon: const Icon(Icons.library_add_outlined),
-              onPressed: _merge),
-          IconButton(
-              tooltip: tr(s, 'Find and replace', 'Поиск и замена'),
-              icon: const Icon(Icons.find_replace),
-              onPressed: _findReplace),
-          IconButton(
               tooltip: tr(s, 'Help', 'Справка'),
               icon: const Icon(Icons.help_outline),
               onPressed: () => openHelp(context, s)),
@@ -241,6 +244,24 @@ class _BookPageState extends State<BookPage>
               tooltip: tr(s, 'Export .fb2', 'Экспорт .fb2'),
               icon: const Icon(Icons.storage_outlined),
               onPressed: _export),
+          PopupMenuButton<String>(
+              tooltip: tr(s, 'More', 'Ещё'),
+              onSelected: (v) => switch (v) {
+                    'find' => _findReplace(),
+                    'merge' => _merge(),
+                    _ => _exportText(),
+                  },
+              itemBuilder: (_) => [
+                    PopupMenuItem(
+                        value: 'find',
+                        child: Text(tr(s, 'Find and replace', 'Поиск и замена'))),
+                    PopupMenuItem(
+                        value: 'merge',
+                        child: Text(tr(s, 'Add another book', 'Добавить другую книгу'))),
+                    PopupMenuItem(
+                        value: 'txt',
+                        child: Text(tr(s, 'Export as text (.txt)', 'Экспорт в текст (.txt)'))),
+                  ]),
         ],
         bottom: TabBar(
           onTap: (_) => setChangedString('{}'),

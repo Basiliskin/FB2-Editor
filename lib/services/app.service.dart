@@ -100,6 +100,22 @@ class AppService {
     return FlutterFileDialog.saveFile(params: params);
   }
 
+  /// Saves the book as a plain text file wherever the user chooses; null when cancelled.
+  Future<String?> exportText(ProjectModel model) async {
+    final text = model.toPlainText();
+    final name = '${model.exportBaseName}.txt';
+    // coverage:ignore-start
+    if (kIsWeb) {
+      await downloadFile(name, text);
+      return name;
+    }
+    // coverage:ignore-end
+    final file = File('${await _localPath}/${model.projectId}.txt');
+    await file.writeAsString(text);
+    return FlutterFileDialog.saveFile(
+        params: SaveFileDialogParams(sourceFilePath: file.path, fileName: name));
+  }
+
   // fingerprint of each book as last written to the app, to detect unsaved edits
   final Map<String, int> _savedFingerprint = {};
 

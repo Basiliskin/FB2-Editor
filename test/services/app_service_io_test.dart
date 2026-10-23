@@ -161,6 +161,24 @@ void main() {
         '${docs.path}/${model.projectId}$BOOK_EXT');
   });
 
+  test('exportText writes the book as plain text and names it Author - Title.txt', () async {
+    MethodCall? seen;
+    String? onDisk;
+    messenger.setMockMethodCallHandler(const MethodChannel('flutter_file_dialog'),
+        (call) async {
+      seen = call;
+      onDisk = File(call.arguments['sourceFilePath'] as String).readAsStringSync();
+      return '/saved/here.txt';
+    });
+    final model = ProjectModel.fromJson(await service.convertXmlToJson(_fb2));
+    expect(await service.exportText(model), '/saved/here.txt');
+    expect(seen!.arguments['fileName'], 'Lee Ann - Sample.txt');
+    expect(onDisk, startsWith('Sample\nAnn Lee\n\n'));
+    messenger.setMockMethodCallHandler(
+        const MethodChannel('flutter_file_dialog'), (call) async => null);
+    expect(await service.exportText(model), isNull);
+  });
+
   group('export and unsaved changes', () {
     Future<ProjectModel> opened() async {
       final model = ProjectModel.fromJson(await service.convertXmlToJson(_fb2));
