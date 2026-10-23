@@ -323,6 +323,8 @@ class _SectionEditorState extends State<SectionEditor>
       final snackBar = SnackBar(content: BaseText.Text('Annotation Added'));
       ScaffoldMessenger.of(context).showSnackBar(snackBar);
     });
+    final poemButton = defaultToggleStyleButtonBuilderHandler(
+        context, Attribute.unchecked, Icons.lyrics_outlined, false, _insertPoem);
     final imageButton = defaultToggleStyleButtonBuilderHandler(
         context, Attribute.unchecked, Icons.image, false, _insertPicture);
     // final addBookmark = defaultToggleStyleButtonBuilderHandler(
@@ -364,6 +366,7 @@ class _SectionEditorState extends State<SectionEditor>
       emphasisSection,
       citySection,
       imageButton,
+      poemButton,
       // addBookmark,
       // pasteSection,
       addSection,
@@ -390,6 +393,28 @@ class _SectionEditorState extends State<SectionEditor>
     setState(() {
       _active = -1;
       widget.book.addInlineImage(widget.section, data, after);
+    });
+    await widget.service.saveProject(widget.book);
+  }
+
+  /// Turns the copied text into a poem (blank line = new stanza) after the
+  /// paragraph being edited, or at the end.
+  Future<void> _insertPoem() async {
+    final data = await Clipboard.getData('text/plain');
+    final poem = Section.poemBlock(data?.text ?? '');
+    if (!mounted) return;
+    if (poem == null) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: BaseText.Text(tr(widget.service,
+              'Copy the verses first: a blank line starts a new stanza.',
+              'Сначала скопируйте стихи: пустая строка начинает новую строфу.'))));
+      return;
+    }
+    var after = widget.section.p.length - 1;
+    if (_active >= 0) after = _active + _commitActive() - 1;
+    setState(() {
+      _active = -1;
+      widget.section.insertBlock(after, poem);
     });
     await widget.service.saveProject(widget.book);
   }
@@ -487,7 +512,13 @@ class _SectionEditorState extends State<SectionEditor>
             padding: const EdgeInsets.symmetric(vertical: 4),
             child: SizedBox(
                 width: double.infinity,
-                child: BaseText.Text(_paragraphText(paragraphs[i]), style: style)),
+                child: BaseText.Text(
+                    paragraphs[i].startsWith('<poem')
+                        ? widget.section.displayText(paragraphs[i])
+                        : _paragraphText(paragraphs[i]),
+                    style: paragraphs[i].startsWith('<poem')
+                        ? style.copyWith(fontStyle: FontStyle.italic)
+                        : style)),
           ),
         );
       },

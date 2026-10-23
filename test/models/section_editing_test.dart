@@ -28,8 +28,8 @@ void main() {
     });
 
     test('a block element is shown whole', () {
-      final s = _section(['<poem><stanza><v>Roses</v></stanza></poem>']);
-      expect(s.editableText(s.p[0]), '<poem><stanza><v>Roses</v></stanza></poem>');
+      final s = _section(['<poem><stanza><v>Roses</v></stanza><text-author>Me</text-author></poem>']);
+      expect(s.editableText(s.p[0]), '<poem><stanza><v>Roses</v></stanza><text-author>Me</text-author></poem>');
     });
 
     test('unparsable xml is shown as it is', () {
@@ -84,16 +84,16 @@ void main() {
     });
 
     test('a poem edited into something broken is left as it was', () {
-      const poem = '<poem><stanza><v>Roses</v></stanza></poem>';
+      const poem = '<poem><stanza><v>Roses</v></stanza><text-author>Me</text-author></poem>';
       final s = _section([poem]);
       expect(s.replaceParagraph(0, '<poem><stanza><v>Roses</stanza>'), 1);
       expect(s.p, [poem]);
     });
 
     test('a poem edited into a valid poem is kept as a poem', () {
-      final s = _section(['<poem><stanza><v>Roses</v></stanza></poem>']);
-      s.replaceParagraph(0, '<poem><stanza><v>Violets</v></stanza></poem>');
-      expect(s.p, ['<poem><stanza><v>Violets</v></stanza></poem>']);
+      final s = _section(['<poem><stanza><v>Roses</v></stanza><text-author>Me</text-author></poem>']);
+      s.replaceParagraph(0, '<poem><stanza><v>Violets</v></stanza><text-author>Me</text-author></poem>');
+      expect(s.p, ['<poem><stanza><v>Violets</v></stanza><text-author>Me</text-author></poem>']);
     });
 
     test('indents typed as no-break spaces survive', () {
@@ -108,6 +108,53 @@ void main() {
       final s = _section([]);
       s.load('AT&T\n5 < 6\n<strong>not markup</strong>');
       expect(s.p.map(_plain), ['AT&T', '5 < 6', '<strong>not markup</strong>']);
+    });
+  });
+
+  group('poems', () {
+    test('poemBlock: blank line = new stanza, text is escaped', () {
+      expect(Section.poemBlock('a & b\n  c  \n\n\n\nd<e\r\ng'),
+          '<poem><stanza><v>a &amp; b</v><v>c</v></stanza><stanza><v>d&lt;e</v><v>g</v></stanza></poem>');
+      expect(Section.poemBlock('  \n\n'), isNull);
+    });
+
+    test('insertBlock puts a poem after the given paragraph', () {
+      final s = _section(['<p>a</p>', '<p>b</p>']);
+      expect(s.insertBlock(0, Section.poemBlock('x')!), 1);
+      expect(s.p.map((e) => e.startsWith('<poem')), [false, true, false]);
+    });
+
+    test('a plain poem is edited as lines and written back as a poem', () {
+      final s = _section(['<poem><stanza><v>one</v><v>two</v></stanza><stanza><v>three</v></stanza></poem>']);
+      expect(s.editableText(s.p[0]), 'one\ntwo\n\nthree');
+      expect(s.replaceParagraph(0, 'one\ntwo\nTWO-B\n\nthree & four'), 1);
+      expect(s.p, [
+        '<poem><stanza><v>one</v><v>two</v><v>TWO-B</v></stanza><stanza><v>three &amp; four</v></stanza></poem>'
+      ]);
+    });
+
+    test('clearing a plain poem removes it', () {
+      final s = _section(['<p>a</p>', '<poem><stanza><v>x</v></stanza></poem>']);
+      expect(s.replaceParagraph(1, ''), 0);
+      expect(s.p, ['<p>a</p>']);
+    });
+
+    test('a poem with a title, author or styled verse keeps its structure', () {
+      for (final xml in [
+        '<poem><title><p>T</p></title><stanza><v>x</v></stanza></poem>',
+        '<poem><stanza><v>x <emphasis>y</emphasis></v></stanza><text-author>Me</text-author></poem>',
+      ]) {
+        final s = _section([xml]);
+        expect(s.editableText(xml), xml);
+        s.replaceParagraph(0, xml.replaceFirst('x', 'z'));
+        expect(s.p.single, contains('z'));
+        expect(s.p.single, contains(xml.contains('<title>') ? '<title>' : 'text-author'));
+      }
+    });
+
+    test('displayText shows verses for any poem', () {
+      final s = _section([]);
+      expect(s.displayText('<poem><title><p>T</p></title><stanza><v>x</v><v>y</v></stanza></poem>'), 'x\ny');
     });
   });
 }

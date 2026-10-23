@@ -86,6 +86,10 @@ const helpTopics = <HelpTopic>[
       'Image button: choose a picture and it is inserted after the paragraph you are editing (or at the end). Use as many as you like; the bin icon on a picture removes it.',
       'Кнопка с картинкой: выберите изображение, и оно вставится после редактируемого абзаца (или в конец). Картинок может быть сколько угодно; значок корзины на картинке удаляет её.'
     ),
+    (
+      'Poem button: copy the verses first (a blank line starts a new stanza), then tap it. The poem is inserted after the paragraph you are editing; tap it to change the lines.',
+      'Кнопка стихов: сначала скопируйте стихи (пустая строка начинает новую строфу), затем нажмите её. Стихотворение вставится после редактируемого абзаца; нажмите на него, чтобы изменить строки.'
+    ),
   ]),
   HelpTopic(Icons.save_outlined, ('Saving & export', 'Сохранение и экспорт'), [
     (

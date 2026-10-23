@@ -69,13 +69,48 @@ class Section {
     images = images.where((f) => f != imgId).toList();
   }
 
-  /// Puts a picture block right after paragraph [after] (-1: at the start);
-  /// returns its index.
-  int insertImage(int after, String href) {
+  /// A poem block from plain text: a blank line starts a new stanza, every other
+  /// line is a verse. Null when the text has no lines.
+  static String? poemBlock(String text) {
+    final stanzas = <List<String>>[[]];
+    for (final raw in text.split(RegExp(r'\r\n|\r|\n'))) {
+      final line = raw.trim();
+      if (line.isEmpty) {
+        if (stanzas.last.isNotEmpty) stanzas.add([]);
+      } else {
+        stanzas.last.add(line);
+      }
+    }
+    stanzas.removeWhere((s) => s.isEmpty);
+    if (stanzas.isEmpty) return null;
+    return '<poem>${stanzas.map((s) => '<stanza>${s.map((v) => '<v>${escapeText(v)}</v>').join()}</stanza>').join()}</poem>';
+  }
+
+  /// What the list shows for a stored block: a poem as its verses, one per
+  /// line, with a blank line between stanzas.
+  String displayText(String block) {
+    if (!block.startsWith('<poem')) return editableText(block);
+    try {
+      return XmlDocument.parse(block)
+          .rootElement
+          .findAllElements('stanza')
+          .map((s) => s.findElements('v').map((v) => v.innerText).join('\n'))
+          .join('\n\n');
+    } catch (e) {
+      return editableText(block);
+    }
+  }
+
+  /// Puts any block right after paragraph [after] (-1: at the start); returns its index.
+  int insertBlock(int after, String block) {
     final at = (after + 1).clamp(0, p.length);
-    p.insert(at, imageBlock(href));
+    p.insert(at, block);
     return at;
   }
+
+  /// Puts a picture block right after paragraph [after] (-1: at the start);
+  /// returns its index.
+  int insertImage(int after, String href) => insertBlock(after, imageBlock(href));
 
   /// Every picture this section shows, in order.
   List<String> get pictureRefs => [
@@ -102,6 +137,7 @@ class Section {
   /// inline markup (so bold, italics and footnote links stay in place), any other
   /// block (poem, table, ...) as its whole XML.
   String editableText(String pXml) {
+    if (_isSimplePoem(pXml)) return displayText(pXml);
     try {
       final root = XmlDocument.parse(pXml).rootElement;
       if (root.name.local != 'p') return root.outerXml;
@@ -119,6 +155,15 @@ class Section {
   /// a new paragraph. A block element that was edited into broken XML is left as
   /// it was.
   int replaceParagraph(int index, String text) {
+    if (_isSimplePoem(p[index])) {
+      final poem = poemBlock(text);
+      if (poem == null) {
+        p.removeAt(index);
+        return 0;
+      }
+      p[index] = poem;
+      return 1;
+    }
     if (!_isParagraph(p[index])) {
       final fragment = text.trim();
       try {
@@ -130,6 +175,29 @@ class Section {
       return 1;
     }
     return loadRange(index, index + 1, text) - index;
+  }
+
+  /// A poem made only of stanzas of plain verses; such a poem is edited as lines of
+  /// text. One with a title, author, date or styled verses is edited as XML so
+  /// nothing in it is lost.
+  bool _isSimplePoem(String xml) {
+    if (!xml.startsWith('<poem')) return false;
+    try {
+      final poem = XmlDocument.parse(xml).rootElement;
+      return poem.name.local == 'poem' &&
+          poem.attributes.isEmpty &&
+          poem.childElements.isNotEmpty &&
+          poem.children.every((n) => n is XmlElement && n.name.local == 'stanza') &&
+          poem.childElements.every((st) =>
+              st.attributes.isEmpty &&
+              st.children.every((n) =>
+                  n is XmlElement &&
+                  n.name.local == 'v' &&
+                  n.attributes.isEmpty &&
+                  n.children.every((c) => c is XmlText)));
+    } catch (e) {
+      return false;
+    }
   }
 
   bool _isParagraph(String xml) {

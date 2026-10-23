@@ -575,4 +575,31 @@ void main() {
     expect(section.p, ['<p>para 0</p>', '<p>para 1</p>', '<p>end</p>']);
     await dispose(tester);
   });
+
+  testWidgets('the poem button turns the clipboard into a poem after the edited paragraph',
+      (tester) async {
+    await pump(tester, paras(2));
+    await activate(tester, 'para 0');
+    clipboard = 'roses are red\nviolets are blue\n\nsecond stanza';
+    await tester.tap(toolbarIcon(Icons.lyrics_outlined));
+    await tester.pump();
+    await tester.pump();
+    expect(section.p.length, 3);
+    expect(section.p[1],
+        '<poem><stanza><v>roses are red</v><v>violets are blue</v></stanza><stanza><v>second stanza</v></stanza></poem>');
+    expect(find.textContaining('roses are red'), findsOneWidget);
+    expect(service.saves, 1);
+    await dispose(tester);
+  });
+
+  testWidgets('the poem button explains itself when nothing is copied', (tester) async {
+    await pump(tester, paras(1));
+    clipboard = '   ';
+    await tester.tap(toolbarIcon(Icons.lyrics_outlined));
+    await tester.pump();
+    await tester.pump();
+    expect(section.p, paras(1));
+    expect(find.textContaining('Copy the verses first'), findsOneWidget);
+    await dispose(tester);
+  });
 }
