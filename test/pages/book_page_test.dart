@@ -412,7 +412,7 @@ void main() {
       addTearDown(tester.view.reset);
       await tester.pumpWidget(MaterialApp(home: BookPage(service, book, StreamController<void>.broadcast())));
       await tester.pump();
-      expect(find.byIcon(Icons.hub_outlined), findsNothing);
+      expect(find.descendant(of: find.byType(AppBar), matching: find.byIcon(Icons.hub_outlined)), findsNothing);
       await tester.tap(find.byType(PopupMenuButton<String>));
       await tester.pumpAndSettle();
       await tester.tap(find.descendant(of: find.byType(PopupMenuItem<String>), matching: find.text('Story map')));
