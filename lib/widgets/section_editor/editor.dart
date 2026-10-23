@@ -40,6 +40,8 @@ class _SectionEditorState extends State<SectionEditor>
   String clipboardText = '';
   Map state = {};
   final picker = ImagePicker();
+  final _scrollController = ScrollController();
+  final _focusNode = FocusNode();
 
   void changePage(int? index) {
     setState(() {
@@ -90,6 +92,8 @@ class _SectionEditorState extends State<SectionEditor>
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _scrollController.dispose();
+    _focusNode.dispose();
     super.dispose();
   }
 
@@ -418,8 +422,8 @@ class _SectionEditorState extends State<SectionEditor>
               child: EditorPage(
                   child: QuillEditor(
                       controller: _controller,
-                      scrollController: ScrollController(),
-                      focusNode: FocusNode(),
+                      scrollController: _scrollController,
+                      focusNode: _focusNode,
                       config: QuillEditorConfig(
                         autoFocus: true,
                         customStyles: DefaultStyles(
@@ -476,7 +480,9 @@ class EditorPage extends StatelessWidget {
     return PageBody(
         max: 760,
         child: Container(
-          margin: const EdgeInsets.fromLTRB(12, 16, 12, 72),
+          // fill the space above the keyboard so the card tracks the resize
+          height: double.infinity,
+          margin: const EdgeInsets.fromLTRB(12, 16, 12, 16),
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
           decoration: BoxDecoration(
               color: c.surface,
