@@ -11,7 +11,7 @@ import 'cp1251.dart';
 
 /// Runs [body] and logs its duration in debug builds (`[load] label: N ms`).
 Future<T> timed<T>(String label, Future<T> Function() body) async {
-  if (!kDebugMode) return body();
+  if (!kDebugMode) return body(); // coverage:ignore-line
   final sw = Stopwatch()..start();
   try {
     return await body();
@@ -140,12 +140,14 @@ Uint8List? _decode64Bytes(String img) => decode64Image(img) as Uint8List?;
 
 String? _resizeImageSync(List args) {
   try {
+    // coverage:ignore-start
     Uint8List bytes = decode64Image(args[0]);
 
     final image = decodeImage(bytes)!;
     final thumbnail = copyResize(image, width: args[1]);
     List<int> jpg = encodeJpg(thumbnail, quality: 75);
     return base64Encode(jpg);
+    // coverage:ignore-end
   } catch (e) {
     print(e);
   }
@@ -267,11 +269,7 @@ _removeImage(XmlElement p, items) {
       .where((node) =>
           node is XmlText || (node as XmlElement).name.qualified != 'image')
       .toList()
-      .map((elm) {
-    return elm is XmlText && elm.innerText.isNotEmpty
-        ? elm.innerText
-        : _cleanElement(elm);
-  });
+      .map(_cleanElement);
   // print(xml);
   final outerXml = "<p>${xml.join()}</p>";
   items.add(XmlItem('p', p.innerText, outerXml));

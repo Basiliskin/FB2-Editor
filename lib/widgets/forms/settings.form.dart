@@ -81,11 +81,6 @@ class _SettingsComponentState extends State<SettingsComponent> {
     });
   }
 
-  _log(message) {
-    final snackBar = SnackBar(content: Text(message));
-    ScaffoldMessenger.of(context).showSnackBar(snackBar);
-  }
-
   Widget _dd<T>(String label, T value, List<T> opts, void Function(T) on,
           {IconData? icon, String Function(T)? show}) =>
       ListTile(

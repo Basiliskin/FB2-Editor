@@ -33,6 +33,16 @@ void main() {
     expect(find.text('Change'), findsOneWidget);
   });
 
+  testWidgets('base64Image can build an Image widget or a provider',
+      (tester) async {
+    await pump(tester, _png(4, 4));
+    final field = tester.widget<ImageField>(find.byType(ImageField));
+    expect(field.base64Image(_png(4, 4), false), isA<Image>());
+    expect(field.base64Image(_png(4, 4), true), isA<MemoryImage>());
+    expect(field.base64Image('', false), isA<Image>());
+    expect(field.base64Image('', true), isA<AssetImage>());
+  });
+
   testWidgets('keeps the initial image in the saved values', (tester) async {
     final png = _png(4, 4);
     await pump(tester, png);

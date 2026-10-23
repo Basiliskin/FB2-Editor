@@ -23,6 +23,4 @@ class ColorUtils {
     var hex = "FF00000".substring(0, 8 - c.length) + c;
     return int.parse(hex, radix: 16);
   }
-
-  ColorUtils._(); // private constructor
 }

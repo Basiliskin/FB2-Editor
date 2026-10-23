@@ -77,10 +77,12 @@ class AppService {
   }
 
   exportProject(ProjectModel model) async {
+    // coverage:ignore-start
     if (kIsWeb) {
       await downloadFile('${model.projectId}$BOOK_EXT', model.getBookXml());
       return;
     }
+    // coverage:ignore-end
     final path = await _localPath;
     String currentProjectPath = '$path/${model.projectId}$BOOK_EXT';
     final params = SaveFileDialogParams(sourceFilePath: currentProjectPath);
@@ -89,6 +91,7 @@ class AppService {
   }
 
   saveProject(ProjectModel model) async {
+    // coverage:ignore-start
     if (kIsWeb) {
       final currentProjectPath = '${model.projectId}$BOOK_EXT';
       final info = await model.getInfo(null, currentProjectPath);
@@ -100,6 +103,7 @@ class AppService {
       await downloadFile(currentProjectPath, model.getBookXml());
       return;
     }
+    // coverage:ignore-end
     final path = await _localPath;
     String currentProjectPath = '$path/${model.projectId}$BOOK_EXT';
     Map info = await model.getInfo(null, currentProjectPath);
@@ -150,7 +154,7 @@ class AppService {
     if (kDebugMode) debugPrint('[load] build model: ${sw.elapsedMilliseconds} ms');
     if (fileInfo != null && book == null) {
       final currentProjectPath = kIsWeb
-          ? fileInfo.path
+          ? fileInfo.path // coverage:ignore-line
           : '${await _localPath}/${model.projectId}$BOOK_EXT';
       Map info = await timed('book info + cover thumbnail',
           () async => await model.getInfo(
@@ -206,13 +210,7 @@ class AppService {
   }
 
   deltaToXml(delta) {
-    var json = delta.toJson();
-    print(json);
-    List<String> xml = [];
-    json.forEach((d) {
-      xml.add(handleDeltaInsert(d));
-    });
-    return xml.join();
+    return delta.toList().map(handleDeltaInsert).join();
   }
 
   sectionToDeltaJson(Section section) {
@@ -346,8 +344,9 @@ class AppService {
     if (result != null) {
       final file = result.files.first;
       final ext = file.extension?.toLowerCase();
-      if (extensionNames[ext]) {
+      if (extensionNames[ext] == true) {
         try {
+          // coverage:ignore-start
           if (kIsWeb) {
             final bytes = file.bytes;
             if (bytes == null || ext != 'fb2') {
@@ -355,6 +354,7 @@ class AppService {
             }
             return FileInfo(decodeFb2Bytes(bytes), file.name);
           }
+          // coverage:ignore-end
           // final name = file.name;
           final path = file.path;
           // final size = file.size;

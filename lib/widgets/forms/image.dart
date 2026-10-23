@@ -62,22 +62,6 @@ class ImageField extends EasyFormGenericField<String> {
     return provider ? AssetImage(DEFAULT_IMAGE) : Image.asset(DEFAULT_IMAGE);
   }
 
-  _image() {
-    return GestureDetector(
-        onTap: _change,
-        child: Container(
-          width: 100.0,
-          height: 160.0,
-          decoration: new BoxDecoration(
-              shape: BoxShape.rectangle,
-              borderRadius: BorderRadius.all(Radius.circular(10)),
-              border: Border.all(
-                  color: Colors.teal, width: 2.0, style: BorderStyle.solid),
-              image: new DecorationImage(
-                  fit: BoxFit.cover, image: base64Image(value, true))),
-        ));
-  }
-
   _buildBody(BuildContext context) {
     final c = Theme.of(context).colorScheme;
     return Column(children: [

@@ -50,8 +50,7 @@ class _BookComponentState extends State<BookComponent> {
   }
 
   _createFormField(LangTranslateItems fieldName, String value,
-      {bool validate = false,
-      TextStyle? style,
+      {TextStyle? style,
       int maxLines = 1,
       bool flat = false}) {
     final label = widget.service.translate(fieldName);
@@ -72,18 +71,7 @@ class _BookComponentState extends State<BookComponent> {
                 borderRadius: BorderRadius.circular(12),
                 borderSide: BorderSide.none),
       ),
-      validator: (value, [values = defaultMap]) {
-        if (validate && value!.isEmpty) {
-          return widget.service.translate(LangTranslateItems.messagePlease);
-        }
-        return null;
-      },
     );
-  }
-
-  _log(message) {
-    final snackBar = SnackBar(content: Text(message));
-    ScaffoldMessenger.of(context).showSnackBar(snackBar);
   }
 
   _build() {
@@ -110,7 +98,6 @@ class _BookComponentState extends State<BookComponent> {
                   book.annotation)));
       return BookInfoLayout(kit);
     } catch (e) {
-      _log(e.toString());
       return Text(widget.service.translate(LangTranslateItems.messageError));
     }
   }

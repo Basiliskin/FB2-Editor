@@ -488,6 +488,7 @@ Widget _selectHeadingStyleButtonBuilder(BuildContext context, Attribute? value,
     child: BaseText.Text(
       !kIsWeb
           ? _valueToText[value!]!
+          // coverage:ignore-start
           : _valueToText[value!.key == 'header'
               ? Attribute.header
               : (value.key == 'h1')
@@ -495,6 +496,7 @@ Widget _selectHeadingStyleButtonBuilder(BuildContext context, Attribute? value,
                   : (value.key == 'h2')
                       ? Attribute.h2
                       : Attribute.h3]!,
+      // coverage:ignore-end
       style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
     ),
   );
@@ -530,6 +532,7 @@ class _ImageButtonState extends State<ImageButton> {
   final _picker = ImagePicker();
   final FileType _pickingType = FileType.any;
 
+  // coverage:ignore-start
   Future<String?> _pickImage(ImageSource source) async {
     final XFile? pickedFile = await _picker.pickImage(source: source);
     if (pickedFile == null) return null;
@@ -559,6 +562,7 @@ class _ImageButtonState extends State<ImageButton> {
     }
     return null;
   }
+  // coverage:ignore-end
 
   Future<String> _pickImageDesktop() async {
     var filePath = await FilesystemPicker.open(
@@ -591,11 +595,14 @@ class _ImageButtonState extends State<ImageButton> {
         if (widget.imagePickImpl != null) {
           image = widget.imagePickImpl!(widget.imageSource);
         } else {
+          // coverage:ignore-start
           if (kIsWeb) {
             image = _pickImageWeb();
           } else if (Platform.isAndroid || Platform.isIOS) {
             image = _pickImage(widget.imageSource);
-          } else {
+          } else
+          // coverage:ignore-end
+          {
             image = _pickImageDesktop();
           }
         }

@@ -45,7 +45,8 @@ class _SettingsScreenState extends State<SettingsScreen>
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     Map settings = widget.service.getSettings();
-    bool autoSave = settings["auto-save"] ?? false;
+    final raw = settings["auto-save"];
+    bool autoSave = raw == true || raw == 'true';
     print('settings.state = ${state.name} - autoSave=$autoSave');
     print(autoSave);
   }

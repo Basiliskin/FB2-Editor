@@ -123,7 +123,7 @@ class EasyTextFormField
           key: key,
           name: name,
           controller: controller,
-          initialValue: initialValue ?? '',
+          initialValue: controller == null ? (initialValue ?? '') : null,
           controllerBuilder: (value) => TextEditingController(text: value),
           controllerRebuilder: (oldController) =>
               TextEditingController.fromValue(oldController.value),
@@ -215,7 +215,7 @@ class EasyTextFormField
           key: key,
           name: name,
           controller: controller,
-          initialValue: initialValue ?? '',
+          initialValue: controller == null ? (initialValue ?? '') : null,
           controllerBuilder: (value) => TextEditingController(text: value),
           controllerRebuilder: (oldController) =>
               TextEditingController.fromValue(oldController.value),

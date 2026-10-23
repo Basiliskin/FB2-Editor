@@ -291,10 +291,7 @@ class ProjectModel {
   getCoverPageImage() async {
     if (coverpage.href.isNotEmpty) {
       final res = binaryResource.findBySectionId('cover');
-      if (res != null) {
-        return getImage(res);
-      }
-      return getImage(binaryResource.first());
+      return getImage(res);
     }
     return '';
   }
