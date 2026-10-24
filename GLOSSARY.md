@@ -79,3 +79,7 @@ _Avoid_: Issue, error, warning
 **Answer**:
 The text an Analysis returns for a question or summary. It is shown, not applied.
 _Avoid_: Response, output
+
+**Name variant**:
+One name written in more than one way in the book, such as Ivan and Иван, or Фёдор and Федор. It is the kind of Finding the names check reports. Whether two spellings are the same person is the user's call; the app only proposes it.
+_Avoid_: Typo, alias, duplicate

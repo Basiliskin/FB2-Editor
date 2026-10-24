@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:quill_fb2/models/project.model.dart';
 import 'package:quill_fb2/models/story_map.model.dart';
 import 'package:quill_fb2/pages/help_page.dart';
+import 'package:quill_fb2/pages/names_check_page.dart';
 import 'package:quill_fb2/pages/story_map_page.dart';
 import 'package:quill_fb2/services/app.service.dart';
 import 'package:quill_fb2/services/story_map_analyzer.dart';
@@ -37,6 +38,19 @@ Finder get _artur => find.text('Ар');
 
 void main() {
   setUp(() => _service = AppService());
+
+  group('names check', () {
+    testWidgets('the more menu opens it', (tester) async {
+      final book = await _book(tester);
+      await _open(tester, book);
+      await tester.tap(find.byTooltip('More'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Check names'));
+      await tester.pump(const Duration(milliseconds: 500));
+      await tester.pump(const Duration(milliseconds: 500));
+      expect(find.byType(NamesCheckPage), findsOneWidget);
+    });
+  });
 
   group('reading', () {
     testWidgets('sections run down the side, grouped by act, with the people across the top', (tester) async {

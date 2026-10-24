@@ -21,16 +21,19 @@ class StorySection {
 /// [analyze] as a one-argument function, so it can run in an isolate with `compute`.
 StoryMap analyzeSections(List<StorySection> sections) => analyze(sections);
 
-class _Tok {
+class NameToken {
   final String surface, stem;
   final bool cap, sentenceStart, adjacentToPrev;
-  const _Tok(this.surface, this.stem, this.cap, this.sentenceStart, this.adjacentToPrev);
+
+  /// Where the word starts in the text it was cut from.
+  final int start;
+  const NameToken(this.surface, this.stem, this.cap, this.sentenceStart, this.adjacentToPrev, this.start);
 }
 
 final _word = RegExp(r'[\p{L}][\p{L}\-]*', unicode: true);
 final _tag = RegExp(r'<[^>]+>');
 final _ruEnd = RegExp(r'(ами|ями|ов|ев|ей|ом|ем|ой|ам|ям|ах|ях|ы|и|а|я|у|ю|е|о)$');
-const _stop = {'the', 'and', 'but', 'mr', 'mrs', 'dr', 'это', 'что', 'как', 'если', 'когда'};
+const nameStopWords = {'the', 'and', 'but', 'mr', 'mrs', 'dr', 'это', 'что', 'как', 'если', 'когда'};
 
 String plain(String block) => block
     .replaceAll(_tag, '')
@@ -40,15 +43,17 @@ String plain(String block) => block
     .replaceAll('&gt;', '>')
     .replaceAll('&amp;', '&');
 
-String _stem(String w) {
+/// Lower case, with a Russian case ending and an English 's trimmed.
+String nameStem(String w) {
   var s = w.toLowerCase();
   if (s.endsWith("'s") || s.endsWith('’s')) s = s.substring(0, s.length - 2);
   if (RegExp(r'[а-яё]').hasMatch(s) && s.length > 4) s = s.replaceFirst(_ruEnd, '');
   return s;
 }
 
-List<_Tok> _tokens(String text) {
-  final out = <_Tok>[];
+/// The words of [text] with what the analyzer needs to tell names from other words.
+List<NameToken> nameTokens(String text) {
+  final out = <NameToken>[];
   int prevEnd = -10;
   for (final m in _word.allMatches(text)) {
     final w = m.group(0)!;
@@ -59,7 +64,7 @@ List<_Tok> _tokens(String text) {
     }
     final start = i < 0 || '.!?…:'.contains(text[i]);
     final cap = w[0] != w[0].toLowerCase() && w[0] == w[0].toUpperCase();
-    out.add(_Tok(w, _stem(w), cap, start, m.start - prevEnd == 1));
+    out.add(NameToken(w, nameStem(w), cap, start, m.start - prevEnd == 1, m.start));
     prevEnd = m.end;
   }
   return out;
@@ -76,12 +81,12 @@ StoryMap analyze(List<StorySection> sections, {int maxCast = 12}) {
   final midCap = <String, int>{}, lower = <String, int>{};
   final surfaces = <String, Map<String, int>>{};
   final adj = <String, Map<String, int>>{}; // adj[y][x]: x directly before y
-  final toks = [for (final u in units) [for (final p in u.paras) _tokens(p)]];
+  final toks = [for (final u in units) [for (final p in u.paras) nameTokens(p)]];
   for (final unit in toks) {
     for (final para in unit) {
       for (var i = 0; i < para.length; i++) {
         final t = para[i];
-        if (t.stem.length < 3 || _stop.contains(t.stem)) continue;
+        if (t.stem.length < 3 || nameStopWords.contains(t.stem)) continue;
         if (!t.cap) {
           lower[t.stem] = (lower[t.stem] ?? 0) + 1;
         } else if (!t.sentenceStart) {

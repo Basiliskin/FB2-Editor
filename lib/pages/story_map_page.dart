@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:quill_fb2/models/project.model.dart';
 import 'package:quill_fb2/models/story_map.model.dart';
 import 'package:quill_fb2/pages/help_page.dart';
+import 'package:quill_fb2/pages/names_check_page.dart';
 import 'package:quill_fb2/services/app.service.dart';
 import 'package:quill_fb2/ui/widgets.dart';
 import 'package:quill_fb2/widgets/story_map/entity_editor.dart';
@@ -221,8 +222,9 @@ class _StoryMapPageState extends State<StoryMapPage> {
               onPressed: () => setState(() => _editing = !_editing)),
           PopupMenuButton<String>(
               tooltip: tr(s, 'More', 'Ещё'),
-              onSelected: (_) => _regenerate(),
+              onSelected: (v) => v == 'names' ? openNamesCheck(context, s, widget.book) : _regenerate(),
               itemBuilder: (_) => [
+                    PopupMenuItem(value: 'names', child: Text(tr(s, 'Check names', 'Проверить имена'))),
                     PopupMenuItem(value: 'rebuild', child: Text(tr(s, 'Rebuild from the text', 'Пересобрать по тексту'))),
                   ]),
         ]),

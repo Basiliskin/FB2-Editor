@@ -17,6 +17,7 @@ Answers come from the code. Items marked **CONFIRM** are things only the develop
 | Text of the selected paragraphs, with inline FB2 tags | The user's chosen provider | Only after the user taps Improve and confirms the "send" dialog | `lib/services/llm/improvement.dart` |
 | Book metadata (title, author) and the per-book Style note | Same provider, in the same request | Same | `ImprovementContext` |
 | The user's instruction or Preset | Same provider | Same | `improvement.dart` |
+| Short quotes (about a sentence each) around names the local names check could not decide, at most 40 pairs per run | The user's chosen provider | Only after the user taps Ask AI in Check names and confirms the dialog that shows the size | `lib/services/name_check_ai.dart`, `lib/pages/names_check_page.dart` |
 | API key | Sent to the chosen provider as authentication. Stored on the device in Android Keystore-backed secure storage, never in the book, the workspace JSON or exports | On use | `key_vault.dart` |
 | Connection test | A tiny test request to the provider | Only when the user taps Test connection | `adapters.dart` |
 
@@ -31,7 +32,7 @@ user-initiated-transfer exemption is not relied on; over-declaring only lengthen
 
 | Data type | Collected | Shared | Ephemeral | Optional | Purpose |
 |---|---|---|---|---|---|
-| App activity: Other user-generated content (book text) | Yes | Yes | No | Yes, only if the user uses Improve | App functionality (both) |
+| App activity: Other user-generated content (book text) | Yes | Yes | No | Yes, only if the user uses Improve or Ask AI in Check names | App functionality (both) |
 
 Deliberately not declared:
 - **Name**: the author in book metadata is book content, not the app user's name.
@@ -71,6 +72,11 @@ App activity > Other user-generated content, and "Data is encrypted in transit".
 > Nothing is sent without your action, and the app asks for your confirmation the first time you use
 > a provider. We do not operate a server for this feature and we do not receive, store or see your
 > text or your key.
+>
+> The same applies to "Check names" in the story map. The check itself runs on your device. Only if
+> you tap "Ask AI" does the app send short quotes around names it could not decide about (a few
+> sentences per name, for at most 40 pairs) to your chosen provider, after you confirm what will be
+> sent. Nothing else from the book is sent.
 >
 > What the provider does with the text is governed by that provider's own terms and privacy policy,
 > which you accept when you create your account and key with them.

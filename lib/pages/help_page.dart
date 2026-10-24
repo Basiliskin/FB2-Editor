@@ -124,6 +124,10 @@ const helpTopics = <HelpTopic>[
       'Добавить, изменить, убрать: нажмите карандаш, затем «+», чтобы добавить героя, место, событие или элемент мира (название, вид, роль, заметка). Нажмите заголовок колонки, чтобы переименовать её, сменить вид, роль или заметку, связать с другими или убрать. «Отменить» в сообщении вернёт убранное.'
     ),
     (
+      'Check names (⋮ menu): finds names the book writes in more than one way, such as Ivan and Иван, Фёдор and Федор, or a rare slip like Артор next to Артур. It runs on your device and shows where each spelling stands. For unclear pairs you can tap "Ask AI": only short quotes around those names go to your AI provider, after you confirm. Nothing in the book is changed; "Dismiss" hides a finding for good.',
+      'Проверить имена (меню ⋮): находит имена, которые в книге написаны по-разному, например Ivan и Иван, Фёдор и Федор или редкая опечатка вроде Артор рядом с Артур. Проверка идёт на вашем устройстве и показывает, где стоит каждое написание. Для неясных пар можно нажать «Спросить ИИ»: вашему ИИ-провайдеру уходят только короткие цитаты вокруг этих имён, после вашего подтверждения. Книга не меняется; «Скрыть» убирает находку насовсем.'
+    ),
+    (
       'While editing, tap a cell to mark or unmark where something appears. A mark you make by hand counts as one mention.',
       'В режиме правки нажмите ячейку, чтобы отметить или снять отметку, где что встречается. Ручная отметка считается одним упоминанием.'
     ),
