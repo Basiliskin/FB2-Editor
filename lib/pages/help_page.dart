@@ -166,6 +166,10 @@ const helpTopics = <HelpTopic>[
       'Поиск и замена (лупа со стрелками на экране книги) работают по всей книге: только текст, ссылки и картинки не затрагиваются. «Добавить другую книгу» дописывает главы из файла .fb2, .epub, .zip или .txt после ваших вместе с картинками и сносками; ваша обложка и данные остаются.'
     ),
     (
+      'Ask about the book (⋮ menu on the book screen): pick a range of sections, then "Summarise" or ask a question. It needs an AI provider, shows the size and number of requests first, and never changes your book. A short range goes to the model as text; a long one is first reduced to short summaries of each section (kept, so asking again is cheaper), and the answer then says it is less detailed. Quotes the model gives as evidence are checked against your text and marked when they are not found.',
+      'Вопрос о книге (меню ⋮ на экране книги): выберите диапазон разделов, затем «Пересказ» или задайте вопрос. Нужен ИИ-провайдер; сначала показывается размер и число запросов, а книга не меняется. Короткий диапазон уходит модели текстом; длинный сначала сжимается в краткие пересказы разделов (они сохраняются, поэтому повторный вопрос дешевле), и ответ отмечает, что он менее подробный. Цитаты-подтверждения проверяются по вашему тексту и помечаются, если не найдены.'
+    ),
+    (
       'Export writes a ready file where you choose (in the browser it downloads the file): FB2 is the editable book, EPUB is for e-readers, TXT is plain text. The file is named "Author - Title" with its extension and always contains your latest edits.',
       'Экспорт создаёт готовый файл в выбранном месте (в браузере файл скачивается): FB2 — редактируемая книга, EPUB — для читалок, TXT — простой текст. Файл называется «Автор - Название» с нужным расширением и всегда содержит последние правки.'
     ),

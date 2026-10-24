@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:prompt_dialog/prompt_dialog.dart';
 import 'package:quill_fb2/models/project.model.dart';
+import 'package:quill_fb2/pages/ask_page.dart';
 import 'package:quill_fb2/pages/help_page.dart';
 import 'package:quill_fb2/pages/story_map_page.dart';
 import 'package:quill_fb2/models/section.model.dart';
@@ -284,12 +285,16 @@ class _BookPageState extends State<BookPage>
               onSelected: (v) => switch (v) {
                     'find' => _findReplace(),
                     'map' => _storyMap(),
+                    'ask' => openAsk(context, widget.service, widget.book),
                     _ => _merge(),
                   },
               itemBuilder: (_) => [
                     if (MediaQuery.sizeOf(context).width < 520)
                       PopupMenuItem(
                           value: 'map', child: Text(tr(s, 'Story map', 'Карта истории'))),
+                    PopupMenuItem(
+                        value: 'ask',
+                        child: Text(tr(s, 'Ask about the book', 'Вопрос о книге'))),
                     PopupMenuItem(
                         value: 'find',
                         child: Text(tr(s, 'Find and replace', 'Поиск и замена'))),

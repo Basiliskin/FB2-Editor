@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:quill_fb2/models/project.model.dart';
+import 'package:quill_fb2/pages/ask_page.dart';
 import 'package:quill_fb2/pages/book_page.dart';
 import 'package:quill_fb2/pages/help_page.dart';
 import 'package:quill_fb2/pages/story_map_page.dart';
@@ -125,6 +126,15 @@ void main() {
     await tester.tap(find.byIcon(Icons.help_outline));
     await tester.pumpAndSettle();
     expect(find.byType(HelpScreen), findsOneWidget);
+  });
+
+  testWidgets('the more menu opens "Ask about the book"', (tester) async {
+    await pump(tester);
+    await tester.tap(find.byTooltip('More'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Ask about the book'));
+    await tester.pumpAndSettle();
+    expect(find.byType(AskPage), findsOneWidget);
   });
 
   testWidgets('the auto-save button toggles the setting', (tester) async {

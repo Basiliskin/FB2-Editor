@@ -19,6 +19,7 @@ import 'fb2.service.dart';
 import 'open_failure.dart';
 import 'llm/key_vault.dart';
 import 'llm/provider_store.dart';
+import 'book_ask.dart';
 import 'name_check_ai.dart';
 
 const bool isProduction = bool.fromEnvironment('dart.vm.product');
@@ -62,6 +63,8 @@ class AppService {
       persistent: SecureKeyVault(),
       isWeb: kIsWeb);
   late NameCheckStore nameCheckStore = NameCheckStore(
+      getSettings: () => getSettings(), setSettings: (m) => setSettings(m));
+  late DigestStore digestStore = DigestStore(
       getSettings: () => getSettings(), setSettings: (m) => setSettings(m));
   String _workspaceFile = 'fb2_workspace.json';
   Map _workspace = cloneMap(DEFAULT_WORKSPACE);
