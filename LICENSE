@@ -36,18 +36,37 @@ the MIT License remain available under that license.
 
    Forking the repository on GitHub for the purposes of section 1 is allowed.
 
-3. Trademarks
+3. Conditions on permitted distribution (copyleft)
+
+   Any permission granted under section 2 is subject to the following
+   conditions, unless the written permission expressly says otherwise:
+
+   a. the complete corresponding source code of the distributed version,
+      including all modifications, must be made publicly available under
+      this same licence, at no charge, for as long as the version is
+      distributed;
+   b. the distributed version must keep this licence, the copyright notice
+      and a visible credit to the original author and to
+      https://github.com/Basiliskin/FB2-Editor;
+   c. modifications must be clearly marked as such, with the date of the
+      change, so that they are not attributed to the original author;
+   d. no additional restrictions may be imposed on recipients beyond those
+      in this licence.
+
+   A written permission that is silent on these points includes them.
+
+4. Trademarks
 
    "FB2 Editor" and the application logo are used to identify the author's
    application. This licence grants no right to use them for any other
    application.
 
-4. Permission requests
+5. Permission requests
 
    To ask for permission to redistribute or publish the Software, or for any
    other use not covered above, write to dima.icmega@gmail.com.
 
-5. No warranty
+6. No warranty
 
    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
@@ -56,6 +75,6 @@ the MIT License remain available under that license.
    ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
    WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-6. Termination
+7. Termination
 
    Your rights under this licence end automatically if you breach it.

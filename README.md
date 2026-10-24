@@ -111,6 +111,8 @@ you think.
 
 FB2 Editor is **source-available**, not open source. You are welcome to read the code, build it for
 yourself and send pull requests. Publishing the app, or anything derived from it, on Google Play or
-anywhere else requires my written permission. See [LICENSE](LICENSE) for the exact terms.
+anywhere else requires my written permission, and anything published with that permission must
+stay open: full source under the same licence, with credit and marked changes. See
+[LICENSE](LICENSE) for the exact terms.
 
 Versions published before this change remain under the MIT License they were released with.

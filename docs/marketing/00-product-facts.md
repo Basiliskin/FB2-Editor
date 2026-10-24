@@ -61,7 +61,7 @@ not visible in the repository.
 
 - Production URL: https://play.google.com/store/apps/details?id=com.caragulak.fb2editor (Google Play listing; package ID matches `android/app/build.gradle`) — source: user
 - Primary goal: portfolio visibility — source: user
-- Open-source status: public GitHub repository (`github.com/Basiliskin/FB2-Editor`), source-available license (viewing, personal builds and contributions allowed; redistribution and app-store publishing need written permission) — source: user. The `LICENSE` file is present at the repository root; `pubspec.yaml` still says `publish_to: 'none'` (package is not intended for pub.dev) — source: pubspec.yaml
+- Open-source status: public GitHub repository (`github.com/Basiliskin/FB2-Editor`), source-available license (viewing, personal builds and contributions allowed; redistribution and app-store publishing need written permission, and permitted redistributions must stay open-source under the same licence) — source: user. The `LICENSE` file is present at the repository root; `pubspec.yaml` still says `publish_to: 'none'` (package is not intended for pub.dev) — source: pubspec.yaml
 - Features not visible in the repository: none provided; the user declined to add any — source: user
 
 ## Unknown
