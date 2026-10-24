@@ -366,6 +366,57 @@ class _SectionEditorState extends State<SectionEditor>
     return (_controller.selection.end - _controller.selection.start) > 0;
   }
 
+  Future<void> _addSectionFromClipboard() async {
+      ClipboardData? data = await Clipboard.getData('text/plain');
+      if (data == null) return;
+      String cdata = data.text ?? '';
+      if (cdata.isEmpty) return;
+      // final newSectionName = await Clipboard.getData(Clipboard.kTextPlain);
+      String? title = await prompt(
+        context,
+        // initialValue: newSectionName!.text,
+        title: BaseText.Text('Enter Section Name:'),
+        textOK: BaseText.Text('Save'),
+        textCancel: BaseText.Text('Cancel'),
+        autoFocus: true,
+        obscureText: false,
+        obscuringCharacter: '•',
+        textCapitalization: TextCapitalization.words,
+      );
+      if (title != null) {
+        setState(() {
+          isLoading = true;
+        });
+        Section section = widget.book.addSection(title);
+        section.load(cdata);
+        _save();
+        setState(() {
+          isLoading = false;
+          clipboardText = '';
+        });
+        final snackBar = SnackBar(content: BaseText.Text('$title Created'));
+        ScaffoldMessenger.of(context).showSnackBar(snackBar);
+      }
+  }
+
+  Future<void> _addAnnotationFromClipboard() async {
+      ClipboardData? data = await Clipboard.getData('text/plain');
+      if (data == null) return;
+      String cdata = data.text ?? '';
+      if (cdata.isEmpty) return;
+      setState(() {
+        isLoading = true;
+      });
+      widget.book.annotation.addAll(splitStringByEof(cdata));
+      _save();
+      setState(() {
+        isLoading = false;
+        clipboardText = '';
+      });
+      final snackBar = SnackBar(content: BaseText.Text('Annotation Added'));
+      ScaffoldMessenger.of(context).showSnackBar(snackBar);
+  }
+
   _toolbarButtons() {
     final strongButton = defaultToggleStyleButtonBuilderHandler(
         context, Attribute.unchecked, Icons.format_bold, startBookmark != -1,
@@ -397,63 +448,6 @@ class _SectionEditorState extends State<SectionEditor>
               : "<cite><p>$value</p><text-author>$author</text-author></cite>";
         });
     }, tooltip: tr(widget.service, 'Quote', 'Цитата'));
-    final addSection = defaultToggleStyleButtonBuilderHandler(
-        context, Attribute.unchecked, Icons.book, false, () async {
-      ClipboardData? data = await Clipboard.getData('text/plain');
-      if (data == null) return;
-      String cdata = data.text ?? '';
-      if (cdata.isEmpty) return;
-      // final newSectionName = await Clipboard.getData(Clipboard.kTextPlain);
-      String? title = await prompt(
-        context,
-        // initialValue: newSectionName!.text,
-        title: BaseText.Text('Enter Section Name:'),
-        textOK: BaseText.Text('Save'),
-        textCancel: BaseText.Text('Cancel'),
-        autoFocus: true,
-        obscureText: false,
-        obscuringCharacter: '•',
-        textCapitalization: TextCapitalization.words,
-      );
-      if (title != null) {
-        setState(() {
-          isLoading = true;
-        });
-        Section section = widget.book.addSection(title);
-        section.load(cdata);
-        _save();
-        setState(() {
-          isLoading = false;
-          clipboardText = '';
-        });
-        final snackBar = SnackBar(content: BaseText.Text('$title Created'));
-        ScaffoldMessenger.of(context).showSnackBar(snackBar);
-      }
-    }, tooltip: tr(widget.service, 'New section from copied text', 'Новая глава из скопированного текста'));
-    final addAnnotation = defaultToggleStyleButtonBuilderHandler(
-        context, Attribute.unchecked, Icons.contact_page, false, () async {
-      ClipboardData? data = await Clipboard.getData('text/plain');
-      if (data == null) return;
-      String cdata = data.text ?? '';
-      if (cdata.isEmpty) return;
-      setState(() {
-        isLoading = true;
-      });
-      widget.book.annotation.addAll(splitStringByEof(cdata));
-      _save();
-      setState(() {
-        isLoading = false;
-        clipboardText = '';
-      });
-      final snackBar = SnackBar(content: BaseText.Text('Annotation Added'));
-      ScaffoldMessenger.of(context).showSnackBar(snackBar);
-    }, tooltip: tr(widget.service, 'Annotation from copied text', 'Аннотация из скопированного текста'));
-    final poemButton = defaultToggleStyleButtonBuilderHandler(
-        context, Attribute.unchecked, Icons.lyrics_outlined, false, _insertPoem,
-        tooltip: tr(widget.service, 'Poem from copied text', 'Стихотворение из скопированного текста'));
-    final imageButton = defaultToggleStyleButtonBuilderHandler(
-        context, Attribute.unchecked, Icons.image, false, _insertPicture,
-        tooltip: tr(widget.service, 'Insert picture', 'Вставить картинку'));
     // final addBookmark = defaultToggleStyleButtonBuilderHandler(
     //     context,
     //     Attribute.unchecked,
@@ -492,13 +486,6 @@ class _SectionEditorState extends State<SectionEditor>
       strongButton,
       emphasisSection,
       citySection,
-      imageButton,
-      poemButton,
-      // addBookmark,
-      // pasteSection,
-      addSection,
-      addAnnotation,
-      // saveSection,
     ];
   }
 
@@ -690,6 +677,16 @@ class _SectionEditorState extends State<SectionEditor>
     }
   }
 
+  Future<void> _export() async {
+    _flushActive();
+    final filePath = await widget.service.exportProject(widget.book);
+    final message = exportedMessage(widget.service, widget.book, filePath);
+    if (message != null && mounted) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: BaseText.Text(message)));
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     Map settings = widget.service.getSettings();
@@ -719,49 +716,92 @@ class _SectionEditorState extends State<SectionEditor>
                     selectedIcon: const Icon(Icons.auto_awesome),
                     onPressed: _toggleImprove),
                 IconButton(
-                    tooltip: tr(widget.service, 'Story map', 'Карта истории'),
-                    icon: const Icon(Icons.hub_outlined),
-                    onPressed: () {
-                      _flushActive();
-                      openSectionStory(context, widget.service, widget.book, widget.section);
-                    }),
-                IconButton(
-                    tooltip: tr(widget.service, 'Help', 'Справка'),
-                    icon: const Icon(Icons.help_outline),
-                    onPressed: () => openHelp(context, widget.service)),
-                IconButton(
                     tooltip: widget.service.translate(LangTranslateItems.buttonSave),
                     icon: const Icon(Icons.save_outlined),
                     onPressed: () async {
                       _save();
                     }),
-                IconButton(
-                    tooltip: tr(widget.service, 'Export .fb2', 'Экспорт .fb2'),
-                    icon: const Icon(Icons.fact_check_outlined),
-                    onPressed: () async {
-                      _flushActive();
-                      final filePath = await widget.service.exportProject(widget.book);
-                      final message =
-                          exportedMessage(widget.service, widget.book, filePath);
-                      if (message != null && mounted) {
-                        ScaffoldMessenger.of(context)
-                            .showSnackBar(SnackBar(content: BaseText.Text(message)));
+                PopupMenuButton<String>(
+                    tooltip: tr(widget.service, 'More', 'Ещё'),
+                    onSelected: (k) {
+                      switch (k) {
+                        case 'story':
+                          _flushActive();
+                          openSectionStory(
+                              context, widget.service, widget.book, widget.section);
+                        case 'picture':
+                          _insertPicture();
+                        case 'poem':
+                          _insertPoem();
+                        case 'section':
+                          _addSectionFromClipboard();
+                        case 'annotation':
+                          _addAnnotationFromClipboard();
+                        case 'export':
+                          _export();
+                        case 'help':
+                          openHelp(context, widget.service);
                       }
-                    }),
+                    },
+                    itemBuilder: (_) => [
+                          PopupMenuItem(
+                              value: 'picture',
+                              child: ListTile(
+                                  leading: const Icon(Icons.image),
+                                  title: Text(tr(widget.service, 'Insert picture', 'Вставить картинку')))),
+                          PopupMenuItem(
+                              value: 'poem',
+                              child: ListTile(
+                                  leading: const Icon(Icons.lyrics_outlined),
+                                  title: Text(tr(widget.service, 'Poem from copied text', 'Стихотворение из скопированного текста')))),
+                          PopupMenuItem(
+                              value: 'section',
+                              child: ListTile(
+                                  leading: const Icon(Icons.book),
+                                  title: Text(tr(widget.service, 'New section from copied text', 'Новая глава из скопированного текста')))),
+                          PopupMenuItem(
+                              value: 'annotation',
+                              child: ListTile(
+                                  leading: const Icon(Icons.contact_page),
+                                  title: Text(tr(widget.service, 'Annotation from copied text', 'Аннотация из скопированного текста')))),
+                          const PopupMenuDivider(),
+                          PopupMenuItem(
+                              value: 'story',
+                              child: ListTile(
+                                  leading: const Icon(Icons.hub_outlined),
+                                  title: Text(tr(widget.service, 'Story map', 'Карта истории')))),
+                          PopupMenuItem(
+                              value: 'export',
+                              child: ListTile(
+                                  leading: const Icon(Icons.fact_check_outlined),
+                                  title: Text(tr(widget.service, 'Export .fb2', 'Экспорт .fb2')))),
+                          PopupMenuItem(
+                              value: 'help',
+                              child: ListTile(
+                                  leading: const Icon(Icons.help_outline),
+                                  title: Text(tr(widget.service, 'Help', 'Справка')))),
+                        ]),
               ],
             ),
       body: Stack(children: [
         Column(
           children: [
-            Material(
-                color: Theme.of(context).colorScheme.surface,
-                child: CustomQuillToolbar.basic(
-              controller: _controller,
-              undoTooltip: tr(widget.service, 'Undo', 'Отменить'),
-              redoTooltip: tr(widget.service, 'Redo', 'Повторить'),
-              extensions: _toolbarButtons(),
-            )),
-            const Divider(height: 1),
+            // The format bar only matters while a paragraph is being edited.
+            AnimatedSize(
+                duration: const Duration(milliseconds: 150),
+                child: _active >= 0
+                    ? Column(children: [
+                        Material(
+                            color: Theme.of(context).colorScheme.surface,
+                            child: CustomQuillToolbar.basic(
+                              controller: _controller,
+                              undoTooltip: tr(widget.service, 'Undo', 'Отменить'),
+                              redoTooltip: tr(widget.service, 'Redo', 'Повторить'),
+                              extensions: _toolbarButtons(),
+                            )),
+                        const Divider(height: 1),
+                      ])
+                    : const SizedBox(width: double.infinity)),
             Expanded(
               child: EditorPage(
                   margin: (stringToInt(settings["editor-margin"]) ?? 24).toDouble(),

@@ -89,7 +89,9 @@ void main() {
     testWidgets('the story map button shows who is in this section', (tester) async {
       final book = (await tester.runAsync(() => storyBook()))!;
       await pumpEditor(tester, book);
-      await tester.tap(find.byTooltip('Story map'));
+      await tester.tap(find.byType(PopupMenuButton<String>));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Story map'));
       await tester.pumpAndSettle();
       expect(find.text('IN THIS SECTION'), findsOneWidget);
       expect(find.text('1. Приезд'), findsOneWidget);
@@ -101,7 +103,9 @@ void main() {
       final book = (await tester.runAsync(() => storyBook()))!;
       await pumpEditor(tester, book);
       expect(book.getBookXml(), isNot(contains('story-map')));
-      await tester.tap(find.byTooltip('Story map'));
+      await tester.tap(find.byType(PopupMenuButton<String>));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Story map'));
       await tester.pumpAndSettle();
       await tester.tap(find.widgetWithText(InkWell, 'Гидеон Кросс'));
       await tester.pump();
@@ -116,7 +120,9 @@ void main() {
       await pumpEditor(tester, book);
       book.section.first.sectionId = 'unknown'; // as if the id changed under the map
       book.loadedStoryMap; // realigns: the old section is gone, 'unknown' is a new one
-      await tester.tap(find.byTooltip('Story map'));
+      await tester.tap(find.byType(PopupMenuButton<String>));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Story map'));
       await tester.pumpAndSettle();
       expect(find.text('IN THIS SECTION'), findsOneWidget); // it is a section of the book now
       await close(tester);

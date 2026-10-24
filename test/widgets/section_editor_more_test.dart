@@ -11,6 +11,13 @@ import 'package:quill_fb2/services/app.service.dart';
 import 'package:quill_fb2/utils/common.dart' show imageHref;
 import 'package:quill_fb2/widgets/section_editor/editor.dart';
 
+/// Opens the editor's overflow menu and taps the entry with [icon].
+Future<void> tapMenu(WidgetTester tester, IconData icon) async {
+  await tester.tap(find.byType(PopupMenuButton<String>));
+  await tester.pumpAndSettle();
+  await tester.tap(find.descendant(of: find.byType(PopupMenuItem<String>), matching: find.byIcon(icon)));
+}
+
 /// AppService that keeps settings in memory and records saves/exports.
 class _FakeService extends AppService {
   int saves = 0;
@@ -335,7 +342,7 @@ void main() {
     await activate(tester, 'para 1');
     controller(tester).replaceText(0, 0, 'Y', null);
     await tester.pump();
-    await tester.tap(find.byIcon(Icons.fact_check_outlined));
+    await tapMenu(tester, Icons.fact_check_outlined);
     await tester.pump();
     await tester.pump();
     expect(service.exportedParagraphs.single[1], '<p>Ypara 1</p>');
@@ -345,7 +352,7 @@ void main() {
   testWidgets('a cancelled export shows no message', (tester) async {
     service.exportResult = null;
     await pump(tester, paras(2));
-    await tester.tap(find.byIcon(Icons.fact_check_outlined));
+    await tapMenu(tester, Icons.fact_check_outlined);
     await tester.pump();
     await tester.pump();
     expect(find.byType(SnackBar), findsNothing);
@@ -353,12 +360,12 @@ void main() {
 
   testWidgets('help and export buttons', (tester) async {
     await pump(tester, paras(2));
-    await tester.tap(find.byIcon(Icons.help_outline));
+    await tapMenu(tester, Icons.help_outline);
     await tester.pumpAndSettle();
     expect(find.byType(SectionEditor), findsNothing);
     await tester.pageBack();
     await tester.pumpAndSettle();
-    await tester.tap(find.byIcon(Icons.fact_check_outlined));
+    await tapMenu(tester, Icons.fact_check_outlined);
     await tester.pump();
     await tester.pump();
     expect(find.textContaining('/exported/path.fb2'), findsOneWidget);
@@ -425,17 +432,17 @@ void main() {
   testWidgets('add section from the clipboard', (tester) async {
     await pump(tester, paras(2));
     // empty clipboard: nothing happens
-    await tester.tap(toolbarIcon(Icons.book));
+    await tapMenu(tester, Icons.book);
     await tester.pump();
     expect(book.section.length, 1);
     // clipboard with empty text
     clipboard = '';
-    await tester.tap(toolbarIcon(Icons.book));
+    await tapMenu(tester, Icons.book);
     await tester.pump();
     expect(book.section.length, 1);
 
     clipboard = 'one\ntwo';
-    await tester.tap(toolbarIcon(Icons.book));
+    await tapMenu(tester, Icons.book);
     await tester.pump(const Duration(milliseconds: 300));
     expect(find.text('Enter Section Name:'), findsOneWidget);
     await tester.enterText(find.byType(TextField).last, 'Fresh');
@@ -450,7 +457,7 @@ void main() {
 
     // cancelling the prompt adds nothing
     clipboard = 'x';
-    await tester.tap(toolbarIcon(Icons.book));
+    await tapMenu(tester, Icons.book);
     await tester.pump(const Duration(milliseconds: 300));
     await tester.tap(find.text('Cancel'));
     await tester.pump(const Duration(milliseconds: 300));
@@ -461,15 +468,15 @@ void main() {
   testWidgets('add annotation from the clipboard', (tester) async {
     await pump(tester, paras(2));
     final before = book.annotation.length;
-    await tester.tap(toolbarIcon(Icons.contact_page));
+    await tapMenu(tester, Icons.contact_page);
     await tester.pump();
     clipboard = '';
-    await tester.tap(toolbarIcon(Icons.contact_page));
+    await tapMenu(tester, Icons.contact_page);
     await tester.pump();
     expect(book.annotation.length, before);
 
     clipboard = 'first\nsecond';
-    await tester.tap(toolbarIcon(Icons.contact_page));
+    await tapMenu(tester, Icons.contact_page);
     await tester.pump();
     await tester.pump();
     expect(book.annotation.length, before + 2);
@@ -483,7 +490,7 @@ void main() {
       ..writeAsBytesSync(img.encodePng(img.Image(width: 40, height: 40)));
     pickedPath = file.uri.toString();
     await tester.runAsync(() async {
-      await tester.tap(toolbarIcon(Icons.image));
+      await tapMenu(tester, Icons.image);
       await tester.pump();
       await Future<void>.delayed(const Duration(milliseconds: 500));
     });
@@ -519,7 +526,7 @@ void main() {
 
   testWidgets('cancelling the picker changes nothing', (tester) async {
     await pump(tester, paras(2));
-    await tester.tap(toolbarIcon(Icons.image));
+    await tapMenu(tester, Icons.image);
     await tester.pump();
     await tester.pump();
     expect(section.p, paras(2));
@@ -584,7 +591,7 @@ void main() {
     await pump(tester, paras(2));
     await activate(tester, 'para 0');
     clipboard = 'roses are red\nviolets are blue\n\nsecond stanza';
-    await tester.tap(toolbarIcon(Icons.lyrics_outlined));
+    await tapMenu(tester, Icons.lyrics_outlined);
     await tester.pump();
     await tester.pump();
     expect(section.p.length, 3);
@@ -598,7 +605,7 @@ void main() {
   testWidgets('the poem button explains itself when nothing is copied', (tester) async {
     await pump(tester, paras(1));
     clipboard = '   ';
-    await tester.tap(toolbarIcon(Icons.lyrics_outlined));
+    await tapMenu(tester, Icons.lyrics_outlined);
     await tester.pump();
     await tester.pump();
     expect(section.p, paras(1));
