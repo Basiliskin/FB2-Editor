@@ -175,6 +175,28 @@ void main() {
     expect(find.textContaining('The answer was cut off'), findsOneWidget);
   });
 
+  testWidgets('a title that already starts with a number is not numbered twice', (tester) async {
+    await _open(tester, story: [
+      StorySection('a', '1. ПРЕИСПОДНЯЯ', ['<p>Один.</p>']),
+      StorySection('b', 'Письмо', ['<p>Два.</p>']),
+    ]);
+    expect(find.text('1. ПРЕИСПОДНЯЯ'), findsOneWidget);
+    expect(find.text('1. 1. ПРЕИСПОДНЯЯ'), findsNothing);
+    expect(find.text('2. Письмо'), findsOneWidget);
+  });
+
+  testWidgets('the pickers are full width and do not touch the question field', (tester) async {
+    await _open(tester);
+    await tester.tap(find.text('Ask').first);
+    await tester.pumpAndSettle();
+    final from = tester.getRect(find.widgetWithText(DropdownButtonFormField<int>, 'From'));
+    final to = tester.getRect(find.widgetWithText(DropdownButtonFormField<int>, 'To'));
+    final question = tester.getRect(find.byType(TextField));
+    expect(from.width, greaterThan(300));
+    expect(to.top - from.bottom, greaterThanOrEqualTo(8));
+    expect(question.top - to.bottom, greaterThanOrEqualTo(8));
+  });
+
   test('askSectionsOf numbers Sections by their place and reads their plain text', () async {
     final book = await storyBook([
       StorySection('a', 'One', ['<p>Hello <strong>there</strong>.</p>']),

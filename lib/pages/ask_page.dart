@@ -142,16 +142,19 @@ class _AskPageState extends State<AskPage> {
     setState(() => _busy = false);
   }
 
-  String _label(AskSection x) => '${x.number}. ${x.title.isEmpty ? tr(_s, 'Section ${x.number}', 'Раздел ${x.number}') : x.title}';
+  String _label(AskSection x) {
+    if (x.title.isEmpty) return '${x.number}. ${tr(_s, 'Section ${x.number}', 'Раздел ${x.number}')}';
+    // many titles already carry their own number ("1. Начало"): do not number them twice
+    return RegExp(r'^\d').hasMatch(x.title) ? x.title : '${x.number}. ${x.title}';
+  }
 
-  Widget _picker(String label, int value, ValueChanged<int> onChanged) => Expanded(
-      child: DropdownButtonFormField<int>(
-          key: ValueKey('$label$value'),
-          isExpanded: true,
-          initialValue: value,
-          decoration: InputDecoration(labelText: label),
-          items: [for (final x in _all) DropdownMenuItem(value: x.number, child: Text(_label(x), overflow: TextOverflow.ellipsis))],
-          onChanged: _busy ? null : (v) => onChanged(v!)));
+  Widget _picker(String label, int value, ValueChanged<int> onChanged) => DropdownButtonFormField<int>(
+      key: ValueKey('$label$value'),
+      isExpanded: true,
+      initialValue: value,
+      decoration: InputDecoration(labelText: label),
+      items: [for (final x in _all) DropdownMenuItem(value: x.number, child: Text(_label(x), overflow: TextOverflow.ellipsis))],
+      onChanged: _busy ? null : (v) => onChanged(v!));
 
   @override
   Widget build(BuildContext context) {
@@ -164,8 +167,15 @@ class _AskPageState extends State<AskPage> {
           ? const Center(child: CircularProgressIndicator())
           : ListView(padding: const EdgeInsets.all(16), children: [
               if (_provider == null)
-                Text(tr(_s, 'Connect an AI provider in Settings to ask about your book.',
-                    'Подключите ИИ-провайдера в настройках, чтобы задавать вопросы о книге.')),
+                Padding(
+                    padding: const EdgeInsets.only(bottom: 16),
+                    child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      Icon(Icons.info_outline, size: 18, color: cs.primary),
+                      const SizedBox(width: 8),
+                      Expanded(
+                          child: Text(tr(_s, 'Connect an AI provider in Settings to ask about your book.',
+                              'Подключите ИИ-провайдера в настройках, чтобы задавать вопросы о книге.'))),
+                    ])),
               SegmentedButton<AskMode>(
                   segments: [
                     ButtonSegment(value: AskMode.summarise, label: Text(tr(_s, 'Summarise', 'Пересказ'))),
@@ -174,17 +184,16 @@ class _AskPageState extends State<AskPage> {
                   selected: {_mode},
                   onSelectionChanged: _busy ? null : (v) => setState(() => _mode = v.first)),
               const SizedBox(height: 12),
-              Row(children: [
-                _picker(tr(_s, 'From', 'С'), _from, (v) => setState(() {
-                      _from = v;
-                      if (_to < v) _to = v;
-                    })),
-                const SizedBox(width: 12),
-                _picker(tr(_s, 'To', 'По'), _to, (v) => setState(() {
-                      _to = v;
-                      if (_from > v) _from = v;
-                    })),
-              ]),
+              _picker(tr(_s, 'From', 'С'), _from, (v) => setState(() {
+                    _from = v;
+                    if (_to < v) _to = v;
+                  })),
+              const SizedBox(height: 12),
+              _picker(tr(_s, 'To', 'По'), _to, (v) => setState(() {
+                    _to = v;
+                    if (_from > v) _from = v;
+                  })),
+              const SizedBox(height: 12),
               if (_mode == AskMode.question)
                 TextField(
                     controller: _question,
@@ -195,7 +204,7 @@ class _AskPageState extends State<AskPage> {
                     decoration: InputDecoration(
                         labelText: tr(_s, 'Your question', 'Ваш вопрос'),
                         hintText: tr(_s, 'e.g. Why does Артур leave the port?', 'например: почему Артур покидает порт?'))),
-              const SizedBox(height: 8),
+              const SizedBox(height: 12),
               if (plan != null)
                 Text(
                     plan.direct
@@ -210,7 +219,7 @@ class _AskPageState extends State<AskPage> {
                                 'поэтому используются краткие пересказы разделов'
                                 '${_mode == AskMode.question ? '; сузьте диапазон для точного ответа' : ''}.'),
                     style: t.bodySmall),
-              const SizedBox(height: 8),
+              const SizedBox(height: 12),
               if (_busy)
                 Row(children: [
                   Expanded(
