@@ -32,13 +32,38 @@ double loudestWindowRms(Float32List samples, {int window = 1600}) {
   return math.sqrt(math.max(loudest, 0) / size);
 }
 
+/// Where to cut [samples] between [from] and [to]: the middle of the quietest
+/// [window] samples in a row there, so the cut falls in a pause between words.
+/// Returns [to] when the range is shorter than a window.
+int quietestCut(Float32List samples, int from, int to, {int window = 1600}) {
+  final start = math.max(0, from);
+  final end = math.min(to, samples.length);
+  if (end - start < window) return end;
+  double sum = 0;
+  for (var i = start; i < start + window; i++) {
+    sum += samples[i] * samples[i];
+  }
+  var quietest = sum;
+  var at = start;
+  for (var i = start + window; i < end; i++) {
+    sum += samples[i] * samples[i] - samples[i - window] * samples[i - window];
+    if (sum < quietest) {
+      quietest = sum;
+      at = i - window + 1;
+    }
+  }
+  return at + window ~/ 2;
+}
+
 /// [SpeechRecognition] backed by a multilingual Whisper model in sherpa-onnx.
 ///
-/// Audio is buffered in memory while a session runs and decoded in one pass
-/// on [stop], so a session is limited to Whisper's 30 s decode window. At the
-/// limit capture stops, the stream reports [AudioTooLong], and [stop] still
-/// decodes the first 30 s so nothing the user said is lost. The decode itself
-/// runs in a [WhisperDecoderIsolate].
+/// Whisper decodes at most 30 s at a time, so a session is cut into pieces of
+/// up to [segmentSamples], each ending at the quietest moment of its last
+/// [cutSearchSamples]. A piece is decoded as soon as it is cut, while capture
+/// goes on, and [stop] decodes the rest and joins the texts in order. At
+/// [maxDuration] capture stops, the stream reports [AudioTooLong], and [stop]
+/// still transcribes everything heard so nothing the user said is lost. The
+/// decode itself runs in a [WhisperDecoderIsolate].
 class SherpaOnnxSpeechRecognition implements SpeechRecognition {
   SherpaOnnxSpeechRecognition({
     required Future<WhisperModelFiles> Function(SpeechLanguage language)
@@ -53,7 +78,9 @@ class SherpaOnnxSpeechRecognition implements SpeechRecognition {
 
   static const sampleRate = 16000;
   static const maxDuration = dictationMaxDuration;
-  static const maxSamples = 30 * sampleRate;
+  static final maxSamples = maxDuration.inSeconds * sampleRate;
+  static final segmentSamples = dictationSegment.inSeconds * sampleRate;
+  static final cutSearchSamples = dictationCutSearch.inSeconds * sampleRate;
   // One Whisper model directory serves every language.
   static const _autoModelLanguage = SpeechLanguage.english;
 
@@ -107,8 +134,16 @@ class SherpaOnnxSpeechRecognition implements SpeechRecognition {
     _session = session;
     session.subscription = _audioSource().listen(
       (chunk) {
-        session.append(chunk);
-        if (session.sampleCount > maxSamples && !session.tooLong) {
+        if (session.tooLong) return;
+        final room = maxSamples - session.totalSamples;
+        final kept = chunk.length <= room ? chunk : chunk.sublist(0, room);
+        session
+          ..append(kept)
+          ..totalSamples += kept.length;
+        while (session.sampleCount >= segmentSamples) {
+          _cutSegment(session);
+        }
+        if (chunk.length > room) {
           session.tooLong = true;
           session.results.addError(const AudioTooLong(maxDuration));
           unawaited(session.subscription?.cancel());
@@ -130,8 +165,12 @@ class SherpaOnnxSpeechRecognition implements SpeechRecognition {
     _session = null;
     await session.subscription?.cancel();
 
+    _queueDecode(session, session.takeSamples());
+    await session.decoding;
     try {
-      final decoded = await _decode(session.takeSamples(maxSamples));
+      final failure = session.failure;
+      if (failure != null) throw failure;
+      final decoded = joinDecodedTexts(session.texts);
       session.results.add(
         RecognitionResult(
           text: decoded.text,
@@ -140,12 +179,40 @@ class SherpaOnnxSpeechRecognition implements SpeechRecognition {
         ),
       );
       return decoded.text;
-    } on EngineFailure catch (failure) {
-      session.results.addError(failure);
-      rethrow;
     } finally {
       unawaited(session.results.close());
     }
+  }
+
+  /// Sends the first piece of the buffered audio to the decoder and keeps the
+  /// rest buffered.
+  void _cutSegment(_Session session) {
+    final samples = session.takeSamples();
+    final cut = quietestCut(
+      samples,
+      segmentSamples - cutSearchSamples,
+      segmentSamples,
+    );
+    session.append(samples.sublist(cut));
+    _queueDecode(session, samples.sublist(0, cut));
+  }
+
+  /// Decodes [samples] after the session's earlier pieces. The first failure
+  /// is reported on the stream at once and skips the pieces after it.
+  void _queueDecode(_Session session, Float32List samples) {
+    session.decoding = session.decoding.then((_) async {
+      if (session.cancelled || session.failure != null) return;
+      try {
+        session.texts.add(await _decode(samples));
+      } catch (error) {
+        if (session.cancelled) return;
+        final failure = error is EngineFailure
+            ? error
+            : const EngineFailure('Decoding failed');
+        session.failure = failure;
+        session.results.addError(failure);
+      }
+    });
   }
 
   Future<DecodedText> _decode(Float32List samples) async {
@@ -153,8 +220,10 @@ class SherpaOnnxSpeechRecognition implements SpeechRecognition {
     if (loudestWindowRms(samples) < dictationMinLoudness) {
       return const DecodedText('');
     }
+    final decoder = _decoder;
+    if (decoder == null) throw const EngineFailure('The decoder is gone');
     try {
-      return await _decoder!.decode(samples);
+      return await decoder.decode(samples);
     } on DecoderFailure catch (failure) {
       throw EngineFailure(failure.message);
     }
@@ -165,6 +234,7 @@ class SherpaOnnxSpeechRecognition implements SpeechRecognition {
     final session = _session;
     if (session == null) return;
     _session = null;
+    session.cancelled = true;
     await session.subscription?.cancel();
     session.discardSamples();
     unawaited(session.results.close());
@@ -180,31 +250,53 @@ class SherpaOnnxSpeechRecognition implements SpeechRecognition {
   }
 }
 
+/// The pieces' texts as one: trimmed, the empty ones dropped, joined by
+/// spaces. The language is the first one Whisper reported for a piece that
+/// had words.
+DecodedText joinDecodedTexts(List<DecodedText> pieces) {
+  final spoken = [
+    for (final piece in pieces)
+      if (piece.text.trim().isNotEmpty) piece,
+  ];
+  return DecodedText(
+    spoken.map((piece) => piece.text.trim()).join(' '),
+    lang: spoken
+        .map((piece) => piece.lang)
+        .firstWhere((lang) => lang.isNotEmpty, orElse: () => ''),
+  );
+}
+
 class _Session {
   final results = StreamController<RecognitionResult>();
   final _chunks = <Float32List>[];
   StreamSubscription<Float32List>? subscription;
+
+  /// Samples buffered since the last cut.
   int sampleCount = 0;
+
+  /// Samples captured in the whole session.
+  int totalSamples = 0;
   bool tooLong = false;
+  bool cancelled = false;
+  Future<void> decoding = Future.value();
+  final texts = <DecodedText>[];
+  EngineFailure? failure;
 
   void append(Float32List chunk) {
+    if (chunk.isEmpty) return;
     _chunks.add(chunk);
     sampleCount += chunk.length;
   }
 
-  /// Joins the buffered chunks, keeping at most [limit] samples.
-  Float32List takeSamples(int limit) {
-    final samples = Float32List(sampleCount < limit ? sampleCount : limit);
+  /// Joins the buffered chunks and empties the buffer.
+  Float32List takeSamples() {
+    final samples = Float32List(sampleCount);
     var offset = 0;
     for (final chunk in _chunks) {
-      final room = samples.length - offset;
-      if (room <= 0) break;
-      samples.setAll(
-          offset, chunk.length <= room ? chunk : chunk.sublist(0, room));
-      offset += chunk.length < room ? chunk.length : room;
+      samples.setAll(offset, chunk);
+      offset += chunk.length;
     }
-    _chunks.clear();
-    sampleCount = 0;
+    discardSamples();
     return samples;
   }
 

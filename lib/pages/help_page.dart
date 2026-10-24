@@ -204,8 +204,8 @@ const helpTopics = <HelpTopic>[
       'Нажмите микрофон, говорите, нажмите снова, чтобы остановить. Слова вставляются туда, где был курсор или выделение при старте, одним шагом, который можно отменить. Пока идёт запись и распознавание, абзац заблокирован.'
     ),
     (
-      'One recording lasts up to 30 seconds. A countdown shows in the last 5; at the limit recording stops by itself and what you said is still inserted. Tap the microphone again to carry on.',
-      'Одна запись длится до 30 секунд. В последние 5 идёт обратный отсчёт; по достижении лимита запись останавливается сама, а сказанное всё равно вставляется. Нажмите микрофон снова, чтобы продолжить.'
+      'One recording lasts up to 5 minutes and is transcribed piece by piece while you speak. A countdown shows in the last 5 seconds; at the limit recording stops by itself and what you said is still inserted. Tap the microphone again to carry on.',
+      'Одна запись длится до 5 минут и распознаётся по частям, пока вы говорите. В последние 5 секунд идёт обратный отсчёт; по достижении лимита запись останавливается сама, а сказанное всё равно вставляется. Нажмите микрофон снова, чтобы продолжить.'
     ),
     (
       'English, Russian and Hebrew are recognised. The language is detected from each recording, whatever the language of the book, so speak one language per recording. If the microphone is denied, allow it for the app in the phone settings. A recording is discarded if the app goes to the background.',

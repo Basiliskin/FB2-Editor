@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:quill_fb2/services/app.service.dart';
+import 'package:quill_fb2/services/voice/dictation_limits.dart';
 import 'package:quill_fb2/services/voice/dictation_target.dart';
 import 'package:quill_fb2/services/voice/install_failure.dart';
 import 'package:quill_fb2/services/voice/microphone_permission.dart';
@@ -231,7 +232,7 @@ void main() {
     expect(find.textContaining('model is missing'), findsOneWidget);
   });
 
-  testWidgets('at the 30 s limit the text still lands, with a note',
+  testWidgets('at the length limit the text still lands, with a note',
       (tester) async {
     engine.finalText = 'long speech';
     await pump(tester);
@@ -244,7 +245,7 @@ void main() {
     expect(find.textContaining('Tap the mic to carry on'), findsOneWidget);
   });
 
-  testWidgets('at the 30 s limit with only silence says nothing was heard',
+  testWidgets('at the length limit with only silence says nothing was heard',
       (tester) async {
     engine.finalText = '';
     await pump(tester);
@@ -263,7 +264,7 @@ void main() {
     await tapMic(tester);
     expect(find.text('Stop'), findsOneWidget);
 
-    clock.now = const Duration(seconds: 26, milliseconds: 500);
+    clock.now = dictationMaxDuration - const Duration(milliseconds: 3500);
     await tester.pump(const Duration(milliseconds: 600));
 
     expect(find.text('4'), findsOneWidget);
@@ -275,7 +276,7 @@ void main() {
     await pump(tester);
     await tapMic(tester);
 
-    clock.now = const Duration(seconds: 31);
+    clock.now = dictationMaxDuration + const Duration(seconds: 1);
     await tester.pump(const Duration(milliseconds: 600));
 
     expect(find.text('0'), findsOneWidget);

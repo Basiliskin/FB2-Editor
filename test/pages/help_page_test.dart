@@ -90,13 +90,13 @@ void main() {
       expect(topic.title.$2, 'Голосовой ввод');
     });
 
-    test('explains the switch, the download, the 30 s limit and privacy', () {
+    test('explains the switch, the download, the 5 minute limit and privacy', () {
       final en = topic.tips.map((t) => t.$1).join(' ');
-      for (final word in ['Settings', '375 MB', 'undo', '30 seconds', 'no audio', 'Hebrew']) {
+      for (final word in ['Settings', '375 MB', 'undo', '5 minutes', 'no audio', 'Hebrew']) {
         expect(en, contains(word), reason: 'the help should mention $word');
       }
       final ru = topic.tips.map((t) => t.$2).join(' ');
-      for (final word in ['настройках', '375 МБ', 'отменить', '30 секунд', 'ни звук', 'иврит']) {
+      for (final word in ['настройках', '375 МБ', 'отменить', '5 минут', 'ни звук', 'иврит']) {
         expect(ru, contains(word), reason: 'the Russian help should mention $word');
       }
     });
