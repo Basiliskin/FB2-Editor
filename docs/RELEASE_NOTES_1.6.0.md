@@ -1,4 +1,4 @@
-# Release notes 1.6.0 (draft, version not bumped yet)
+# Release notes 1.6.0 (build 32)
 
 Play Console limit: 500 characters per language.
 
