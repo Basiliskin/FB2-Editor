@@ -190,6 +190,28 @@ const helpTopics = <HelpTopic>[
       'При выходе с несохранёнными изменениями приложение спросит, сохранить ли их.'
     ),
   ]),
+  HelpTopic(Icons.mic_none, ('Voice input', 'Голосовой ввод'), id: 'voice-input', [
+    (
+      'Dictation is off until you switch on "Voice input" in Settings (Android only). Then a microphone button appears in the paragraph editor\'s format bar, and beside Title, Author, Keywords, Annotation, Find and Replace, and the Ask question box. Keys and addresses never get one.',
+      'Диктовка выключена, пока вы не включите «Голосовой ввод» в настройках (только Android). Тогда кнопка микрофона появляется в панели форматирования редактора абзаца и рядом с полями «Название», «Автор», «Ключевые слова», «Аннотация», «Найти», «Заменить» и вопросом в «Спросить о книге». У ключей и адресов её нет.'
+    ),
+    (
+      'The first tap offers a one-time download of the speech model (about 375 MB, Wi-Fi recommended). Speech is recognised on your device by that model: no audio and no words are sent anywhere, and no internet is needed after the download.',
+      'Первое нажатие предлагает один раз скачать речевую модель (около 375 МБ, лучше по Wi-Fi). Речь распознаётся на вашем устройстве этой моделью: ни звук, ни слова никуда не отправляются, а после загрузки интернет не нужен.'
+    ),
+    (
+      'Tap the microphone, speak, tap again to stop. The words are inserted where the cursor or selection was when you started, as one step you can undo. The paragraph is locked while recording and transcribing.',
+      'Нажмите микрофон, говорите, нажмите снова, чтобы остановить. Слова вставляются туда, где был курсор или выделение при старте, одним шагом, который можно отменить. Пока идёт запись и распознавание, абзац заблокирован.'
+    ),
+    (
+      'One recording lasts up to 30 seconds. A countdown shows in the last 5; at the limit recording stops by itself and what you said is still inserted. Tap the microphone again to carry on.',
+      'Одна запись длится до 30 секунд. В последние 5 идёт обратный отсчёт; по достижении лимита запись останавливается сама, а сказанное всё равно вставляется. Нажмите микрофон снова, чтобы продолжить.'
+    ),
+    (
+      'English, Russian and Hebrew are recognised. The language is detected from each recording, whatever the language of the book, so speak one language per recording. If the microphone is denied, allow it for the app in the phone settings. A recording is discarded if the app goes to the background.',
+      'Распознаются английский, русский и иврит. Язык определяется по каждой записи, независимо от языка книги, поэтому говорите на одном языке за запись. Если доступ к микрофону запрещён, разрешите его для приложения в настройках телефона. Если приложение уходит в фон, запись отбрасывается.'
+    ),
+  ]),
   HelpTopic(Icons.settings_outlined, ('Settings', 'Настройки'), [
     (
       'Editing: auto-save and the editor font size.',
@@ -202,6 +224,10 @@ const helpTopics = <HelpTopic>[
     (
       'Language: switch between English and Russian.',
       'Язык: переключение между английским и русским.'
+    ),
+    (
+      'Voice input (Android): switch on dictation with the microphone. See "Voice input" above.',
+      'Голосовой ввод (Android): включает диктовку с микрофона. См. «Голосовой ввод» выше.'
     ),
     (
       'Tap "Save" to apply the changes.',

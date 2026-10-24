@@ -115,7 +115,9 @@ class EasyCustomFormField<T, C extends ValueNotifier>
           key: key,
           name: name,
           initialValue:
-              controller != null ? controller.value : (initialValue ?? null),
+              controller != null
+                  ? (valueGet?.call(controller) ?? controller.value)
+                  : (initialValue ?? null),
           onSaved: onSaved,
           validator: validator,
           enabled: enabled,

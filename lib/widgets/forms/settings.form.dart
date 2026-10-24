@@ -6,6 +6,7 @@ import 'package:quill_fb2/utils/common.dart';
 import 'package:quill_fb2/utils/consts.dart';
 import 'package:quill_fb2/widgets/easy_form_kit/easy_form_kit.dart';
 import 'package:quill_fb2/widgets/forms/providers.section.dart';
+import 'package:quill_fb2/services/voice/voice_availability.dart';
 import 'package:quill_fb2/widgets/loading.dialog.dart';
 import 'package:quill_fb2/ui/widgets.dart';
 
@@ -23,6 +24,7 @@ class SettingsComponent extends StatefulWidget {
 class _SettingsComponentState extends State<SettingsComponent> {
   bool isLoading = false;
   bool _autoSave = false;
+  bool _voiceInput = false;
   int _fontSize = 12;
   int _editorMargin = 24;
   int _imageQuality = 100;
@@ -32,6 +34,7 @@ class _SettingsComponentState extends State<SettingsComponent> {
   void initState() {
     super.initState();
     _autoSave = stringToBool(widget.setting["auto-save"]) ?? _autoSave;
+    _voiceInput = voiceInputEnabled(widget.setting);
     _fontSize = stringToInt(widget.setting["font-size"]) ?? _fontSize;
     _editorMargin = stringToInt(widget.setting["editor-margin"]) ?? _editorMargin;
     _language = widget.setting["language"] ?? _language;
@@ -66,6 +69,7 @@ class _SettingsComponentState extends State<SettingsComponent> {
     });
     await widget.service.setSettings({
       "auto-save": _autoSave,
+      if (voiceInputSupported) "voice-input": _voiceInput,
       "font-size": _fontSize,
       "editor-margin": _editorMargin,
       "image-quality": _imageQuality,
@@ -117,6 +121,18 @@ class _SettingsComponentState extends State<SettingsComponent> {
                 [8, 16, 24, 40, 56], (v) => _editorMargin = v,
                 icon: Icons.width_normal_outlined),
           ]),
+          if (voiceInputSupported)
+            SettingsGroup(tr(s, 'Voice input', 'Голосовой ввод'), icon: Icons.mic_none, [
+              SwitchListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: Text(tr(s, 'Dictate with the microphone', 'Диктовать голосом')),
+                  subtitle: Text(tr(
+                      s,
+                      'Speech is turned into text on this phone. Audio never leaves it.',
+                      'Речь превращается в текст на этом телефоне. Звук никуда не отправляется.')),
+                  value: _voiceInput,
+                  onChanged: (v) => setState(() => _voiceInput = v)),
+            ]),
           SettingsGroup(tr(s, 'Images', 'Изображения'), icon: Icons.image_outlined, [
             _dd<int>(s.translate(LangTranslateItems.imageSize), _imageWidth,
                 [600, 800, 1024], (v) => _imageWidth = v),

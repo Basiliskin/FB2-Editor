@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:quill_fb2/models/find_replace.dart';
 import 'package:quill_fb2/models/project.model.dart';
 import 'package:quill_fb2/services/app.service.dart';
+import 'package:quill_fb2/services/voice/dictation_target.dart';
 import 'package:quill_fb2/ui/widgets.dart';
+import 'package:quill_fb2/widgets/voice/dictation_button.dart';
 
 /// Book-wide find and replace. Returns true when the book was changed.
 Future<bool> showFindReplace(
@@ -77,13 +79,20 @@ class _FindReplaceSheetState extends State<FindReplaceSheet> {
                 onChanged: (_) => _search(),
                 decoration: InputDecoration(
                     labelText: tr(s, 'Find', 'Найти'),
-                    prefixIcon: const Icon(Icons.search))),
+                    prefixIcon: const Icon(Icons.search),
+                    suffixIcon: DictationButton(
+                        service: s,
+                        target: TextFieldDictationTarget(_find),
+                        onInserted: _search))),
             const SizedBox(height: 8),
             TextField(
                 controller: _replace,
                 decoration: InputDecoration(
                     labelText: tr(s, 'Replace with', 'Заменить на'),
-                    prefixIcon: const Icon(Icons.find_replace))),
+                    prefixIcon: const Icon(Icons.find_replace),
+                    suffixIcon: DictationButton(
+                        service: s,
+                        target: TextFieldDictationTarget(_replace)))),
             Row(children: [
               Expanded(
                   child: CheckboxListTile(

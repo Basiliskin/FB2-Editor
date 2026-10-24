@@ -95,3 +95,21 @@ _Avoid_: Suggestion (that is a rewrite of text), Finding
 **Digest**:
 A short summary of one Section, or of a part of a Section too long for one request, made by a Provider and kept on the device so the same text is never summarised twice. A long Analysis works from Digests instead of the full text.
 _Avoid_: Abstract, synopsis, cache entry
+
+## Voice input
+
+**Dictation**:
+Spoken text added to the text field being edited. In a paragraph it goes in at the cursor, replacing any selected text; in any other text field it goes in the same way. It never acts on the book on its own: it is only typed text.
+_Avoid_: Voice command, transcript (as a user-facing word)
+
+**Speech Model**:
+The on-device files that turn recorded speech into text. Audio is never sent over the network.
+_Avoid_: Engine, AI, Whisper (as a user-facing word)
+
+**Model Download**:
+Getting the Speech Model onto the phone, started by the user with visible progress. Dictation is unavailable until it is done.
+_Avoid_: Setup, model loading
+
+**Speech Language**:
+The language a Dictation is transcribed in: Russian, Hebrew or English. The app works it out from each recording (Auto), so the user may speak any of the three in any book. The book's own language is not used, because forcing a language makes the engine translate speech spoken in another one. Speech is kept in the language it was spoken and is never translated.
+_Avoid_: Locale, input language

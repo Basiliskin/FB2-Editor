@@ -30,6 +30,8 @@ import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
 import 'package:quill_fb2/ui/widgets.dart';
 import 'package:quill_fb2/widgets/stop_run_dialog.dart';
+import 'package:quill_fb2/services/voice/dictation_target.dart';
+import 'package:quill_fb2/widgets/voice/dictation_button.dart';
 
 class SectionEditor extends StatefulWidget {
   final ProjectModel book;
@@ -50,6 +52,9 @@ class _SectionEditorState extends State<SectionEditor>
   // paragraph being edited (_active) gets a real Quill editor.
   QuillController _controller = QuillController.basic();
   int _active = -1;
+  // True from the mic tap until the dictated words are in: the paragraph is
+  // locked so the cursor it was started at still points at the right place.
+  bool _dictating = false;
   String _activeText = '';
   final _activeKey = GlobalKey();
   final Map<String, String> _textCache = {};
@@ -220,6 +225,7 @@ class _SectionEditorState extends State<SectionEditor>
 
   /// Starts a new paragraph at the end of the section and opens it for typing.
   void _addParagraph() {
+    if (_dictating) return;
     if (_active >= 0) {
       _commitActive();
       _controller.dispose();
@@ -230,6 +236,7 @@ class _SectionEditorState extends State<SectionEditor>
   }
 
   void _activate(int index) {
+    if (_dictating) return;
     var target = index;
     if (_active >= 0) {
       if (index == _active) return;
@@ -490,10 +497,20 @@ class _SectionEditorState extends State<SectionEditor>
     //     }
     //   }
     // });
+    final dictate = DictationButton(
+      key: const ValueKey('dictate'),
+      service: widget.service,
+      target: QuillDictationTarget(_controller),
+      onBusyChanged: (busy) {
+        _controller.readOnly = busy;
+        if (mounted) setState(() => _dictating = busy);
+      },
+    );
     return [
       strongButton,
       emphasisSection,
       citySection,
+      dictate,
     ];
   }
 

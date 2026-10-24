@@ -82,6 +82,26 @@ void main() {
     expect(find.byType(HelpScreen), findsOneWidget);
   });
 
+  group('voice input topic', () {
+    final topic = helpTopics.firstWhere((t) => t.id == 'voice-input');
+
+    test('exists in both languages', () {
+      expect(topic.title.$1, 'Voice input');
+      expect(topic.title.$2, 'Голосовой ввод');
+    });
+
+    test('explains the switch, the download, the 30 s limit and privacy', () {
+      final en = topic.tips.map((t) => t.$1).join(' ');
+      for (final word in ['Settings', '375 MB', 'undo', '30 seconds', 'no audio', 'Hebrew']) {
+        expect(en, contains(word), reason: 'the help should mention $word');
+      }
+      final ru = topic.tips.map((t) => t.$2).join(' ');
+      for (final word in ['настройках', '375 МБ', 'отменить', '30 секунд', 'ни звук', 'иврит']) {
+        expect(ru, contains(word), reason: 'the Russian help should mention $word');
+      }
+    });
+  });
+
   group('story map topic', () {
     final topic = helpTopics.firstWhere((t) => t.id == 'story-map');
 

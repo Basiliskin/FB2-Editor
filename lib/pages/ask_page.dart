@@ -6,9 +6,11 @@ import 'package:quill_fb2/services/book_ask.dart';
 import 'package:quill_fb2/services/llm/adapters.dart';
 import 'package:quill_fb2/services/llm/llm_client.dart';
 import 'package:quill_fb2/services/story_map_analyzer.dart' show plain;
+import 'package:quill_fb2/services/voice/dictation_target.dart';
 import 'package:quill_fb2/ui/widgets.dart';
 import 'package:quill_fb2/widgets/markdown_lite.dart';
 import 'package:quill_fb2/widgets/stop_run_dialog.dart';
+import 'package:quill_fb2/widgets/voice/dictation_button.dart';
 
 /// The text of every Section of [book] with text, numbered by its place in the book.
 List<AskSection> askSectionsOf(ProjectModel book) => [
@@ -223,6 +225,10 @@ class _AskPageState extends State<AskPage> {
                     maxLines: 4,
                     onChanged: (_) => setState(() {}),
                     decoration: InputDecoration(
+                        suffixIcon: DictationButton(
+                            service: _s,
+                            target: TextFieldDictationTarget(_question),
+                            onInserted: () => setState(() {})),
                         labelText: tr(_s, 'Your question', 'Ваш вопрос'),
                         hintText: tr(_s, 'e.g. Why does Артур leave the port?', 'например: почему Артур покидает порт?'))),
               const SizedBox(height: 12),

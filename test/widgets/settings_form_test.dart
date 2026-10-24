@@ -48,6 +48,7 @@ void main() {
   testWidgets('reads string-typed saved settings', (tester) async {
     service.workspace['workspaceSettings'] = {
       'auto-save': 'true',
+      'voice-input': 'true',
       'show-image': 'true',
       'font-size': '16',
       'image-width': '800',

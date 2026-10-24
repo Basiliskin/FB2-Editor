@@ -24,4 +24,6 @@
   </application>
   <!-- AI providers: the user's own LLM API, called only when they ask -->
   <uses-permission android:name="android.permission.INTERNET" />
+  <!-- Dictation: asked only when the user taps the mic; audio stays on the phone -->
+  <uses-permission android:name="android.permission.RECORD_AUDIO" />
 </manifest>

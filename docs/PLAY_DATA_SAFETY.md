@@ -101,3 +101,30 @@ App activity > Other user-generated content, and "Data is encrypted in transit".
 >
 > The app contains no advertising, analytics or crash-reporting services. *(CONFIRM: remove this
 > sentence if the existing policy says otherwise or the AD_ID question above changes.)*
+
+## Voice input (dictation)
+
+Answers come from the code (`lib/services/voice/`, ADR `docs/adr/0004-voice-input-on-device-whisper.md`).
+
+- New `RECORD_AUDIO` permission in the release manifest (asked at runtime on the first tap of a
+  microphone button; the feature is off until "Voice input" is switched on in Settings, Android only).
+  `test/android_manifest_test.dart` pins the permission list to INTERNET and RECORD_AUDIO.
+- Audio is recognised on the device by Whisper-small (sherpa-onnx). The recording is held in memory
+  only, never written to a file, never sent anywhere, and discarded after transcription.
+- The only network use is the user-started Model Download (about 375 MB) of three files from
+  huggingface.co, checked against pinned SHA-256 hashes. The request carries no user data.
+
+Data safety form: **no change needed**. Audio is processed only on the device and is not transmitted, so
+it is not "collected" or "shared" in Play's sense; leave "Audio files" and "Voice or sound recordings"
+undeclared. **CONFIRM** at submission: the Console may still ask about RECORD_AUDIO in App content; the
+answer is that it is used for user-initiated dictation, processed on the device.
+
+Privacy policy: the "Voice input (optional)" section is added to `docs/privacy-policy.html`. The hosted
+copy at freeprivacypolicy.com needs the same wording (it is not in this repo):
+
+> **Voice input (optional).** On Android, FB2 Editor can type what you say. This feature is off until
+> you switch on "Voice input" in Settings, and the app asks for the microphone permission only when you
+> first tap a microphone button. Speech is recognised on your device by a speech model that the app
+> downloads once, after you agree (about 375 MB). After that no internet connection is needed. The
+> recording is held in memory only while you dictate, is never saved to a file and is never sent
+> anywhere. We do not receive, store or see your voice or your text.

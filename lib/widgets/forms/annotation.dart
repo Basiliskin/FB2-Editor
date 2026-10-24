@@ -12,10 +12,14 @@ class AnnotationController extends EasyFormFieldController<AnnotationData?> {
 }
 
 class AnnotationField extends EasyFormGenericField<AnnotationData?> {
+  /// A mic (or anything else) to put beside the Add button.
+  final Widget Function(TextEditingController)? dictation;
+
   AnnotationField({
     Key? key,
     @required AnnotationController? controller,
     ValueChanged<AnnotationData?>? onChange,
+    this.dictation,
   }) : super(
             key: key,
             controller:
@@ -53,7 +57,7 @@ class AnnotationField extends EasyFormGenericField<AnnotationData?> {
           ]),
         ),
       if (value!.items.isNotEmpty) const Divider(),
-      _AnnotationInput(value!.name, _addLabel),
+      _AnnotationInput(value!.name, _addLabel, dictation),
     ]);
   }
 }
@@ -65,6 +69,7 @@ class AnnotationFormField
     @required String? name,
     AnnotationController? controller,
     AnnotationData? initialValue,
+    Widget Function(TextEditingController)? dictation,
   }) : super(
           key: key,
           name: (name as String),
@@ -74,7 +79,8 @@ class AnnotationFormField
           builder: (state, onChangedHandler) {
             return AnnotationField(
                 controller: (state.controller as AnnotationController),
-                onChange: onChangedHandler);
+                onChange: onChangedHandler,
+                dictation: dictation);
           },
         );
 }
@@ -82,7 +88,8 @@ class AnnotationFormField
 class _AnnotationInput extends StatefulWidget {
   final String hint;
   final Function(String) onAdd;
-  const _AnnotationInput(this.hint, this.onAdd);
+  final Widget Function(TextEditingController)? dictation;
+  const _AnnotationInput(this.hint, this.onAdd, [this.dictation]);
   @override
   State<_AnnotationInput> createState() => _AnnotationInputState();
 }
@@ -105,9 +112,9 @@ class _AnnotationInputState extends State<_AnnotationInput> {
             keyboardType: TextInputType.multiline,
             decoration: InputDecoration(hintText: widget.hint)),
         const SizedBox(height: 8),
-        Align(
-          alignment: Alignment.centerRight,
-          child: FilledButton.tonalIcon(
+        Row(mainAxisAlignment: MainAxisAlignment.end, children: [
+          if (widget.dictation != null) widget.dictation!(c),
+          FilledButton.tonalIcon(
               icon: const Icon(Icons.add, size: 18),
               label: const Text('Add'),
               onPressed: () {
@@ -115,6 +122,6 @@ class _AnnotationInputState extends State<_AnnotationInput> {
                 widget.onAdd(c.text);
                 c.clear();
               }),
-        ),
+        ]),
       ]);
 }

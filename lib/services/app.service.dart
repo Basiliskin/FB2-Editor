@@ -18,6 +18,8 @@ import 'epub.service.dart';
 import 'fb2.service.dart';
 import 'open_failure.dart';
 import 'llm/key_vault.dart';
+import 'voice/voice_input.dart';
+import 'voice/voice_input_factory.dart';
 import 'llm/provider_store.dart';
 import 'book_ask.dart';
 import 'name_check_ai.dart';
@@ -62,6 +64,22 @@ class AppService {
       session: MemoryKeyVault(),
       persistent: SecureKeyVault(),
       isWeb: kIsWeb);
+  /// For tests: builds the voice stack without a microphone or a model.
+  Future<VoiceInput> Function() voiceInputFactory = createDeviceVoiceInput;
+  VoiceInput? _voiceInput;
+  Future<VoiceInput>? _voiceInputLoading;
+
+  /// The shared voice stack, built on first use.
+  Future<VoiceInput> voiceInput() async {
+    final ready = _voiceInput;
+    if (ready != null) return ready;
+    return _voiceInputLoading ??= voiceInputFactory().then((v) => _voiceInput = v,
+        onError: (Object e) {
+      _voiceInputLoading = null;
+      throw e;
+    });
+  }
+
   late NameCheckStore nameCheckStore = NameCheckStore(
       getSettings: () => getSettings(), setSettings: (m) => setSettings(m));
   late DigestStore digestStore = DigestStore(

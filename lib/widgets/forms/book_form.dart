@@ -6,7 +6,9 @@ import 'package:quill_fb2/services/app.service.dart';
 import 'package:quill_fb2/utils/common.dart';
 import 'package:quill_fb2/utils/consts.dart';
 import 'package:quill_fb2/widgets/easy_form_kit/easy_form_kit.dart';
+import 'package:quill_fb2/services/voice/dictation_target.dart';
 import 'package:quill_fb2/widgets/forms/image.dart';
+import 'package:quill_fb2/widgets/voice/dictation_button.dart';
 import 'package:quill_fb2/widgets/loading.dialog.dart';
 
 import 'package:quill_fb2/ui/widgets.dart';
@@ -35,8 +37,26 @@ class _BookComponentState extends State<BookComponent> {
     return img is String ? img : '';
   }
 
+  // Fields with a mic keep their own controller, so Dictation can write to it.
+  static const _dictated = {
+    LangTranslateItems.bookTitle,
+    LangTranslateItems.authorFirst,
+    LangTranslateItems.authorLast,
+    LangTranslateItems.authorMid,
+    LangTranslateItems.bookKeywords,
+  };
+  final Map<String, TextEditingController> _controllers = {};
+
+  Widget _mic(TextEditingController controller) => DictationButton(
+        service: widget.service,
+        target: TextFieldDictationTarget(controller),
+      );
+
   @override
   void dispose() {
+    for (final c in _controllers.values) {
+      c.dispose();
+    }
     _cover.dispose();
     super.dispose();
   }
@@ -70,13 +90,19 @@ class _BookComponentState extends State<BookComponent> {
       bool flat = false}) {
     final label = widget.service.translate(fieldName);
     final c = Theme.of(context).colorScheme;
+    final controller = _dictated.contains(fieldName)
+        ? _controllers.putIfAbsent(
+            fieldName.name, () => TextEditingController(text: value))
+        : null;
     return EasyTextFormField(
-      initialValue: value,
+      controller: controller,
+      initialValue: controller == null ? value : null,
       name: fieldName.name,
       style: style,
       maxLines: maxLines,
       decoration: InputDecoration(
         labelText: label,
+        suffixIcon: controller == null ? null : _mic(controller),
         isDense: true,
         filled: !flat,
         fillColor: c.surfaceContainerHighest.withValues(alpha: .5),
@@ -111,6 +137,7 @@ class _BookComponentState extends State<BookComponent> {
               LabelFormField(name: name, initialValue: LabelData(hint, items)),
           annotation: () => AnnotationFormField(
               name: 'annotation',
+              dictation: _mic,
               initialValue: AnnotationData(
                   widget.service.translate(LangTranslateItems.bookAnnotation),
                   book.annotation)));
