@@ -59,8 +59,9 @@ App activity > Other user-generated content, and "Data is encrypted in transit".
    review with the release).
 2. **AD_ID permission:** removed from the manifest (`78144f2`). When the build goes up, set the
    *Advertising ID* declaration (App content) to **No**; it currently says Yes.
-3. **Privacy policy.** Console links a hosted policy at freeprivacypolicy.com (the Preview step shows the
-   full URL). The wording below has to be added there; it is not in this repo.
+3. **Privacy policy.** Console links `https://basiliskin.github.io/FB2-Editor/privacy-policy.html`, which
+   GitHub Pages serves from `docs/privacy-policy.html` on `main`. Editing that file and pushing `main`
+   is all it takes; the wording below is the draft behind it.
 4. **Release notes** for the version should mention the new optional AI feature and that it needs
    the user's own API key.
 
@@ -116,11 +117,10 @@ Answers come from the code (`lib/services/voice/`, ADR `docs/adr/0004-voice-inpu
 
 Data safety form: **no change needed**. Audio is processed only on the device and is not transmitted, so
 it is not "collected" or "shared" in Play's sense; leave "Audio files" and "Voice or sound recordings"
-undeclared. **CONFIRM** at submission: the Console may still ask about RECORD_AUDIO in App content; the
-answer is that it is used for user-initiated dictation, processed on the device.
+undeclared. Play has no separate declaration form for `RECORD_AUDIO`.
 
-Privacy policy: the "Voice input (optional)" section is added to `docs/privacy-policy.html`. The hosted
-copy at freeprivacypolicy.com needs the same wording (it is not in this repo):
+Privacy policy: the "Voice input (optional)" section is in `docs/privacy-policy.html` and goes live when
+`main` is pushed (GitHub Pages). Its wording:
 
 > **Voice input (optional).** On Android, FB2 Editor can type what you say. This feature is off until
 > you switch on "Voice input" in Settings, and the app asks for the microphone permission only when you
