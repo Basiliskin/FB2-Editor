@@ -8,7 +8,9 @@ Before any release, signing or version-bump task, read `docs/RELEASE.md`. It lin
 instructions, which are kept outside the repo.
 
 - Never commit `android/key.properties`, `*.jks` files, passwords or key fingerprints.
-- Ask the user for the keystore passwords; never write them into tracked files.
+- `android/key.properties` and `android/app/key.jks` are already set up locally (gitignored). Do not ask
+  the user for keystore passwords; build with `flutter build appbundle --release` and check the
+  signature fingerprint afterwards. Never write passwords into tracked files.
 
 ## Play Console and browser work
 
