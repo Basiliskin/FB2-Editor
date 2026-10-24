@@ -161,4 +161,39 @@ void main() {
       expect(sec.p, ['<p>A <emphasis>x</emphasis></p>', '<p>b</p>', '<p>C</p>']);
     });
   });
+
+  group('translation context', () {
+    test('names and earlier pairs reach the prompts', () {
+      const c = ImprovementContext(names: [
+        'Иван',
+        'Мария'
+      ], previous: [
+        (original: 'Hello', result: 'Привет')
+      ]);
+      expect(ImprovementService.systemPrompt(c), contains('Иван; Мария'));
+      final user = ImprovementService.userPrompt('x', ['one'], c.previous);
+      expect(user, contains('Original: Hello\nResult: Привет'));
+      expect(user, contains('[1] one'));
+    });
+
+    test('no names or pairs add nothing', () {
+      expect(ImprovementService.systemPrompt(const ImprovementContext()),
+          isNot(contains('same way every time')));
+      expect(ImprovementService.userPrompt('x', ['one']),
+          isNot(contains('Earlier paragraphs')));
+    });
+
+    test('tail keeps the latest pairs within the budget', () {
+      final o = [for (var i = 0; i < 10; i++) 'o$i' * 300];
+      final r = [for (var i = 0; i < 10; i++) 'r$i' * 300];
+      final t = ImprovementService.tail(o, r);
+      expect(t.last.original, o.last);
+      expect(t.length, lessThan(10));
+      expect(ImprovementService.tail(['a' * 5000], ['b' * 5000]).length, 1);
+    });
+
+    test('the translate instruction names the language', () {
+      expect(translateInstruction('German'), contains('into German'));
+    });
+  });
 }

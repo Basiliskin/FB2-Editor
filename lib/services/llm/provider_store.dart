@@ -7,6 +7,8 @@ const _defaultKey = 'llm-default-provider';
 const rememberKeyKey = 'llm-remember-key';
 const _consentKey = 'llm-consented';
 const _styleNotesKey = 'llm-style-notes';
+const _translatedKey = 'llm-translated';
+const _langDeclinedKey = 'llm-lang-declined';
 const _presetsKey = 'llm-presets';
 
 /// Saved Providers: descriptions in the workspace settings, keys in a [KeyVault].
@@ -139,6 +141,31 @@ class ProviderStore {
     final notes = Map.of((_getSettings()[_styleNotesKey] as Map?) ?? const {});
     note.trim().isEmpty ? notes.remove(bookId) : notes[bookId] = note.trim();
     await _setSettings({_styleNotesKey: notes});
+  }
+
+  /// Sections of a book already translated into [code], by id.
+  Set<String> translatedSections(String bookId, String code) => {
+        for (final id in (((_getSettings()[_translatedKey] as Map?) ??
+                const {})['$bookId|$code'] as List? ??
+            const []))
+          '$id'
+      };
+
+  Future<void> markTranslated(String bookId, String code, String sectionId) async {
+    final all = Map.of((_getSettings()[_translatedKey] as Map?) ?? const {});
+    all['$bookId|$code'] = [...translatedSections(bookId, code), sectionId];
+    await _setSettings({_translatedKey: all});
+  }
+
+  /// Whether the user said no to changing this book's language.
+  bool languageOfferDeclined(String bookId) =>
+      ((_getSettings()[_langDeclinedKey] as List?) ?? const []).contains(bookId);
+
+  Future<void> declineLanguageOffer(String bookId) async {
+    if (languageOfferDeclined(bookId)) return;
+    await _setSettings({
+      _langDeclinedKey: [...((_getSettings()[_langDeclinedKey] as List?) ?? const []), bookId]
+    });
   }
 
   Future<void> setRememberKey(bool remember) async {

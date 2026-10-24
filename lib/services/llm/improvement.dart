@@ -7,12 +7,47 @@ class ImprovementContext {
   final String language;
   final String genre;
   final String styleNote;
+
+  /// Names to spell the same way every time (Entity names, for translation).
+  final List<String> names;
+
+  /// The paragraphs just before this request, original and result, so a later
+  /// Chunk keeps the voice and wording of the earlier ones. Read-only context.
+  final List<({String original, String result})> previous;
   const ImprovementContext(
       {this.bookTitle = '',
       this.language = '',
       this.genre = '',
-      this.styleNote = ''});
+      this.styleNote = '',
+      this.names = const [],
+      this.previous = const []});
 }
+
+/// A target language for the Translate Preset.
+typedef TranslationLanguage = ({String code, String name});
+
+const translationLanguages = <TranslationLanguage>[
+  (code: 'en', name: 'English'),
+  (code: 'ru', name: 'Russian'),
+  (code: 'uk', name: 'Ukrainian'),
+  (code: 'de', name: 'German'),
+  (code: 'fr', name: 'French'),
+  (code: 'es', name: 'Spanish'),
+  (code: 'it', name: 'Italian'),
+  (code: 'pl', name: 'Polish'),
+  (code: 'pt', name: 'Portuguese'),
+  (code: 'tr', name: 'Turkish'),
+  (code: 'zh', name: 'Chinese'),
+  (code: 'ja', name: 'Japanese'),
+];
+
+/// The instruction of the Translate Preset for [language] (an English name).
+String translateInstruction(String language) =>
+    'Translate into $language. Keep the meaning, tone and paragraph structure. '
+    'Do not summarise, explain or add anything.';
+
+/// Most characters of earlier paragraphs sent along as context.
+const previousContextChars = 1500;
 
 class Preset {
   final String name;
@@ -54,6 +89,19 @@ class ImprovementService {
   static int estimateTokens(Iterable<String> texts) =>
       (texts.fold<int>(0, (n, t) => n + t.length) / 4).ceil();
 
+  /// The last pairs of [originals] and [results] that fit [previousContextChars].
+  static List<({String original, String result})> tail(
+      List<String> originals, List<String> results) {
+    final out = <({String original, String result})>[];
+    var size = 0;
+    for (var i = originals.length - 1; i >= 0; i--) {
+      size += originals[i].length + results[i].length;
+      if (size > previousContextChars && out.isNotEmpty) break;
+      out.insert(0, (original: originals[i], result: results[i]));
+    }
+    return out;
+  }
+
   static int _size(Iterable<String> texts) =>
       texts.fold<int>(0, (n, t) => n + t.length);
 
@@ -92,11 +140,18 @@ class ImprovementService {
             'paragraphs, each starting with its marker on its own line, e.g. "[1] new text".',
         'Paragraphs may contain inline FB2 tags such as <emphasis>, <strong> or '
             '<a>. Keep every tag, valid and in place. Do not add tags.',
+        if (c.names.isNotEmpty)
+          'Write these names the same way every time. Transliterate them into '
+              'the target script if needed; do not translate their meaning: '
+              '${c.names.join('; ')}.',
         'Answer with the paragraphs only: no comments, quotes or markdown.',
       ].join('\n');
 
-  static String userPrompt(String instruction, List<String> texts) =>
+  static String userPrompt(String instruction, List<String> texts,
+          [List<({String original, String result})> previous = const []]) =>
       'Instruction: $instruction\n\n'
+      '${previous.isEmpty ? '' : 'Earlier paragraphs, for context only. Do not repeat them:\n'
+          '${[for (final p in previous) 'Original: ${p.original}\nResult: ${p.result}'].join('\n')}\n\n'}'
       '${[for (var i = 0; i < texts.length; i++) '[${i + 1}] ${texts[i]}'].join('\n')}';
 
   /// Rewrites [texts]. A request over [limit] is refused; an answer that was
@@ -114,7 +169,7 @@ class ImprovementService {
       {required bool canSplit}) async {
     final answer = await client.complete(LlmRequest.sized(
         system: systemPrompt(context),
-        user: userPrompt(instruction, texts),
+        user: userPrompt(instruction, texts, context.previous),
         inputChars: _size(texts)));
     if (!answer.truncated) return parse(answer.text, texts);
     if (!canSplit || texts.length < 2) {

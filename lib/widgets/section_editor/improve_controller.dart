@@ -36,6 +36,13 @@ class ImproveController extends ChangeNotifier {
   final VoidCallback afterApply;
   final http.Client Function() _httpFactory;
 
+  /// Entity names to keep spelled the same way while translating.
+  final List<String> Function() names;
+
+  /// Called when a translated Section has been fully accepted: the target
+  /// language code, so the editor can offer to change the book's language.
+  final void Function(String code)? onTranslated;
+
   ImproveController(
       {required this.store,
       required this.section,
@@ -43,8 +50,12 @@ class ImproveController extends ChangeNotifier {
       required this.bookInfo,
       required this.flush,
       required this.afterApply,
+      this.names = _noNames,
+      this.onTranslated,
       http.Client Function()? httpFactory})
       : _httpFactory = httpFactory ?? http.Client.new;
+
+  static List<String> _noNames() => const [];
 
   bool open = false, busy = false;
 
@@ -57,11 +68,20 @@ class ImproveController extends ChangeNotifier {
   List<Provider> providers = [];
   List<Preset> presets = defaultPresets;
   Provider? current;
-  List<String>? _undo;
+  final List<({List<String> p, String title})> _undo = [];
   http.Client? _client;
   int _run = 0;
 
-  bool get canUndo => _undo != null;
+  /// The translated title, waiting to be accepted (a translation run only).
+  String? titleSuggestion;
+
+  // What a stopped run still has to do, so [resume] can carry on after a failure.
+  _Run? _stopped;
+
+  bool get canUndo => _undo.isNotEmpty;
+
+  /// A failed or cancelled run can carry on from the Chunk where it stopped.
+  bool get canResume => _stopped != null && !busy;
 
   bool inRange(int i) => open && i >= start && i <= end;
 
@@ -94,6 +114,8 @@ class ImproveController extends ChangeNotifier {
   void close() {
     cancel();
     open = false;
+    _stopped = null;
+    titleSuggestion = null;
     suggestions = {};
     error = null;
     notifyListeners();
@@ -129,6 +151,8 @@ class ImproveController extends ChangeNotifier {
   /// Tapping a paragraph widens the range to it, or narrows it from an end.
   void tapParagraph(int i) {
     suggestions = {};
+    titleSuggestion = null;
+    _stopped = null;
     error = null;
     if (i < start) {
       start = i;
@@ -142,67 +166,123 @@ class ImproveController extends ChangeNotifier {
 
   void selectAll() {
     suggestions = {};
+    titleSuggestion = null;
+    _stopped = null;
     error = null;
     start = 0;
     end = section.p.isEmpty ? 0 : section.p.length - 1;
     notifyListeners();
   }
 
-  Future<void> ask(String instruction, ConfirmSend confirm) async {
+  Future<void> ask(String instruction, ConfirmSend confirm,
+      {String? translateTo, String? translateCode}) async {
     final provider = current;
     if (provider == null || busy) return;
     flush();
     final indexes = eligible;
     final texts = [for (final i in indexes) section.editableText(section.p[i])];
     if (texts.isEmpty) return _fail(ImproveError.nothing);
+    // The title travels in the first Chunk when the range starts the Section.
+    final withTitle = translateTo != null &&
+        section.title.trim().isNotEmpty &&
+        indexes.first == [for (var i = 0; i < section.p.length; i++) if (section.isTextParagraph(i)) i].first;
     final List<List<int>> groups;
     try {
       groups = ImprovementService.chunk(texts, provider.chunkChars);
     } on ImprovementException {
       return _fail(ImproveError.tooLarge);
     }
-    // several requests cost more, so that is confirmed every time
-    if (!store.isConsented(provider.id) || groups.length > 1) {
+    // several requests cost more, so that is confirmed every time; a translation
+    // is a deliberate whole-Section job, so it asks only above 3 requests
+    if (!store.isConsented(provider.id) ||
+        groups.length > (translateTo != null ? 3 : 1)) {
       if (!await confirm(provider, texts.length,
           ImprovementService.estimateTokens(texts), groups.length)) {
         return;
       }
       await store.consent(provider.id);
     }
+    _stopped = null;
+    _lastTranslation = null;
+    suggestions = {};
+    titleSuggestion = null;
+    await _go(_Run(
+        provider: provider,
+        instruction: instruction,
+        indexes: indexes,
+        texts: texts,
+        groups: groups,
+        translateCode: translateCode,
+        title: withTitle ? section.title.trim() : null));
+  }
+
+  /// Translates the chosen paragraphs (and the title, when the range starts the
+  /// Section) into [language]. [code] is the language's FB2 code.
+  Future<void> translate(String language, String code, ConfirmSend confirm) =>
+      ask(translateInstruction(language), confirm,
+          translateTo: language, translateCode: code);
+
+  /// Carries on a run that stopped, from the Chunk that did not finish.
+  Future<void> resume() async {
+    final run = _stopped;
+    if (run == null || busy) return;
+    _stopped = null;
+    await _go(run);
+  }
+
+  Future<void> _go(_Run run) async {
+    final provider = run.provider;
     final mine = ++_run;
     busy = true;
     error = null;
-    suggestions = {};
-    chunks = groups.length;
-    chunk = 0;
+    chunks = run.groups.length;
+    chunk = run.done;
     notifyListeners();
     final client = _client = _httpFactory();
+    var stopped = false;
     try {
       final info = bookInfo();
-      final context = ImprovementContext(
-          bookTitle: info.title,
-          language: info.lang,
-          genre: info.genre,
-          styleNote: styleNote);
+      final translating = run.translateCode != null;
       final service = ImprovementService(createLlmClient(provider, client));
-      for (final group in groups) {
-        chunk++;
+      while (run.done < run.groups.length) {
+        final group = run.groups[run.done];
+        chunk = run.done + 1;
         notifyListeners();
-        final part = [for (final k in group) texts[k]];
-        final result = await service.improve(part, instruction, context,
+        final part = [for (final k in group) run.texts[k]];
+        final first = run.done == 0 && run.title != null;
+        final context = ImprovementContext(
+            bookTitle: info.title,
+            language: info.lang,
+            genre: info.genre,
+            styleNote: styleNote,
+            names: translating ? names() : const [],
+            previous: translating
+                ? ImprovementService.tail(run.sentTexts, run.results)
+                : const []);
+        final result = await service.improve(
+            first ? [run.title!, ...part] : part, run.instruction, context,
             limit: provider.chunkChars);
         if (mine != _run) return;
+        final body = first ? result.sublist(1) : result;
+        if (first) titleSuggestion = result.first;
+        run.sentTexts.addAll(part);
+        run.results.addAll(body);
+        run.done++;
         // Suggestions show up as each part arrives, and survive a later failure.
         suggestions = {
           ...suggestions,
           for (var k = 0; k < group.length; k++)
-            if (result[k] != part[k]) indexes[group[k]]: result[k]
+            if (body[k] != part[k]) run.indexes[group[k]]: body[k]
         };
         notifyListeners();
       }
-      if (suggestions.isEmpty) error = ImproveError.nothing;
+      if (suggestions.isEmpty && titleSuggestion == null) {
+        error = ImproveError.nothing;
+      }
+      _lastTranslation = run.translateCode;
     } on LlmException catch (e) {
       if (mine != _run) return;
+      stopped = true;
       error = switch (e.failure) {
         LlmFailure.invalidKey => ImproveError.invalidKey,
         LlmFailure.rateLimited => ImproveError.rateLimited,
@@ -212,17 +292,22 @@ class ImproveController extends ChangeNotifier {
       errorDetail = e.message;
     } on ImprovementException catch (e) {
       if (mine != _run) return;
+      stopped = true;
       error = e.truncated ? ImproveError.truncated : ImproveError.rejected;
       errorDetail = e.message;
     } finally {
       client.close();
       if (mine == _run) {
+        // a run with Chunks left can be resumed from the one that failed
+        if (stopped && run.done < run.groups.length) _stopped = run;
         busy = false;
         chunks = chunk = 0;
         notifyListeners();
       }
     }
   }
+
+  String? _lastTranslation;
 
   void _fail(ImproveError e) {
     error = e;
@@ -235,11 +320,29 @@ class ImproveController extends ChangeNotifier {
     _run++;
     _client?.close();
     busy = false;
+    chunks = chunk = 0;
     notifyListeners();
   }
 
   void reject(int i) {
     suggestions = Map.of(suggestions)..remove(i);
+    _finishTranslation();
+    notifyListeners();
+  }
+
+  void rejectTitle() {
+    titleSuggestion = null;
+    notifyListeners();
+  }
+
+  void acceptTitle() {
+    final t = titleSuggestion;
+    if (t == null) return;
+    _undo.add((p: List.of(section.p), title: section.title));
+    section.title = t;
+    titleSuggestion = null;
+    afterApply();
+    _finishTranslation();
     notifyListeners();
   }
 
@@ -249,20 +352,37 @@ class ImproveController extends ChangeNotifier {
         if (suggestions.containsKey(i)) i: suggestions[i]!
     };
     if (chosen.isEmpty) return;
-    _undo = List.of(section.p);
+    _undo.add((p: List.of(section.p), title: section.title));
     section.applyTexts(chosen);
     suggestions = Map.of(suggestions)..removeWhere((k, _) => chosen.containsKey(k));
     afterApply();
+    _finishTranslation();
     notifyListeners();
+  }
+
+  /// Tells the editor once a translation has been dealt with in full.
+  void _finishTranslation() {
+    final code = _lastTranslation;
+    if (code == null ||
+        suggestions.isNotEmpty ||
+        titleSuggestion != null ||
+        _stopped != null ||
+        busy ||
+        _undo.isEmpty) {
+      return;
+    }
+    _lastTranslation = null;
+    onTranslated?.call(code);
   }
 
   /// Puts back the paragraphs as they were before the last accept.
   void undo() {
-    final before = _undo;
-    if (before == null) return;
-    section.p = before;
-    _undo = null;
+    if (_undo.isEmpty) return;
+    final before = _undo.removeLast();
+    section.p = before.p;
+    section.title = before.title;
     suggestions = {};
+    titleSuggestion = null;
     afterApply();
     notifyListeners();
   }
@@ -273,4 +393,28 @@ class ImproveController extends ChangeNotifier {
     _client?.close();
     super.dispose();
   }
+}
+
+/// A run of Chunks, kept so it can carry on after a failure.
+class _Run {
+  final Provider provider;
+  final String instruction;
+  final List<int> indexes;
+  final List<String> texts;
+  final List<List<int>> groups;
+  final String? translateCode;
+  final String? title;
+
+  /// Chunks finished so far, and the texts they covered with their results.
+  int done = 0;
+  final sentTexts = <String>[];
+  final results = <String>[];
+  _Run(
+      {required this.provider,
+      required this.instruction,
+      required this.indexes,
+      required this.texts,
+      required this.groups,
+      this.translateCode,
+      this.title});
 }

@@ -112,6 +112,16 @@ class _ImproveBarState extends State<ImproveBar> {
     }
   }
 
+  Future<void> _translate() async {
+    final r = await showDialog<({String name, String code, bool whole})>(
+        context: context,
+        builder: (_) => _TranslateDialog(_s, _c.eligible.length == 1));
+    if (r == null) return;
+    if (r.whole) _c.selectAll();
+    await _c.translate(r.name, r.code,
+        (p, n, t, q) => confirmSend(context, _s, p, n, t, q));
+  }
+
   void _pickProvider() {
     showModalBottomSheet(
         context: context,
@@ -177,10 +187,31 @@ class _ImproveBarState extends State<ImproveBar> {
                       Expanded(
                           child: Text(_errorText(_s, _c),
                               style: TextStyle(color: cs.error))),
+                      if (_c.canResume)
+                        TextButton(
+                            onPressed: () => _c.resume(),
+                            child: Text(tr(_s, 'Retry', 'Повторить'))),
                       if (_c.error == ImproveError.invalidKey)
                         TextButton(
                             onPressed: widget.onManageProviders,
                             child: Text(tr(_s, 'Edit provider', 'Провайдер'))),
+                    ]),
+                  if (_c.titleSuggestion != null)
+                    Row(children: [
+                      Expanded(
+                          child: Text(
+                              tr(_s, 'Title: ${_c.titleSuggestion}',
+                                  'Заголовок: ${_c.titleSuggestion}'),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis)),
+                      IconButton(
+                          tooltip: tr(_s, 'Accept title', 'Принять заголовок'),
+                          icon: const Icon(Icons.check, color: Colors.green),
+                          onPressed: _c.acceptTitle),
+                      IconButton(
+                          tooltip: tr(_s, 'Reject title', 'Отклонить заголовок'),
+                          icon: Icon(Icons.close, color: cs.error),
+                          onPressed: _c.rejectTitle),
                     ]),
                   if (p == null)
                     Row(children: [
@@ -230,6 +261,12 @@ class _ImproveBarState extends State<ImproveBar> {
                                           ? null
                                           : () => _ask(pr.instruction)),
                                 )),
+                          Padding(
+                              padding: const EdgeInsets.only(right: 8),
+                              child: ActionChip(
+                                  avatar: const Icon(Icons.translate, size: 16),
+                                  label: Text(tr(_s, 'Translate...', 'Перевести...')),
+                                  onPressed: _c.busy ? null : _translate)),
                           Padding(
                               padding: const EdgeInsets.only(right: 8),
                               child: ActionChip(
@@ -411,6 +448,75 @@ class _PresetDialogState extends State<_PresetDialog> {
                           id: widget.existing?.id ?? getRandomString(8))
                     )),
             child: Text(tr(s, 'Save', 'Сохранить'))),
+      ],
+    );
+  }
+}
+
+/// Asks for the target language and whether to take the whole Section.
+class _TranslateDialog extends StatefulWidget {
+  final AppService service;
+  final bool offerWhole;
+  const _TranslateDialog(this.service, this.offerWhole);
+  @override
+  State<_TranslateDialog> createState() => _TranslateDialogState();
+}
+
+class _TranslateDialogState extends State<_TranslateDialog> {
+  static const _other = '';
+  String _code = translationLanguages.first.code;
+  late bool _whole = widget.offerWhole;
+  final _name = TextEditingController();
+
+  @override
+  void dispose() {
+    _name.dispose();
+    super.dispose();
+  }
+
+  String get _language => _code == _other
+      ? _name.text.trim()
+      : translationLanguages.firstWhere((l) => l.code == _code).name;
+
+  @override
+  Widget build(BuildContext context) {
+    final s = widget.service;
+    return AlertDialog(
+      title: Text(tr(s, 'Translate into', 'Перевести на')),
+      content: Column(mainAxisSize: MainAxisSize.min, children: [
+        DropdownButton<String>(
+            value: _code,
+            isExpanded: true,
+            items: [
+              for (final l in translationLanguages)
+                DropdownMenuItem(value: l.code, child: Text('${l.name} (${l.code})')),
+              DropdownMenuItem(
+                  value: _other, child: Text(tr(s, 'Other...', 'Другой...'))),
+            ],
+            onChanged: (v) => setState(() => _code = v!)),
+        if (_code == _other)
+          TextField(
+              controller: _name,
+              onChanged: (_) => setState(() {}),
+              decoration: InputDecoration(
+                  labelText: tr(s, 'Language (in English)', 'Язык (по-английски)'))),
+        if (widget.offerWhole)
+          SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              title: Text(tr(s, 'Whole Section', 'Весь раздел')),
+              value: _whole,
+              onChanged: (v) => setState(() => _whole = v)),
+      ]),
+      actions: [
+        TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(tr(s, 'Cancel', 'Отмена'))),
+        FilledButton(
+            onPressed: _language.isEmpty
+                ? null
+                : () => Navigator.pop(
+                    context, (name: _language, code: _code, whole: _whole)),
+            child: Text(tr(s, 'Translate', 'Перевести'))),
       ],
     );
   }

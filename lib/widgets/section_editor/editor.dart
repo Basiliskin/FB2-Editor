@@ -68,7 +68,50 @@ class _SectionEditorState extends State<SectionEditor>
             genre: widget.book.genre.join(', ')
           ),
       flush: _flushActive,
-      afterApply: _afterImprove);
+      afterApply: _afterImprove,
+      names: () => [
+            for (final e in widget.book.loadedStoryMap?.cast ?? const []) e.name
+          ],
+      onTranslated: _onTranslated);
+
+  /// A Section was translated in full: remember it, and once the translated
+  /// Sections are at least half the book, offer to change the book's language.
+  Future<void> _onTranslated(String code) async {
+    if (code.isEmpty) return;
+    final store = widget.service.providerStore;
+    final id = widget.book.projectId;
+    await store.markTranslated(id, code, widget.section.sectionId);
+    final done = store.translatedSections(id, code).length;
+    if (!mounted ||
+        done * 2 < widget.book.section.length ||
+        widget.book.lang == code ||
+        store.languageOfferDeclined(id)) {
+      return;
+    }
+    final s = widget.service;
+    final change = await showDialog<bool>(
+        context: context,
+        builder: (_) => AlertDialog(
+              title: BaseText.Text(tr(s, 'Change the book language?', 'Сменить язык книги?')),
+              content: BaseText.Text(tr(
+                  s,
+                  'Most of the book is now translated. Set its language to "$code"?',
+                  'Большая часть книги переведена. Указать язык книги «$code»?')),
+              actions: [
+                TextButton(
+                    onPressed: () => Navigator.pop(context, false),
+                    child: BaseText.Text(tr(s, 'No', 'Нет'))),
+                FilledButton(
+                    onPressed: () => Navigator.pop(context, true),
+                    child: BaseText.Text(tr(s, 'Yes', 'Да'))),
+              ],
+            ));
+    if (change == true) {
+      widget.book.lang = code;
+    } else if (change == false) {
+      await store.declineLanguageOffer(id);
+    }
+  }
 
   void _onImprove() {
     if (mounted) setState(() {});
@@ -101,6 +144,8 @@ class _SectionEditorState extends State<SectionEditor>
       _flushActive();
       setState(_closeActiveEditor);
     }
+    // the translation keeps Entity names consistent; make sure the map is read
+    if (!_improve.open) widget.book.loadStoryMap().ignore();
     await _improve.toggle(at);
   }
 

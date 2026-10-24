@@ -56,6 +56,10 @@ _Avoid_: Persona, system prompt
 The Provider's proposed replacement text, shown before and after the original. It changes the book only when the user accepts it.
 _Avoid_: Result, output, patch
 
+**Translate Preset**:
+The Preset that translates text into a chosen language. It is an Improvement, so its Suggestions go through the Review queue. Entity names are kept spelled the same way (transliterated, never translated), and each Chunk sees the end of the previous translation.
+_Avoid_: Translation mode, translator
+
 **Chunk**:
 A group of consecutive paragraphs from one Section sent to a Provider in a single request. A whole-Section Improvement is split into several Chunks.
 _Avoid_: Batch, page

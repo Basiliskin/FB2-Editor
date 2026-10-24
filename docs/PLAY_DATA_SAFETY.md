@@ -17,6 +17,7 @@ Answers come from the code. Items marked **CONFIRM** are things only the develop
 | Text of the selected paragraphs, with inline FB2 tags | The user's chosen provider | Only after the user taps Improve and confirms the "send" dialog | `lib/services/llm/improvement.dart` |
 | Book metadata (title, author) and the per-book Style note | Same provider, in the same request | Same | `ImprovementContext` |
 | The user's instruction or Preset | Same provider | Same | `improvement.dart` |
+| Paragraphs chosen for Translate, the end of the previous translation, names from the story map and the section title | The user's chosen provider | Only after the user picks a language and, above 3 requests (or on first use), confirms the dialog that shows the size | `lib/widgets/section_editor/improve_controller.dart` |
 | Short quotes (about a sentence each) around names the local names check could not decide, at most 40 pairs per run | The user's chosen provider | Only after the user taps Ask AI in Check names and confirms the dialog that shows the size | `lib/services/name_check_ai.dart`, `lib/pages/names_check_page.dart` |
 | Text of the Sections the user chose in Ask about the book, and the user's question; for long ranges, each Section is sent once to be summarised | The user's chosen provider | Only after the user taps Summarise or Ask and confirms the dialog that shows the size and number of requests | `lib/services/book_ask.dart`, `lib/pages/ask_page.dart` |
 | Short summaries (Digests) of Sections made by the provider | Stored on the device in the workspace JSON, capped at 500; never sent anywhere else | n/a | `DigestStore` |
@@ -34,7 +35,7 @@ user-initiated-transfer exemption is not relied on; over-declaring only lengthen
 
 | Data type | Collected | Shared | Ephemeral | Optional | Purpose |
 |---|---|---|---|---|---|
-| App activity: Other user-generated content (book text) | Yes | Yes | No | Yes, only if the user uses Improve, Ask AI in Check names or Ask about the book | App functionality (both) |
+| App activity: Other user-generated content (book text) | Yes | Yes | No | Yes, only if the user uses Improve, Translate, Ask AI in Check names or Ask about the book | App functionality (both) |
 
 Deliberately not declared:
 - **Name**: the author in book metadata is book content, not the app user's name.
@@ -84,6 +85,8 @@ App activity > Other user-generated content, and "Data is encrypted in transit".
 > the app sends the text of the sections you chose to your provider, and your question, after you
 > confirm the size. For a long range it first sends each section to get a short summary and keeps
 > those summaries on your device so the same text is not sent twice. Nothing in your book is changed.
+>
+> "Translate" works the same way. The app sends the paragraphs you chose, in several requests if needed, together with the end of the previous translation, the names from your story map and the section title, to your provider, after you confirm. Nothing is sent unless you ask.
 >
 > What the provider does with the text is governed by that provider's own terms and privacy policy,
 > which you accept when you create your account and key with them.

@@ -296,4 +296,126 @@ void main() {
       expect(c.suggestions, isEmpty);
     });
   });
+
+  group('translation', () {
+    String echo(http.Request r) {
+      final user = jsonDecode(r.body)['messages'][1]['content'] as String;
+      final lines = RegExp(r'^\[(\d+)\] (.*)$', multiLine: true)
+          .allMatches(user)
+          .map((m) => '[${m[1]}] T:${m[2]}');
+      return lines.join('\n');
+    }
+
+    test('the title rides in the first request and comes back as a suggestion',
+        () async {
+      section.title = 'Chapter';
+      final c = make((r) => _ok(echo(r)));
+      await c.toggle(0);
+      c.selectAll();
+      await c.translate('German', 'de', yes);
+      expect(sent.length, 1);
+      expect(c.titleSuggestion, 'T:Chapter');
+      expect(c.suggestions.keys, [0, 2]);
+      c.acceptTitle();
+      expect(section.title, 'T:Chapter');
+      c.undo();
+      expect(section.title, 'Chapter');
+    });
+
+    test('later requests carry the earlier original and result', () async {
+      section.p = [for (var i = 0; i < 3; i++) '<p>${'$i' * 13000}</p>'];
+      final c = make((r) => _ok(echo(r)));
+      await c.toggle(0);
+      c.selectAll();
+      await c.translate('German', 'de', yes);
+      expect(sent.length, 3);
+      expect(sent[0], isNot(contains('Earlier paragraphs')));
+      expect(sent[1], contains('Earlier paragraphs'));
+      expect(sent[1], contains('Result: T:'));
+    });
+
+    test('names from the book go to the model', () async {
+      final c = ImproveController(
+          store: store,
+          section: section,
+          bookId: 'book',
+          bookInfo: () => (title: 'T', lang: 'en', genre: ''),
+          flush: () {},
+          afterApply: () {},
+          names: () => ['Иван'],
+          httpFactory: () => MockClient((r) async {
+                sent.add(r.body);
+                return _ok(echo(r));
+              }));
+      await c.toggle(0);
+      await c.translate('English', 'en', yes);
+      expect(sent.single, contains('Иван'));
+    });
+
+    test('asks only above 3 requests', () async {
+      section.p = [for (var i = 0; i < 3; i++) '<p>${'$i' * 13000}</p>'];
+      final c = make((r) => _ok(echo(r)));
+      await c.toggle(0);
+      c.selectAll();
+      var asked = 0;
+      Future<bool> count(Provider p, int n, int t, int r) async {
+        asked++;
+        return true;
+      }
+
+      await c.translate('German', 'de', count); // first use: consent
+      await c.translate('German', 'de', count); // 3 requests: no question
+      expect(asked, 1);
+    });
+
+    test('a failed request can be retried and carries on from there', () async {
+      section.p = [for (var i = 0; i < 3; i++) '<p>${'$i' * 13000}</p>'];
+      var calls = 0;
+      final c = make((r) => ++calls == 2 ? http.Response('', 429) : _ok(echo(r)));
+      await c.toggle(0);
+      c.selectAll();
+      await c.translate('German', 'de', yes);
+      expect((c.error, c.canResume), (ImproveError.rateLimited, true));
+      expect(c.suggestions.keys.toList(), [0]);
+      await c.resume();
+      expect(c.error, isNull);
+      expect(c.canResume, isFalse);
+      expect(c.suggestions.keys, [0, 1, 2]);
+      expect(sent.length, 4); // 1, failed 2, retried 2, 3
+    });
+
+    test('the language callback fires once everything is dealt with', () async {
+      final codes = <String>[];
+      final c = ImproveController(
+          store: store,
+          section: section,
+          bookId: 'book',
+          bookInfo: () => (title: 'T', lang: 'en', genre: ''),
+          flush: () {},
+          afterApply: () {},
+          onTranslated: codes.add,
+          httpFactory: () => MockClient((r) async => _ok(echo(r))));
+      await c.toggle(0);
+      c.selectAll();
+      await c.translate('German', 'de', yes);
+      c.accept([0]);
+      expect(codes, isEmpty);
+      c.reject(2);
+      expect(codes, ['de']);
+    });
+
+    test('several accepts undo one at a time', () async {
+      final c = make((r) => _ok(echo(r)));
+      await c.toggle(0);
+      c.selectAll();
+      await c.translate('German', 'de', yes);
+      c.accept([0]);
+      c.accept([2]);
+      c.undo();
+      expect(section.p[2], '<p>two <strong>x</strong></p>');
+      expect(section.p[0], '<p>T:one</p>');
+      c.undo();
+      expect(section.p[0], '<p>one</p>');
+    });
+  });
 }
