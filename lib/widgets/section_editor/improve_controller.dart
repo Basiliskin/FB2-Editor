@@ -197,31 +197,49 @@ class ImproveController extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Tapping a paragraph widens the range to it, or narrows it from an end.
-  void tapParagraph(int i) {
+  /// Nothing is chosen (the range is empty: [end] is before [start]).
+  bool get noneSelected => end < start;
+
+  bool get allSelected => !noneSelected && start == 0 && end >= section.p.length - 1;
+
+  void _reset() {
     suggestions = {};
     titleSuggestion = null;
     _stopped = null;
     _current = null;
     error = null;
-    if (i < start) {
+  }
+
+  /// Tapping a paragraph widens the range to it; a chosen one is dropped from the nearer end,
+  /// and the last one left can be dropped too.
+  void tapParagraph(int i) {
+    _reset();
+    if (noneSelected) {
+      start = end = i;
+    } else if (i < start) {
       start = i;
     } else if (i > end) {
       end = i;
-    } else if (start != end) {
-      i == start ? start++ : end--;
+    } else if (start == end) {
+      end = start - 1;
+    } else if (i - start <= end - i) {
+      start = i + 1;
+    } else {
+      end = i - 1;
     }
     notifyListeners();
   }
 
   void selectAll() {
-    suggestions = {};
-    titleSuggestion = null;
-    _stopped = null;
-    _current = null;
-    error = null;
+    _reset();
     start = 0;
     end = section.p.isEmpty ? 0 : section.p.length - 1;
+    notifyListeners();
+  }
+
+  void clearSelection() {
+    _reset();
+    end = start - 1;
     notifyListeners();
   }
 

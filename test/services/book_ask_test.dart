@@ -63,6 +63,14 @@ void main() {
       expect(plan.requests, 5);
     });
 
+    test('a very long book is planned with a merge round on top of the Digests', () {
+      final many = [for (var i = 1; i <= 20; i++) _sec(i, ['z' * 1700])];
+      final plan = BookAsk.plan(many, AskMode.summarise, '', 2000, _store(), 'en');
+      expect(plan.direct, isFalse);
+      expect(plan.toDigest.length, plan.pieces.length);
+      expect(plan.requests, greaterThan(plan.pieces.length + 1)); // digests, merges, final answer
+    });
+
     test('cached Digests are not planned again', () async {
       final store = _store();
       for (final x in sections) {
@@ -182,6 +190,16 @@ void main() {
       expect(fake.seen.last.system, isNot(contains('## Evidence')));
       expect(a.fromDigests, isTrue);
       expect(a.body, 'The whole story [S1, S3].');
+    });
+
+    test('a limit too small to merge into still ends in an answer instead of looping', () async {
+      final tiny = [_sec(1, ['a' * 300]), _sec(2, ['b' * 300])];
+      final plan = BookAsk.plan(tiny, AskMode.summarise, '', 400, _store(), 'en');
+      expect(plan.direct, isFalse);
+      final fake = _Fake([for (var i = 0; i < plan.pieces.length; i++) 'd' * 150, '## Answer\ndone']);
+      final a = await BookAskRunner(fake, _store(), 'en').run(plan, tiny);
+      expect(fake.seen.length, plan.pieces.length + 1); // every piece, no merge round, then the answer
+      expect(a.body, 'done');
     });
 
     test('Digests made once are reused the next time', () async {

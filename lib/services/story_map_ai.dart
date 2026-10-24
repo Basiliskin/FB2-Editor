@@ -15,6 +15,9 @@ class EntityProposal {
   final List<int> perUnit;
   const EntityProposal(this.name, this.kind, this.note, this.perUnit);
   int get mentions => perUnit.fold(0, (a, b) => a + b);
+
+  EntityProposal edited({String? name, EntityKind? kind, String? note}) =>
+      EntityProposal(name ?? this.name, kind ?? this.kind, note ?? this.note, perUnit);
 }
 
 /// A label for the Tie between two entities, named as the map (or an [EntityProposal]) names them.
@@ -24,6 +27,9 @@ class TieProposal {
   /// The map already has a Tie between them (drawn or counted); accepting only labels it.
   final bool exists;
   const TieProposal(this.a, this.b, this.label, {required this.exists});
+
+  TieProposal edited({String? a, String? b, String? label}) =>
+      TieProposal(a ?? this.a, b ?? this.b, label ?? this.label, exists: exists);
 }
 
 class StoryMapSuggestions {
@@ -49,8 +55,6 @@ class StoryMapAi {
   static const maxEntities = 60;
   static const _overhead = 1800;
 
-  static String _languageName(String code) => code == 'ru' ? 'Russian' : 'English';
-
   static String systemPrompt(String language) =>
       'You help build a story map of a fiction book. You get Sections of the book as Markdown '
       '("## S3: title"), the people and things already on the map, and Ties that have no label yet.\n'
@@ -61,11 +65,11 @@ class StoryMapAi {
       '## entity\n'
       'name: the name as it is written in the text\n'
       'kind: place | event | lore\n'
-      'note: one short sentence in ${_languageName(language)}\n'
+      'note: one short sentence in ${languageName(language)}\n'
       '## tie\n'
       'a: a name from the map or from your entities\n'
       'b: another name\n'
-      'label: two or three words in ${_languageName(language)}, like "brother of" or "lives in"\n'
+      'label: two or three words in ${languageName(language)}, like "brother of" or "lives in"\n'
       'Use only what the text says. Do not repeat what is already on the map. Do not add people. '
       'Skip anything you are not sure of. Never invent a name.';
 

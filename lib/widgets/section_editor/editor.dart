@@ -26,14 +26,18 @@ import 'package:quill_fb2/pages/settings_page.dart';
 import 'package:quill_fb2/widgets/section_editor/improve_bar.dart';
 import 'package:quill_fb2/widgets/section_editor/improve_controller.dart';
 import 'package:prompt_dialog/prompt_dialog.dart';
+import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
 import 'package:quill_fb2/ui/widgets.dart';
+import 'package:quill_fb2/widgets/stop_run_dialog.dart';
 
 class SectionEditor extends StatefulWidget {
   final ProjectModel book;
   final AppService service;
   final Section section;
-  SectionEditor(this.service, this.book, this.section);
+  /// For tests: where the AI requests go.
+  final http.Client Function()? httpFactory;
+  SectionEditor(this.service, this.book, this.section, {this.httpFactory});
   @override
   _SectionEditorState createState() => _SectionEditorState();
 }
@@ -72,7 +76,8 @@ class _SectionEditorState extends State<SectionEditor>
       names: () => [
             for (final e in widget.book.loadedStoryMap?.cast ?? const []) e.name
           ],
-      onTranslated: _onTranslated);
+      onTranslated: _onTranslated,
+      httpFactory: widget.httpFactory);
 
   /// A Section was translated in full: remember it, and once the translated
   /// Sections are at least half the book, offer to change the book's language.
@@ -139,6 +144,9 @@ class _SectionEditorState extends State<SectionEditor>
   }
 
   Future<void> _toggleImprove() async {
+    // closing the panel throws the running request away
+    if (_improve.open && _improve.busy && !await confirmStopRun(context, widget.service)) return;
+    if (!mounted) return;
     final at = _active >= 0 ? _active : 0;
     if (!_improve.open) {
       _flushActive();
@@ -669,6 +677,8 @@ class _SectionEditorState extends State<SectionEditor>
   }
 
   _navigateBack(BuildContext context) async {
+    if (_improve.busy && !await confirmStopRun(context, widget.service)) return;
+    if (!context.mounted) return;
     _flushActive();
     if (await confirmLeave(context, widget.service, widget.book,
             onDiscard: _restoreSnapshot) &&

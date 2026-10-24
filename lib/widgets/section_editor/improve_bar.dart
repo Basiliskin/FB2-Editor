@@ -115,7 +115,7 @@ class _ImproveBarState extends State<ImproveBar> {
   Future<void> _translate() async {
     final r = await showDialog<({String name, String code, bool whole})>(
         context: context,
-        builder: (_) => _TranslateDialog(_s, _c.eligible.length == 1));
+        builder: (_) => _TranslateDialog(_s, !_c.allSelected));
     if (r == null) return;
     if (r.whole) _c.selectAll();
     await _c.translate(r.name, r.code,
@@ -251,13 +251,18 @@ class _ImproveBarState extends State<ImproveBar> {
                           avatar: const Icon(Icons.format_list_numbered, size: 16),
                           label: Text(tr(
                               _s,
-                              _c.start == _c.end
-                                  ? 'Paragraph ${_c.start + 1}'
-                                  : 'Paragraphs ${_c.start + 1}-${_c.end + 1}',
-                              _c.start == _c.end
-                                  ? 'Абзац ${_c.start + 1}'
-                                  : 'Абзацы ${_c.start + 1}-${_c.end + 1}')),
-                          onPressed: _c.selectAll),
+                              _c.noneSelected
+                                  ? 'No paragraphs (select all)'
+                                  : _c.start == _c.end
+                                      ? 'Paragraph ${_c.start + 1}'
+                                      : 'Paragraphs ${_c.start + 1}-${_c.end + 1}',
+                              _c.noneSelected
+                                  ? 'Ничего не выбрано (выбрать все)'
+                                  : _c.start == _c.end
+                                      ? 'Абзац ${_c.start + 1}'
+                                      : 'Абзацы ${_c.start + 1}-${_c.end + 1}')),
+                          // one tap selects everything, the next clears it
+                          onPressed: _c.allSelected ? _c.clearSelection : _c.selectAll),
                       if (n > 0) Chip(label: Text('~${_c.tokenEstimate} tokens')),
                     ]),
                     SingleChildScrollView(
@@ -480,7 +485,8 @@ class _TranslateDialog extends StatefulWidget {
 class _TranslateDialogState extends State<_TranslateDialog> {
   static const _other = '';
   String _code = translationLanguages.first.code;
-  late bool _whole = widget.offerWhole;
+  // off unless asked for: translating only what was selected is the default
+  bool _whole = false;
   final _name = TextEditingController();
 
   @override
@@ -568,8 +574,12 @@ class PartHeader extends StatelessWidget {
       child: Row(children: [
         Text(tr(service, 'Part ${part.number}', 'Часть ${part.number}'),
             style: const TextStyle(fontWeight: FontWeight.w600)),
-        if (failed) Text('  ·  ${_errorText(service, controller)}'.split('\n').first),
-        const Spacer(),
+        if (failed)
+          Expanded(
+              child: Text('  ·  ${_errorText(service, controller)}'.split('\n').first,
+                  maxLines: 1, overflow: TextOverflow.ellipsis))
+        else
+          const Spacer(),
         if (failed && controller.canResume)
           TextButton.icon(
               icon: const Icon(Icons.refresh, size: 16),

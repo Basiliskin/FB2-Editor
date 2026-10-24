@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
@@ -29,7 +30,11 @@ http.Response _answer(String text) => http.Response(
 const _provider = Provider(id: 'p', name: 'P', vendor: LlmVendor.openai, model: 'm', apiKey: 'k');
 
 Future<void> _open(WidgetTester tester,
-    {http.Client Function()? http, Provider? provider = _provider, int? chunk, List<StorySection>? story}) async {
+    {http.Client Function()? http,
+    Provider? provider = _provider,
+    int? chunk,
+    List<StorySection>? story,
+    String? lang}) async {
   tester.view.physicalSize = const Size(390 * 3, 2400 * 3);
   tester.view.devicePixelRatio = 3;
   addTearDown(tester.view.reset);
@@ -46,6 +51,7 @@ Future<void> _open(WidgetTester tester,
         StorySection('a', 'Приезд', ['<p>Артур приехал в порт на рассвете.</p>']),
         StorySection('b', 'Письмо', ['<p>Эвелин написала письмо Гидеону.</p>']),
       ])))!;
+  if (lang != null) book.lang = lang;
   await tester.pumpWidget(MaterialApp(home: AskPage(_service, book, httpFactory: http)));
   await tester.pumpAndSettle();
 }
@@ -195,6 +201,153 @@ void main() {
     expect(from.width, greaterThan(300));
     expect(to.top - from.bottom, greaterThanOrEqualTo(8));
     expect(question.top - to.bottom, greaterThanOrEqualTo(8));
+  });
+
+  testWidgets('the model is told to write in the language of the book, not of the app', (tester) async {
+    final sent = <String>[];
+    await _open(tester, lang: 'ru', http: () => MockClient((r) async {
+          sent.add(r.body);
+          return _answer('## Answer\nok');
+        }));
+    await tester.tap(find.widgetWithText(FilledButton, 'Summarise'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Send'));
+    await tester.pumpAndSettle();
+    expect(sent.single, contains('Russian'));
+    expect(sent.single, isNot(contains('English')));
+  });
+
+  testWidgets('one Section cut into several requests asks first, and progress keeps its total', (tester) async {
+    final gate = Completer<http.Response>();
+    var n = 0;
+    await _open(tester,
+        chunk: 2000,
+        story: [
+          StorySection('a', 'Приезд', ['<p>${'Артур приехал в порт. ' * 120}</p>']),
+        ],
+        http: () => MockClient((r) => ++n < 3 ? Future.value(_answer('дайджест $n')) : gate.future));
+    expect(find.textContaining('requests'), findsWidgets);
+    await tester.tap(find.widgetWithText(FilledButton, 'Summarise'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('request(s)'), findsOneWidget); // the dialog shows although it is one Section
+    await tester.tap(find.text('Send'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+    final shown = find.textContaining(RegExp(r'Request \d+ of \d+'));
+    final total = RegExp(r'of (\d+)').firstMatch((tester.widget<Text>(shown).data)!)!.group(1);
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(RegExp(r'of (\d+)').firstMatch((tester.widget<Text>(shown).data)!)!.group(1), total);
+    gate.complete(_answer('## Answer\nготово'));
+    await tester.pumpAndSettle();
+  });
+
+  testWidgets('leaving while it runs asks first; Keep waiting stays, Stop leaves', (tester) async {
+    final gate = Completer<http.Response>();
+    tester.view.physicalSize = const Size(390 * 3, 2400 * 3);
+    tester.view.devicePixelRatio = 3;
+    addTearDown(tester.view.reset);
+    await _service.providerStore.save(_provider);
+    final book = (await tester.runAsync(() => storyBook()))!;
+    await tester.pumpWidget(const MaterialApp(home: Scaffold()));
+    final nav = tester.state<NavigatorState>(find.byType(Navigator));
+    nav.push(MaterialPageRoute(builder: (_) => AskPage(_service, book, httpFactory: () => MockClient((r) => gate.future))));
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(FilledButton, 'Summarise'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Send'));
+    await tester.pump(const Duration(milliseconds: 100));
+
+    await tester.pageBack();
+    await tester.pump(const Duration(milliseconds: 500));
+    expect(find.text('Stop the running request?'), findsOneWidget);
+    await tester.tap(find.text('Keep waiting'));
+    await tester.pump(const Duration(milliseconds: 500));
+    expect(find.byType(AskPage), findsOneWidget);
+
+    await tester.pageBack();
+    await tester.pump(const Duration(milliseconds: 500));
+    await tester.tap(find.text('Stop'));
+    await tester.pumpAndSettle();
+    expect(find.byType(AskPage), findsNothing);
+    gate.complete(_answer('late'));
+  });
+
+  for (final (status, text) in [(429, 'Rate limit reached'), (500, 'unusable answer')]) {
+    testWidgets('a $status answer is explained', (tester) async {
+      await _open(tester, http: () => MockClient((r) async => http.Response('', status)));
+      await tester.tap(find.widgetWithText(FilledButton, 'Summarise'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Send'));
+      await tester.pumpAndSettle();
+      expect(find.textContaining(text), findsOneWidget);
+    });
+  }
+
+  testWidgets('an unreachable provider is explained', (tester) async {
+    await _open(tester, http: () => MockClient((r) async => throw http.ClientException('down')));
+    await tester.tap(find.widgetWithText(FilledButton, 'Summarise'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Send'));
+    await tester.pumpAndSettle();
+    expect(find.text('No connection to the provider'), findsOneWidget);
+  });
+
+  testWidgets('moving From past To drags To along, and To before From drags From back', (tester) async {
+    await _open(tester, story: [
+      StorySection('a', 'Раз', ['<p>Один.</p>']),
+      StorySection('b', 'Два', ['<p>Два.</p>']),
+      StorySection('c', 'Три', ['<p>Три.</p>']),
+    ]);
+    Future<void> pick(String label, String item) async {
+      await tester.tap(find.widgetWithText(DropdownButtonFormField<int>, label));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(item).last);
+      await tester.pumpAndSettle();
+    }
+
+    await pick('To', '2. Два');
+    await pick('From', '2. Два');
+    await pick('To', '2. Два');
+    await tester.tap(find.widgetWithText(FilledButton, 'Summarise'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('1 section(s)'), findsOneWidget);
+    await tester.tap(find.text('Cancel'));
+    await tester.pumpAndSettle();
+    await pick('From', '3. Три'); // From beyond To moves To up with it
+    await tester.tap(find.widgetWithText(FilledButton, 'Summarise'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('1 section(s)'), findsOneWidget);
+    await tester.tap(find.text('Cancel'));
+    await tester.pumpAndSettle();
+    await pick('To', '1. Раз'); // To before From moves From down with it
+    await tester.tap(find.widgetWithText(FilledButton, 'Summarise'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('1 section(s)'), findsOneWidget);
+  });
+
+  testWidgets('an answer with no text says the model gave none', (tester) async {
+    await _open(tester, http: () => MockClient((r) async => _answer('## Answer\n')));
+    await tester.tap(find.widgetWithText(FilledButton, 'Summarise'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Send'));
+    await tester.pumpAndSettle();
+    expect(find.text('The model gave no answer.'), findsOneWidget);
+  });
+
+  test('languageName knows codes, regions and unknown codes; bookLanguageOf falls back to the app language',
+      () async {
+    expect(languageName('ru'), 'Russian');
+    expect(languageName('ru-RU'), 'Russian');
+    expect(languageName('UK'), 'Ukrainian');
+    expect(languageName('xx'), 'xx');
+    expect(languageName(''), 'English');
+    final book = await storyBook();
+    book.lang = '';
+    expect(bookLanguageOf(_service, book), 'en');
+    _service.workspace['workspaceSettings'] = {'language': 'ru'};
+    expect(bookLanguageOf(_service, book), 'ru');
+    book.lang = 'de';
+    expect(bookLanguageOf(_service, book), 'de');
   });
 
   test('askSectionsOf numbers Sections by their place and reads their plain text', () async {

@@ -2,6 +2,7 @@
 // question. When the range fits one request the model reads the text itself; otherwise each
 // Section is first boiled down to a Digest (cached, so asking again costs less) and the
 // answer is built from the Digests. Nothing here changes the book.
+import 'package:quill_fb2/services/llm/improvement.dart' show translationLanguages;
 import 'package:quill_fb2/services/llm/llm_client.dart';
 
 enum AskMode { summarise, question }
@@ -66,7 +67,14 @@ class AskPlan {
       this.characters);
 }
 
-String _languageName(String code) => code == 'ru' ? 'Russian' : 'English';
+/// English name of a language [code] ("ru", "ru-RU"); an unknown code is returned as written.
+String languageName(String code) {
+  final c = code.trim().toLowerCase().split(RegExp(r'[-_]')).first;
+  for (final l in translationLanguages) {
+    if (l.code == c) return l.name;
+  }
+  return c.isEmpty ? 'English' : c;
+}
 
 class BookAsk {
   /// What one Digest is taken to cost when planning, in characters.
@@ -79,17 +87,17 @@ class BookAsk {
 
   static String digestSystem(String language) =>
       'You summarise one part of a fiction book for later use.\n'
-      'Write 3 to 5 sentences (under 120 words) in ${_languageName(language)}: who is there, what happens, '
+      'Write 3 to 5 sentences (under 120 words) in ${languageName(language)}: who is there, what happens, '
       'what changes. Keep names as written. Answer with the summary only.';
 
   static String mergeSystem(String language) =>
       'You merge numbered summaries of parts of a fiction book into one shorter summary.\n'
-      'Write in ${_languageName(language)}, keep names as written, keep the order of events, and keep the '
+      'Write in ${languageName(language)}, keep names as written, keep the order of events, and keep the '
       'Section markers like [S3] where you use a part. Answer with the summary only.';
 
   static String summariseSystem(String language) =>
       'You summarise a part of a fiction book.\n$_rules\n'
-      'Answer in Markdown in ${_languageName(language)}: a "## Answer" heading, a short overview paragraph, '
+      'Answer in Markdown in ${languageName(language)}: a "## Answer" heading, a short overview paragraph, '
       'then bullet points for the main developments in order.';
 
   static String questionSystem({required bool withEvidence}) =>

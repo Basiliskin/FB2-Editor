@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
@@ -6,6 +7,7 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:quill_fb2/models/project.model.dart';
 import 'package:quill_fb2/models/story_map.model.dart';
+import 'package:quill_fb2/services/story_map_analyzer.dart' show StorySection;
 import 'package:quill_fb2/pages/story_map_ai_page.dart';
 import 'package:quill_fb2/pages/story_map_page.dart';
 import 'package:quill_fb2/services/app.service.dart';
@@ -32,7 +34,7 @@ http.Client _answering(String text, [List<String>? sent]) => MockClient((r) asyn
     });
 
 /// The AI page on a sample book; returns the map it edits.
-Future<(ProjectModel, StoryMap)> _open(WidgetTester tester, {http.Client Function()? http}) async {
+Future<(ProjectModel, StoryMap)> _open(WidgetTester tester, {http.Client Function()? http, bool pick = true}) async {
   tester.view.physicalSize = const Size(390 * 3, 780 * 3);
   tester.view.devicePixelRatio = 3;
   addTearDown(tester.view.reset);
@@ -42,6 +44,12 @@ Future<(ProjectModel, StoryMap)> _open(WidgetTester tester, {http.Client Functio
   final nav = tester.state<NavigatorState>(find.byType(Navigator));
   nav.push(MaterialPageRoute(builder: (_) => StoryMapAiPage(_service, book, map, () => _changes++, httpFactory: http)));
   await tester.pumpAndSettle();
+  if (pick && find.text('Select all').evaluate().isNotEmpty) {
+    await tester.tap(find.text('Select all'));
+    await tester.pump();
+    await tester.tap(find.text('Continue'));
+    await tester.pumpAndSettle();
+  }
   return (book, map);
 }
 
@@ -70,15 +78,52 @@ void main() {
     expect(find.textContaining('Connect an AI provider'), findsOneWidget);
   });
 
-  testWidgets('shows the size first; Cancel sends nothing and leaves the page', (tester) async {
+  testWidgets('no section is chosen at first, and nothing can go until one is', (tester) async {
+    await provider();
+    await _open(tester, pick: false);
+    expect(find.text('Nothing selected'), findsOneWidget);
+    expect(tester.widget<FilledButton>(find.widgetWithText(FilledButton, 'Continue')).onPressed, isNull);
+    await tester.tap(find.byType(CheckboxListTile).first);
+    await tester.pump();
+    expect(find.textContaining('1 section(s)'), findsOneWidget);
+    expect(tester.widget<FilledButton>(find.widgetWithText(FilledButton, 'Continue')).onPressed, isNotNull);
+  });
+
+  testWidgets('shows the size first; Cancel sends nothing and goes back to the choice', (tester) async {
     await provider();
     final sent = <String>[];
     await _open(tester, http: () => _answering(_answer, sent));
-    expect(find.textContaining('1 request(s)'), findsOneWidget);
+    expect(find.textContaining('will be sent to P'), findsOneWidget);
     await tester.tap(find.text('Cancel'));
     await tester.pumpAndSettle();
     expect(sent, isEmpty);
-    expect(find.byType(StoryMapAiPage), findsNothing);
+    expect(find.text('Select all'), findsOneWidget);
+  });
+
+  testWidgets('the model is asked to write in the language of the book', (tester) async {
+    await provider();
+    final sent = <String>[];
+    await _open(tester, http: () => _answering(_answer, sent));
+    await tester.tap(find.text('Send'));
+    await tester.pumpAndSettle();
+    expect(sent.single, contains('English')); // the sample book is lang "en"
+  });
+
+  testWidgets('leaving while the request runs asks first', (tester) async {
+    await provider();
+    final gate = Completer<http.Response>();
+    await _open(tester, http: () => MockClient((r) => gate.future));
+    await tester.tap(find.text('Send'));
+    await tester.pump();
+    await tester.pump();
+    await tester.pageBack();
+    await tester.pump(const Duration(milliseconds: 500)); // the progress bar never settles
+    expect(find.text('Stop the running request?'), findsOneWidget);
+    await tester.tap(find.text('Keep waiting'));
+    await tester.pump(const Duration(milliseconds: 500));
+    expect(find.byType(StoryMapAiPage), findsOneWidget);
+    gate.complete(http.Response('', 401));
+    await tester.pumpAndSettle();
   });
 
   testWidgets('proposals the text does not support never show; accepting one changes the map', (tester) async {
@@ -104,6 +149,31 @@ void main() {
     await tester.pumpAndSettle();
     expect(map.tieBetween(0, map.cast.length - 1)!.label, 'works at');
     expect(find.text('Nothing more to propose.'), findsOneWidget);
+  });
+
+  testWidgets('a proposal can be edited before it is accepted; ties follow a rename', (tester) async {
+    await provider();
+    final (_, map) = await _open(tester, http: () => _answering(_answer));
+    await tester.tap(find.text('Send'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Edit').first); // the place
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField).first, 'Старая библиотека');
+    await tester.enterText(find.byType(TextField).last, 'My note');
+    await tester.tap(find.text('Save'));
+    await tester.pumpAndSettle();
+    expect(find.text('библиотека'), findsNothing);
+    expect(find.text('Артур Рэйм — Старая библиотека'), findsOneWidget);
+    await tester.tap(find.byTooltip('Edit').at(1)); // the tie
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField), 'reads in');
+    await tester.tap(find.text('Save'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Accept').at(1));
+    await tester.pumpAndSettle();
+    final e = map.cast.last;
+    expect((e.name, e.note), ('Старая библиотека', 'My note'));
+    expect(map.tieBetween(0, map.cast.length - 1)!.label, 'reads in');
   });
 
   testWidgets('Reject drops a proposal without touching the map', (tester) async {
@@ -179,13 +249,181 @@ void main() {
     expect(map.ties.any((t) => t.label == 'works at'), isTrue);
   });
 
-  testWidgets('a provider failure is shown, with Retry', (tester) async {
+  testWidgets('a provider failure is shown, and the choice stays', (tester) async {
     await provider();
     await _open(tester, http: () => MockClient((r) async => http.Response('', 401)));
     await tester.tap(find.text('Send'));
     await tester.pumpAndSettle();
     expect(find.text('The provider rejected the API key'), findsOneWidget);
-    expect(find.text('Retry'), findsOneWidget);
+    expect(find.text('Continue'), findsOneWidget); // back at the choice, to try again
+  });
+
+  testWidgets('a book without text says so instead of offering a choice', (tester) async {
+    await provider();
+    tester.view.physicalSize = const Size(390 * 3, 780 * 3);
+    tester.view.devicePixelRatio = 3;
+    addTearDown(tester.view.reset);
+    final book = (await tester.runAsync(() => storyBook([StorySection('a', 'Пусто', [])])))!;
+    final map = (await tester.runAsync(() => book.loadStoryMap()))!;
+    await tester.pumpWidget(MaterialApp(home: StoryMapAiPage(_service, book, map, () {})));
+    await tester.pumpAndSettle();
+    expect(find.text('The book has no text yet'), findsOneWidget);
+    expect(find.text('Select all'), findsNothing);
+  });
+
+  testWidgets('Select all and Clear change what is ticked; a Section without a title gets a number', (tester) async {
+    await provider();
+    tester.view.physicalSize = const Size(390 * 3, 780 * 3);
+    tester.view.devicePixelRatio = 3;
+    addTearDown(tester.view.reset);
+    final book = (await tester.runAsync(() => storyBook([
+          StorySection('a', '', ['<p>Артур приехал.</p>']),
+          StorySection('b', 'Письмо', ['<p>Эвелин написала.</p>']),
+        ])))!;
+    final map = (await tester.runAsync(() => book.loadStoryMap()))!;
+    await tester.pumpWidget(MaterialApp(home: StoryMapAiPage(_service, book, map, () {})));
+    await tester.pumpAndSettle();
+    expect(find.text('Section 1'), findsOneWidget);
+    await tester.tap(find.text('Select all'));
+    await tester.pump();
+    expect(find.textContaining('2 section(s)'), findsOneWidget);
+    await tester.tap(find.text('Clear'));
+    await tester.pump();
+    expect(find.text('Nothing selected'), findsOneWidget);
+    await tester.tap(find.byType(CheckboxListTile).first);
+    await tester.pump();
+    await tester.tap(find.byType(CheckboxListTile).first); // ticking again unticks
+    await tester.pump();
+    expect(find.text('Nothing selected'), findsOneWidget);
+  });
+
+  testWidgets('only the chosen Sections are sent', (tester) async {
+    await provider();
+    final sent = <String>[];
+    await _open(tester, http: () => _answering(_answer, sent), pick: false);
+    await tester.tap(find.byType(CheckboxListTile).first);
+    await tester.pump();
+    await tester.tap(find.text('Continue'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Send'));
+    await tester.pumpAndSettle();
+    expect(sent.single, contains('## S1: Приезд'));
+    expect(sent.single, isNot(contains('## S2')));
+  });
+
+  for (final (status, text) in [(429, 'Rate limit reached'), (500, 'unusable answer')]) {
+    testWidgets('a $status answer is explained', (tester) async {
+      await provider();
+      await _open(tester, http: () => MockClient((r) async => http.Response('', status)));
+      await tester.tap(find.text('Send'));
+      await tester.pumpAndSettle();
+      expect(find.textContaining(text), findsOneWidget);
+    });
+  }
+
+  testWidgets('an unreachable provider is explained', (tester) async {
+    await provider();
+    await _open(tester, http: () => MockClient((r) async => throw http.ClientException('down')));
+    await tester.tap(find.text('Send'));
+    await tester.pumpAndSettle();
+    expect(find.text('No connection to the provider'), findsOneWidget);
+  });
+
+  testWidgets('Cancel while running asks, Keep waiting continues, Stop returns to the choice', (tester) async {
+    await provider();
+    final gate = Completer<http.Response>();
+    await _open(tester, http: () => MockClient((r) => gate.future));
+    await tester.tap(find.text('Send'));
+    await tester.pump(const Duration(milliseconds: 600));
+    expect(find.text('Reading the book…'), findsOneWidget);
+
+    await tester.tap(find.descendant(of: find.byType(StoryMapAiPage), matching: find.text('Cancel')));
+    await tester.pump(const Duration(milliseconds: 600));
+    await tester.tap(find.text('Keep waiting'));
+    await tester.pump(const Duration(milliseconds: 600));
+    expect(find.text('Reading the book…'), findsOneWidget);
+
+    await tester.tap(find.descendant(of: find.byType(StoryMapAiPage), matching: find.text('Cancel')));
+    await tester.pump(const Duration(milliseconds: 600));
+    await tester.tap(find.text('Stop'));
+    await tester.pumpAndSettle();
+    expect(find.text('Select all'), findsOneWidget);
+    gate.complete(http.Response('', 401));
+    await tester.pumpAndSettle();
+    expect(find.text('The provider rejected the API key'), findsNothing); // the stopped run is ignored
+  });
+
+  testWidgets('Stop on Back leaves the page', (tester) async {
+    await provider();
+    final gate = Completer<http.Response>();
+    await _open(tester, http: () => MockClient((r) => gate.future));
+    await tester.tap(find.text('Send'));
+    await tester.pump(const Duration(milliseconds: 600));
+    await tester.pageBack();
+    await tester.pump(const Duration(milliseconds: 600));
+    await tester.tap(find.text('Stop'));
+    await tester.pumpAndSettle();
+    expect(find.byType(StoryMapAiPage), findsNothing);
+    gate.complete(http.Response('', 401));
+  });
+
+  testWidgets('a long book shows Request n of m while it runs', (tester) async {
+    await provider();
+    await _service.providerStore.save(const Provider(
+        id: 'p', name: 'P', vendor: LlmVendor.openai, model: 'm', apiKey: 'k', chunkChars: 2000));
+    final gate = Completer<http.Response>();
+    var n = 0;
+    await _open(tester, http: () => MockClient((r) => ++n == 1 ? Future.value(http.Response(
+        jsonEncode({'choices': [{'message': {'content': _answer}}]}), 200,
+        headers: {'content-type': 'application/json; charset=utf-8'})) : gate.future));
+    await tester.tap(find.text('Send'));
+    await tester.pump(const Duration(milliseconds: 600));
+    expect(find.textContaining(RegExp(r'Request \d+ of \d+')), findsOneWidget);
+    gate.complete(http.Response('', 401));
+    await tester.pumpAndSettle();
+  });
+
+  testWidgets('editing: Cancel and an empty name change nothing; a tie label can be edited', (tester) async {
+    await provider();
+    await _open(tester, http: () => _answering(_answer));
+    await tester.tap(find.text('Send'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Edit').first);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Cancel'));
+    await tester.pumpAndSettle();
+    expect(find.text('библиотека'), findsOneWidget);
+
+    await tester.tap(find.byTooltip('Edit').first);
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField).first, '');
+    await tester.tap(find.text('Save'));
+    await tester.pumpAndSettle();
+    expect(find.text('библиотека'), findsOneWidget); // an empty name is ignored
+
+    await tester.tap(find.text('Артур Рэйм — библиотека')); // tapping the row edits too
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Cancel'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('библиотека'));
+    await tester.pumpAndSettle();
+    expect(find.text('Edit proposal'), findsOneWidget);
+  });
+
+  testWidgets('a proposed piece of lore is labelled as one', (tester) async {
+    await provider();
+    await _open(tester, http: () => _answering('## entity\nname: библиотека\nkind: lore\nnote: Old.'));
+    await tester.tap(find.text('Send'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('Lore ·'), findsOneWidget);
+  });
+
+  testWidgets('a proposed event is labelled as one', (tester) async {
+    await provider();
+    await _open(tester, http: () => _answering('## entity\nname: библиотека\nkind: event\nnote: A party.'));
+    await tester.tap(find.text('Send'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('Event'), findsWidgets);
   });
 
   testWidgets('the story map menu opens it', (tester) async {

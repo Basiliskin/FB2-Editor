@@ -79,6 +79,44 @@ void main() {
     expect((c.start, c.end), (1, 2));
     c.selectAll();
     expect((c.start, c.end), (0, 2));
+    c.tapParagraph(1); // a middle one is dropped from the nearer end
+    expect((c.start, c.end), (2, 2));
+    c.tapParagraph(2); // the last one can go too
+    expect(c.noneSelected, isTrue);
+    expect(c.eligible, isEmpty);
+    c.tapParagraph(1);
+    expect((c.start, c.end), (1, 1));
+    c.selectAll();
+    expect(c.allSelected, isTrue);
+    c.clearSelection();
+    expect(c.noneSelected, isTrue);
+  });
+
+  test('tapping before the range widens it backwards; the nearer end is trimmed', () async {
+    section = Section({
+      'p': ['<p>a</p>', '<p>b</p>', '<p>c</p>', '<p>d</p>', '<p>e</p>'],
+      'sectionId': 's'
+    }, BinaryResources([]));
+    final c = make((_) => _ok(''));
+    await c.toggle(3);
+    c.tapParagraph(1);
+    expect((c.start, c.end), (1, 3));
+    c.selectAll();
+    c.tapParagraph(3); // nearer the end: everything from there on is dropped
+    expect((c.start, c.end), (0, 2));
+  });
+
+  test('reloading keeps the current provider, or falls back to the default, or the first', () async {
+    final c = make((_) => _ok(''));
+    await c.toggle(0);
+    await store.save(const Provider(id: 'q', name: 'Q', vendor: LlmVendor.openai, model: 'm', apiKey: 'k'));
+    c.selectProvider(c.providers.firstWhere((p) => p.id == 'p'));
+    await store.delete('p');
+    await c.reload();
+    expect(c.current?.id, 'q');
+    await store.delete('q');
+    await c.reload();
+    expect(c.current, isNull);
   });
 
   test('a good answer becomes suggestions that accept, then undo', () async {

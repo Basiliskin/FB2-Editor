@@ -8,6 +8,7 @@ import 'package:quill_fb2/services/llm/llm_client.dart';
 import 'package:quill_fb2/services/story_map_analyzer.dart' show plain;
 import 'package:quill_fb2/ui/widgets.dart';
 import 'package:quill_fb2/widgets/markdown_lite.dart';
+import 'package:quill_fb2/widgets/stop_run_dialog.dart';
 
 /// The text of every Section of [book] with text, numbered by its place in the book.
 List<AskSection> askSectionsOf(ProjectModel book) => [
@@ -17,6 +18,13 @@ List<AskSection> askSectionsOf(ProjectModel book) => [
             if (plain(book.section[i].editableText(p)).trim().isNotEmpty) plain(book.section[i].editableText(p)).trim()
         ])
     ];
+
+/// The language the model writes in: the book's own, else the app's.
+String bookLanguageOf(AppService s, ProjectModel book) {
+  final code = book.lang.trim();
+  if (code.isNotEmpty) return code;
+  return s.getSettings()['language'] == 'ru' ? 'ru' : 'en';
+}
 
 /// Summarise a range of Sections or ask the book a question. Read-only: the answer is
 /// shown, never applied.
@@ -45,7 +53,7 @@ class _AskPageState extends State<AskPage> {
   List<AskSection> _sentSections = const [];
   String? _error;
 
-  String get _language => _s.getSettings()['language'] == 'ru' ? 'ru' : 'en';
+  String get _language => bookLanguageOf(_s, widget.book);
 
   @override
   void initState() {
@@ -71,6 +79,9 @@ class _AskPageState extends State<AskPage> {
 
   List<AskSection> get _range => [for (final x in _all) if (x.number >= _from && x.number <= _to && x.paragraphs.isNotEmpty) x];
 
+  /// The plan the running request was started with; the live plan shrinks as Digests get cached.
+  AskPlan? _runPlan;
+
   AskPlan? get _plan {
     final p = _provider;
     if (p == null || _range.isEmpty) return null;
@@ -90,7 +101,7 @@ class _AskPageState extends State<AskPage> {
     final provider = _provider, plan = _plan;
     if (provider == null || plan == null) return;
     final sections = _range;
-    if (sections.length > 1 || !_s.providerStore.isConsented(provider.id)) {
+    if (plan.requests > 1 || sections.length > 1 || !_s.providerStore.isConsented(provider.id)) {
       final ok = await showDialog<bool>(
           context: context,
           builder: (ctx) => AlertDialog(
@@ -120,6 +131,7 @@ class _AskPageState extends State<AskPage> {
       _answer = null;
       _error = null;
       _sentSections = sections;
+      _runPlan = plan;
     });
     final client = _client = widget.httpFactory();
     try {
@@ -160,8 +172,17 @@ class _AskPageState extends State<AskPage> {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final t = Theme.of(context).textTheme;
-    final plan = _plan;
-    return Scaffold(
+    final plan = _busy ? _runPlan : _plan;
+    return PopScope(
+      canPop: !_busy,
+      onPopInvokedWithResult: (didPop, _) async {
+        if (didPop) return;
+        if (await confirmStopRun(context, _s) && mounted) {
+          _cancel();
+          Navigator.of(context).pop();
+        }
+      },
+      child: Scaffold(
       appBar: AppBar(title: Text(tr(_s, 'Ask about the book', 'Вопрос о книге'))),
       body: !_loaded
           ? const Center(child: CircularProgressIndicator())
@@ -247,7 +268,7 @@ class _AskPageState extends State<AskPage> {
                     ])),
               if (_answer != null) _result(_answer!, t, cs),
             ]),
-    );
+    ));
   }
 
   Widget _result(AskAnswer a, TextTheme t, ColorScheme cs) {
