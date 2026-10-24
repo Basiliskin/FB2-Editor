@@ -100,8 +100,8 @@ const helpTopics = <HelpTopic>[
       id: 'story-map',
       [
     (
-      'Open it with the Story map button (three linked dots) on the book screen; on a narrow screen it is in the ⋮ menu. The map is built automatically from your text: names that keep their capital letter inside a sentence become people, and it counts who appears in which section. Nothing leaves your device.',
-      'Откройте её кнопкой «Карта истории» (три связанные точки) на экране книги; на узком экране она в меню ⋮. Карта строится сама по вашему тексту: слова, которые остаются с заглавной буквы внутри предложения, становятся героями, и считается, кто в каких разделах встречается. Ничего не покидает ваше устройство.'
+      'Open it with the Story map button (three linked dots) on the book screen; on a narrow screen it is in the ⋮ menu. The map is built automatically from your text: names that keep their capital letter inside a sentence become people, and it counts who appears in which section. Nothing leaves your device unless you use "Improve with AI" (below).',
+      'Откройте её кнопкой «Карта истории» (три связанные точки) на экране книги; на узком экране она в меню ⋮. Карта строится сама по вашему тексту: слова, которые остаются с заглавной буквы внутри предложения, становятся героями, и считается, кто в каких разделах встречается. Ничего не покидает ваше устройство, если вы не пользуетесь «Улучшить с ИИ» (ниже).'
     ),
     (
       'Reading it: sections run down the side in book order; people, places, events and lore run across the top, in groups. A coloured cell means that item appears in that section, a darker one means more mentions. The book is split into three acts; tap an act\'s name to fold it.',
@@ -126,6 +126,10 @@ const helpTopics = <HelpTopic>[
     (
       'Check names (⋮ menu): finds names the book writes in more than one way, such as Ivan and Иван, Фёдор and Федор, or a rare slip like Артор next to Артур. It runs on your device and shows where each spelling stands. For unclear pairs you can tap "Ask AI": only short quotes around those names go to your AI provider, after you confirm. Nothing in the book is changed; "Dismiss" hides a finding for good.',
       'Проверить имена (меню ⋮): находит имена, которые в книге написаны по-разному, например Ivan и Иван, Фёдор и Федор или редкая опечатка вроде Артор рядом с Артур. Проверка идёт на вашем устройстве и показывает, где стоит каждое написание. Для неясных пар можно нажать «Спросить ИИ»: вашему ИИ-провайдеру уходят только короткие цитаты вокруг этих имён, после вашего подтверждения. Книга не меняется; «Скрыть» убирает находку насовсем.'
+    ),
+    (
+      'Improve with AI (⋮ menu): asks your AI provider to propose places, events and lore the map lacks, and labels for ties such as "brother of". The text of the book and the names on your map go to your provider, in as many requests as the size needs, after you confirm. Every proposal is checked against the text and shown for you to accept or reject; nothing reaches the map unless you accept it.',
+      'Улучшить с ИИ (меню ⋮): просит вашего ИИ-провайдера предложить места, события и мир, которых нет на карте, и подписи для связей, например «брат». Текст книги и имена с вашей карты уходят провайдеру, в нужном по размеру числе запросов, после вашего подтверждения. Каждое предложение сверяется с текстом и показывается вам; на карту ничего не попадает, пока вы не примете.',
     ),
     (
       'While editing, tap a cell to mark or unmark where something appears. A mark you make by hand counts as one mention.',

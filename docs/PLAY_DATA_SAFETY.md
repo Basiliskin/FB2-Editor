@@ -19,6 +19,7 @@ Answers come from the code. Items marked **CONFIRM** are things only the develop
 | The user's instruction or Preset | Same provider | Same | `improvement.dart` |
 | Paragraphs chosen for Translate, the end of the previous translation, names from the story map and the section title | The user's chosen provider | Only after the user picks a language and, above 3 requests (or on first use), confirms the dialog that shows the size | `lib/widgets/section_editor/improve_controller.dart` |
 | Short quotes (about a sentence each) around names the local names check could not decide, at most 40 pairs per run | The user's chosen provider | Only after the user taps Ask AI in Check names and confirms the dialog that shows the size | `lib/services/name_check_ai.dart`, `lib/pages/names_check_page.dart` |
+| The text of the book (in requests within the provider's chunk limit) and the names and tie pairs on the story map, to propose places, events, lore and tie labels | The user's chosen provider | Only after the user taps Improve with AI on the story map and confirms the dialog that shows the size | `lib/services/story_map_ai.dart`, `lib/pages/story_map_ai_page.dart` |
 | Text of the Sections the user chose in Ask about the book, and the user's question; for long ranges, each Section is sent once to be summarised | The user's chosen provider | Only after the user taps Summarise or Ask and confirms the dialog that shows the size and number of requests | `lib/services/book_ask.dart`, `lib/pages/ask_page.dart` |
 | Short summaries (Digests) of Sections made by the provider | Stored on the device in the workspace JSON, capped at 500; never sent anywhere else | n/a | `DigestStore` |
 | API key | Sent to the chosen provider as authentication. Stored on the device in Android Keystore-backed secure storage, never in the book, the workspace JSON or exports | On use | `key_vault.dart` |
@@ -35,7 +36,7 @@ user-initiated-transfer exemption is not relied on; over-declaring only lengthen
 
 | Data type | Collected | Shared | Ephemeral | Optional | Purpose |
 |---|---|---|---|---|---|
-| App activity: Other user-generated content (book text) | Yes | Yes | No | Yes, only if the user uses Improve, Translate, Ask AI in Check names or Ask about the book | App functionality (both) |
+| App activity: Other user-generated content (book text) | Yes | Yes | No | Yes, only if the user uses Improve, Translate, Ask AI in Check names, Improve with AI on the story map or Ask about the book | App functionality (both) |
 
 Deliberately not declared:
 - **Name**: the author in book metadata is book content, not the app user's name.
@@ -80,6 +81,10 @@ App activity > Other user-generated content, and "Data is encrypted in transit".
 > you tap "Ask AI" does the app send short quotes around names it could not decide about (a few
 > sentences per name, for at most 40 pairs) to your chosen provider, after you confirm what will be
 > sent. Nothing else from the book is sent.
+>
+> "Improve with AI" on the story map works the same way. Only if you tap it does the app send the text of
+> the book, in as many requests as its size needs, and the names on your map to your chosen provider, after you
+> confirm what will be sent. Nothing reaches the map unless you accept it.
 >
 > "Ask about the book" works the same way. When you summarise a range of sections or ask a question,
 > the app sends the text of the sections you chose to your provider, and your question, after you

@@ -15,7 +15,7 @@ _Avoid_: Block, chunk
 ## Story map
 
 **Story map**:
-A book's record of which Entities appear in which Section, and how they are tied together. People are found automatically from the text; everything else is added by hand. It is saved inside the FB2 file.
+A book's record of which Entities appear in which Section, and how they are tied together. People are found automatically from the text; everything else is added by hand or accepted from a Map proposal. It is saved inside the FB2 file.
 _Avoid_: Plot, outline, character sheet
 
 **Entity**:
@@ -87,6 +87,10 @@ _Avoid_: Response, output
 **Name variant**:
 One name written in more than one way in the book, such as Ivan and Иван, or Фёдор and Федор. It is the kind of Finding the names check reports. Whether two spellings are the same person is the user's call; the app only proposes it.
 _Avoid_: Typo, alias, duplicate
+
+**Map proposal**:
+One thing an Analysis of the Story map suggests: a place, event or piece of lore to add (with its mentions counted from the text), or a label for a Tie. It is dropped unless the book's text bears it out, and it reaches the map only when the user accepts it.
+_Avoid_: Suggestion (that is a rewrite of text), Finding
 
 **Digest**:
 A short summary of one Section, or of a part of a Section too long for one request, made by a Provider and kept on the device so the same text is never summarised twice. A long Analysis works from Digests instead of the full text.
