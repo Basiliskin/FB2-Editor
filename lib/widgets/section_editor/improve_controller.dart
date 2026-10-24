@@ -12,6 +12,7 @@ enum ImproveError {
   network,
   badResponse,
   rejected,
+  truncated,
   nothing,
   tooLarge
 }
@@ -156,7 +157,7 @@ class ImproveController extends ChangeNotifier {
     if (texts.isEmpty) return _fail(ImproveError.nothing);
     final List<List<int>> groups;
     try {
-      groups = ImprovementService.chunk(texts);
+      groups = ImprovementService.chunk(texts, provider.chunkChars);
     } on ImprovementException {
       return _fail(ImproveError.tooLarge);
     }
@@ -188,7 +189,8 @@ class ImproveController extends ChangeNotifier {
         chunk++;
         notifyListeners();
         final part = [for (final k in group) texts[k]];
-        final result = await service.improve(part, instruction, context);
+        final result = await service.improve(part, instruction, context,
+            limit: provider.chunkChars);
         if (mine != _run) return;
         // Suggestions show up as each part arrives, and survive a later failure.
         suggestions = {
@@ -210,7 +212,7 @@ class ImproveController extends ChangeNotifier {
       errorDetail = e.message;
     } on ImprovementException catch (e) {
       if (mine != _run) return;
-      error = ImproveError.rejected;
+      error = e.truncated ? ImproveError.truncated : ImproveError.rejected;
       errorDetail = e.message;
     } finally {
       client.close();

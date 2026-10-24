@@ -48,7 +48,8 @@ class ProviderStore {
               vendor: LlmVendor.values.byName(r['vendor']),
               model: r['model'],
               apiKey: await _vault.read(r['id']) ?? '',
-              baseUrl: r['baseUrl'])
+              baseUrl: r['baseUrl'],
+              chunkChars: r['chunkChars'] ?? defaultChunkChars)
       ];
 
   /// The Provider to use when the user does not pick one: the default, else the first.
@@ -66,6 +67,7 @@ class ProviderStore {
       'vendor': p.vendor.name,
       'model': p.model,
       if ((p.baseUrl ?? '').trim().isNotEmpty) 'baseUrl': p.baseUrl!.trim(),
+      if (p.chunkChars != defaultChunkChars) 'chunkChars': p.chunkChars,
     };
     final old = _rows.indexWhere((r) => r['id'] == p.id);
     if (old >= 0) {

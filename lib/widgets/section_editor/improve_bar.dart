@@ -25,6 +25,11 @@ String _errorText(AppService s, ImproveController c) {
     case ImproveError.rejected:
       return tr(s, 'The suggestion was discarded: $detail',
           'Предложение отброшено: $detail');
+    case ImproveError.truncated:
+      return tr(
+          s,
+          'The answer was cut off. Lower the chunk limit in the provider settings',
+          'Ответ оборвался. Уменьшите лимит фрагмента в настройках провайдера');
     case ImproveError.nothing:
       return tr(s, 'Nothing to change in the chosen paragraphs',
           'В выбранных абзацах нечего менять');

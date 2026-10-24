@@ -144,12 +144,45 @@ void main() {
   });
 
   test('a request over the size limit is refused before sending', () async {
-    section.p = ['<p>${'x' * 13000}</p>'];
+    section.p = ['<p>${'x' * (defaultChunkChars + 1000)}</p>'];
     final c = make((_) => _ok(''));
     await c.toggle(0);
     await c.ask('x', yes);
     expect(c.error, ImproveError.tooLarge);
     expect(sent, isEmpty);
+  });
+
+  test("the provider's chunk limit sets the request size", () async {
+    await store.save(const Provider(
+        id: 'p',
+        name: 'P',
+        vendor: LlmVendor.openai,
+        model: 'm',
+        apiKey: 'k',
+        chunkChars: 2000));
+    section.p = ['<p>${'x' * 1500}</p>', '<p>${'y' * 1500}</p>'];
+    final c = make((r) => _ok('[1] ok'));
+    await c.toggle(0);
+    c.selectAll();
+    await c.ask('x', yes);
+    expect(sent.length, 2);
+  });
+
+  test('a cut-off answer says so instead of blaming the paragraph count',
+      () async {
+    final c = make((_) => http.Response(
+        jsonEncode({
+          'choices': [
+            {
+              'message': {'content': '[1] ON'},
+              'finish_reason': 'length'
+            }
+          ]
+        }),
+        200));
+    await c.toggle(0);
+    await c.ask('x', yes);
+    expect(c.error, ImproveError.truncated);
   });
 
   test('cancel drops the late answer', () async {
@@ -187,8 +220,8 @@ void main() {
   });
 
   group('batching', () {
-    // three paragraphs of 7000 chars: three requests
-    setUp(() => section.p = [for (var i = 0; i < 3; i++) '<p>${'$i' * 7000}</p>']);
+    // three paragraphs of 13000 chars: no two fit together, so three requests
+    setUp(() => section.p = [for (var i = 0; i < 3; i++) '<p>${'$i' * 13000}</p>']);
 
     String upper(http.Request r) {
       final user = jsonDecode(r.body)['messages'][1]['content'] as String;

@@ -121,10 +121,12 @@ class _ProviderDialogState extends State<_ProviderDialog> {
       text: widget.existing?.model ?? _defaultModels[_vendor]);
   late final _key = TextEditingController(text: widget.existing?.apiKey ?? '');
   late final _url = TextEditingController(text: widget.existing?.baseUrl ?? '');
+  late final _chunk = TextEditingController(
+      text: '${widget.existing?.chunkChars ?? defaultChunkChars}');
 
   @override
   void dispose() {
-    for (final c in [_name, _model, _key, _url]) {
+    for (final c in [_name, _model, _key, _url, _chunk]) {
       c.dispose();
     }
     super.dispose();
@@ -140,7 +142,8 @@ class _ProviderDialogState extends State<_ProviderDialog> {
       vendor: _vendor,
       model: _model.text.trim(),
       apiKey: _key.text.trim(),
-      baseUrl: _url.text.trim());
+      baseUrl: _url.text.trim(),
+      chunkChars: _chunkChars ?? defaultChunkChars);
 
   Future<void> _test() async {
     setState(() {
@@ -171,7 +174,13 @@ class _ProviderDialogState extends State<_ProviderDialog> {
     });
   }
 
+  int? get _chunkChars {
+    final n = int.tryParse(_chunk.text.trim());
+    return n != null && n >= minChunkChars && n <= maxChunkChars ? n : null;
+  }
+
   bool get _valid =>
+      _chunkChars != null &&
       _name.text.trim().isNotEmpty &&
       _model.text.trim().isNotEmpty &&
       _key.text.trim().isNotEmpty;
@@ -217,6 +226,21 @@ class _ProviderDialogState extends State<_ProviderDialog> {
               decoration: InputDecoration(
                   labelText: tr(s, 'Base URL (optional)',
                       'Базовый URL (необязательно)'))),
+          TextField(
+              controller: _chunk,
+              keyboardType: TextInputType.number,
+              onChanged: (_) => setState(() {}),
+              decoration: InputDecoration(
+                  labelText: tr(s, 'Chunk limit (characters)',
+                      'Лимит фрагмента (символов)'),
+                  helperText: tr(
+                      s,
+                      'Most text sent in one request, $minChunkChars–$maxChunkChars',
+                      'Максимум текста в одном запросе, $minChunkChars–$maxChunkChars'),
+                  errorText: _chunkChars == null
+                      ? tr(s, 'Enter $minChunkChars–$maxChunkChars',
+                          'Введите $minChunkChars–$maxChunkChars')
+                      : null)),
           const SizedBox(height: 12),
           Row(children: [
             OutlinedButton.icon(
@@ -261,7 +285,8 @@ class _ProviderDialogState extends State<_ProviderDialog> {
                         vendor: _vendor,
                         model: _model.text.trim(),
                         apiKey: _key.text.trim(),
-                        baseUrl: _url.text.trim())),
+                        baseUrl: _url.text.trim(),
+                        chunkChars: _chunkChars!)),
             child: Text(tr(s, 'Save', 'Сохранить'))),
       ],
     );

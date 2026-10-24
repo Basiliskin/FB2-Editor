@@ -27,11 +27,16 @@ class OpenAiClient extends HttpLlmClient {
           {'role': 'system', 'content': r.system},
           {'role': 'user', 'content': r.user},
         ],
+        'max_completion_tokens': r.maxOutputTokens,
       };
 
   @override
   String? extractText(Map<String, dynamic> json) =>
       json['choices'][0]['message']['content'] as String?;
+
+  @override
+  bool wasTruncated(Map<String, dynamic> json) =>
+      json['choices'][0]['finish_reason'] == 'length';
 }
 
 class AnthropicClient extends HttpLlmClient {
@@ -51,7 +56,7 @@ class AnthropicClient extends HttpLlmClient {
   @override
   Map<String, dynamic> body(LlmRequest r) => {
         'model': provider.model,
-        'max_tokens': 4096,
+        'max_tokens': r.maxOutputTokens,
         'system': r.system,
         'messages': [
           {'role': 'user', 'content': r.user},
@@ -63,6 +68,10 @@ class AnthropicClient extends HttpLlmClient {
       .where((b) => b['type'] == 'text')
       .map((b) => b['text'] as String)
       .join();
+
+  @override
+  bool wasTruncated(Map<String, dynamic> json) =>
+      json['stop_reason'] == 'max_tokens';
 }
 
 class GeminiClient extends HttpLlmClient {
@@ -91,6 +100,7 @@ class GeminiClient extends HttpLlmClient {
             ]
           }
         ],
+        'generationConfig': {'maxOutputTokens': r.maxOutputTokens},
       };
 
   @override
@@ -98,6 +108,10 @@ class GeminiClient extends HttpLlmClient {
       (json['candidates'][0]['content']['parts'] as List)
           .map((p) => p['text'] as String)
           .join();
+
+  @override
+  bool wasTruncated(Map<String, dynamic> json) =>
+      json['candidates'][0]['finishReason'] == 'MAX_TOKENS';
 }
 
 /// Sends a one-word request to see whether [provider] is usable. Returns null

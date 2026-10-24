@@ -14,6 +14,9 @@ class Provider {
   /// Overrides the vendor's default endpoint (Ollama, OpenRouter, ...).
   final String? baseUrl;
 
+  /// Most characters of paragraph text sent in one request.
+  final int chunkChars;
+
   const Provider({
     required this.id,
     required this.name,
@@ -21,13 +24,44 @@ class Provider {
     required this.model,
     required this.apiKey,
     this.baseUrl,
+    this.chunkChars = defaultChunkChars,
   });
 }
+
+/// Default [Provider.chunkChars]; the form accepts [minChunkChars]..[maxChunkChars].
+const defaultChunkChars = 24000;
+const minChunkChars = 2000;
+const maxChunkChars = 200000;
+
+/// Most tokens we ask a model to write back; older models accept no more.
+const maxOutputTokensCap = 16384;
 
 class LlmRequest {
   final String system;
   final String user;
-  const LlmRequest({required this.system, required this.user});
+
+  /// Room the answer may take. Rewriting returns about as much text as it got.
+  final int maxOutputTokens;
+  const LlmRequest(
+      {required this.system, required this.user, this.maxOutputTokens = 1024});
+
+  /// A request whose answer budget follows the size of [user] (about two
+  /// characters per token, which holds for Cyrillic) plus a margin.
+  factory LlmRequest.sized(
+      {required String system, required String user, int inputChars = 0}) {
+    final tokens = (inputChars / 2).ceil() + 1024;
+    return LlmRequest(
+        system: system,
+        user: user,
+        maxOutputTokens: tokens > maxOutputTokensCap ? maxOutputTokensCap : tokens);
+  }
+}
+
+/// A model's answer, and whether it stopped because it ran out of room.
+class LlmResponse {
+  final String text;
+  final bool truncated;
+  const LlmResponse(this.text, {this.truncated = false});
 }
 
 enum LlmFailure { invalidKey, rateLimited, network, badResponse }
@@ -41,7 +75,7 @@ class LlmException implements Exception {
 }
 
 abstract class LlmClient {
-  Future<String> complete(LlmRequest request);
+  Future<LlmResponse> complete(LlmRequest request);
 }
 
 /// Shared HTTP plumbing: maps transport and status errors to [LlmException].
@@ -55,8 +89,11 @@ abstract class HttpLlmClient implements LlmClient {
   Map<String, dynamic> body(LlmRequest request);
   String? extractText(Map<String, dynamic> json);
 
+  /// Whether the answer in [json] was cut off at the output limit.
+  bool wasTruncated(Map<String, dynamic> json);
+
   @override
-  Future<String> complete(LlmRequest request) async {
+  Future<LlmResponse> complete(LlmRequest request) async {
     final http.Response res;
     try {
       res = await httpClient.post(endpoint(),
@@ -75,8 +112,11 @@ abstract class HttpLlmClient implements LlmClient {
       throw LlmException(LlmFailure.badResponse, 'HTTP ${res.statusCode}');
     }
     try {
-      final text = extractText(decodeJson(res.body));
-      if (text != null && text.isNotEmpty) return text;
+      final json = decodeJson(res.body);
+      final text = extractText(json);
+      if (text != null && text.isNotEmpty) {
+        return LlmResponse(text, truncated: wasTruncated(json));
+      }
     } catch (_) {}
     throw const LlmException(LlmFailure.badResponse, 'no text in response');
   }

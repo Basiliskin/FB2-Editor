@@ -35,15 +35,18 @@ const defaultPresets = [
 
 class ImprovementException implements Exception {
   final String message;
-  const ImprovementException(this.message);
+
+  /// The model ran out of room and the answer was cut off.
+  final bool truncated;
+  const ImprovementException(this.message, {this.truncated = false});
   @override
   String toString() => message;
 }
 
 /// Asks a [LlmClient] to rewrite paragraphs and checks the answer is safe to apply.
 class ImprovementService {
-  /// Largest request (characters of paragraph text) we send.
-  static const maxChars = 12000;
+  /// Largest request (characters of paragraph text) when no Provider sets one.
+  static const maxChars = defaultChunkChars;
 
   final LlmClient client;
   const ImprovementService(this.client);
@@ -51,19 +54,22 @@ class ImprovementService {
   static int estimateTokens(Iterable<String> texts) =>
       (texts.fold<int>(0, (n, t) => n + t.length) / 4).ceil();
 
-  static bool tooLarge(Iterable<String> texts) =>
-      texts.fold<int>(0, (n, t) => n + t.length) > maxChars;
+  static int _size(Iterable<String> texts) =>
+      texts.fold<int>(0, (n, t) => n + t.length);
 
-  /// Groups paragraph indexes so each request stays under [maxChars]. A single
+  static bool tooLarge(Iterable<String> texts, [int limit = maxChars]) =>
+      _size(texts) > limit;
+
+  /// Groups paragraph indexes so each request stays under [limit]. A single
   /// paragraph over the limit cannot be sent at all.
-  static List<List<int>> chunk(List<String> texts) {
+  static List<List<int>> chunk(List<String> texts, [int limit = maxChars]) {
     final groups = <List<int>>[];
     var current = <int>[];
     var size = 0;
     for (var i = 0; i < texts.length; i++) {
       final n = texts[i].length;
-      if (n > maxChars) throw const ImprovementException('too large');
-      if (size + n > maxChars && current.isNotEmpty) {
+      if (n > limit) throw const ImprovementException('too large');
+      if (size + n > limit && current.isNotEmpty) {
         groups.add(current);
         current = [];
         size = 0;
@@ -93,13 +99,32 @@ class ImprovementService {
       'Instruction: $instruction\n\n'
       '${[for (var i = 0; i < texts.length; i++) '[${i + 1}] ${texts[i]}'].join('\n')}';
 
-  Future<List<String>> improve(List<String> texts, String instruction,
-      ImprovementContext context) async {
+  /// Rewrites [texts]. A request over [limit] is refused; an answer that was
+  /// cut off is retried once as two halves.
+  Future<List<String>> improve(
+      List<String> texts, String instruction, ImprovementContext context,
+      {int limit = maxChars}) async {
     if (texts.isEmpty) throw const ImprovementException('nothing to improve');
-    if (tooLarge(texts)) throw const ImprovementException('too large');
-    final answer = await client.complete(LlmRequest(
-        system: systemPrompt(context), user: userPrompt(instruction, texts)));
-    return parse(answer, texts);
+    if (tooLarge(texts, limit)) throw const ImprovementException('too large');
+    return _ask(texts, instruction, context, canSplit: true);
+  }
+
+  Future<List<String>> _ask(
+      List<String> texts, String instruction, ImprovementContext context,
+      {required bool canSplit}) async {
+    final answer = await client.complete(LlmRequest.sized(
+        system: systemPrompt(context),
+        user: userPrompt(instruction, texts),
+        inputChars: _size(texts)));
+    if (!answer.truncated) return parse(answer.text, texts);
+    if (!canSplit || texts.length < 2) {
+      throw const ImprovementException('the answer was cut off', truncated: true);
+    }
+    final mid = texts.length ~/ 2;
+    return [
+      ...await _ask(texts.sublist(0, mid), instruction, context, canSplit: false),
+      ...await _ask(texts.sublist(mid), instruction, context, canSplit: false),
+    ];
   }
 
   /// Splits [answer] into one text per paragraph and rejects anything that

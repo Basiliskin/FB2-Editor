@@ -46,6 +46,21 @@ void main() {
     expect((await s.defaultProvider())!.id, '2');
   });
 
+  test('the chunk limit is saved, and an old row without one gets the default',
+      () async {
+    final s = store();
+    await s.save(const Provider(
+        id: 'a',
+        name: 'A',
+        vendor: LlmVendor.openai,
+        model: 'm',
+        apiKey: 'k',
+        chunkChars: 50000));
+    await s.save(_p('b'));
+    expect([for (final p in await s.list()) p.chunkChars], [50000, defaultChunkChars]);
+    expect((settings['llm-providers'] as List).last.containsKey('chunkChars'), isFalse);
+  });
+
   test('saving again updates in place', () async {
     final s = store();
     await s.save(_p('1'));
