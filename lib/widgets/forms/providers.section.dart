@@ -164,7 +164,9 @@ class _ProviderDialogState extends State<_ProviderDialog> {
         case LlmFailure.network:
           text = networkMessage(s, web: kIsWeb, baseUrl: _url.text);
         case LlmFailure.badResponse:
-          text = tr(s, 'Unexpected answer (${failure.message}): check the model and base URL',
+          text = tr(
+              s,
+              'Unexpected answer (${failure.message}): check the model and base URL',
               'Неожиданный ответ (${failure.message}): проверьте модель и URL');
       }
     }
@@ -192,6 +194,9 @@ class _ProviderDialogState extends State<_ProviderDialog> {
       title: Text(tr(s, 'AI provider', 'ИИ-провайдер')),
       content: SingleChildScrollView(
         child: Column(mainAxisSize: MainAxisSize.min, children: [
+          // Outlined labels float above their field, so the first one needs room
+          // and every field needs a gap or its label lands on the previous border.
+          const SizedBox(height: 8),
           DropdownButton<LlmVendor>(
             value: _vendor,
             isExpanded: true,
@@ -206,26 +211,31 @@ class _ProviderDialogState extends State<_ProviderDialog> {
               _vendor = v!;
             }),
           ),
+          const SizedBox(height: 16),
           TextField(
               controller: _name,
               onChanged: (_) => setState(() {}),
               decoration:
                   InputDecoration(labelText: tr(s, 'Name', 'Название'))),
+          const SizedBox(height: 16),
           TextField(
               controller: _model,
               onChanged: (_) => setState(() {}),
               decoration: InputDecoration(labelText: tr(s, 'Model', 'Модель'))),
+          const SizedBox(height: 16),
           TextField(
               controller: _key,
               obscureText: true,
               onChanged: (_) => setState(() {}),
               decoration:
                   InputDecoration(labelText: tr(s, 'API key', 'API-ключ'))),
+          const SizedBox(height: 16),
           TextField(
               controller: _url,
               decoration: InputDecoration(
                   labelText: tr(s, 'Base URL (optional)',
                       'Базовый URL (необязательно)'))),
+          const SizedBox(height: 16),
           TextField(
               controller: _chunk,
               keyboardType: TextInputType.number,
