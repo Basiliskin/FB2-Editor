@@ -171,7 +171,7 @@ class _ImproveBarState extends State<ImproveBar> {
                           child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                            if (_c.chunks > 1)
+                            if (_c.chunks > 1 && !_c.translating)
                               Text(tr(_s, 'Part ${_c.chunk} of ${_c.chunks}',
                                   'Часть ${_c.chunk} из ${_c.chunks}')),
                             const LinearProgressIndicator(),
@@ -196,6 +196,19 @@ class _ImproveBarState extends State<ImproveBar> {
                             onPressed: widget.onManageProviders,
                             child: Text(tr(_s, 'Edit provider', 'Провайдер'))),
                     ]),
+                  if (_c.translating)
+                    Align(
+                        alignment: Alignment.centerLeft,
+                        child: SingleChildScrollView(
+                            scrollDirection: Axis.horizontal,
+                            child: Row(children: [
+                              for (final part in _c.parts)
+                                Padding(
+                                    padding: const EdgeInsets.only(right: 6),
+                                    child: Chip(
+                                        avatar: _partIcon(part.status, cs),
+                                        label: Text('${part.number}'))),
+                            ]))),
                   if (_c.titleSuggestion != null)
                     Row(children: [
                       Expanded(
@@ -276,7 +289,9 @@ class _ImproveBarState extends State<ImproveBar> {
                           if (_c.suggestions.length > 1)
                             FilledButton(
                                 onPressed: () => _c.accept(_c.suggestions.keys.toList()),
-                                child: Text(tr(_s, 'Accept all', 'Принять все'))),
+                                child: Text(_c.translating
+                                    ? tr(_s, 'Accept ready', 'Принять готовое')
+                                    : tr(_s, 'Accept all', 'Принять все'))),
                         ])),
                     Row(children: [
                       const Icon(Icons.auto_awesome, size: 18),
@@ -519,5 +534,77 @@ class _TranslateDialogState extends State<_TranslateDialog> {
             child: Text(tr(s, 'Translate', 'Перевести'))),
       ],
     );
+  }
+}
+
+Widget _partIcon(PartStatus status, ColorScheme cs) => switch (status) {
+      PartStatus.ready => const Icon(Icons.check_circle, size: 16, color: Colors.green),
+      PartStatus.handled => Icon(Icons.done_all, size: 16, color: cs.outline),
+      PartStatus.failed => Icon(Icons.refresh, size: 16, color: cs.error),
+      PartStatus.running => const SizedBox(
+          width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2)),
+      PartStatus.waiting => Icon(Icons.hourglass_empty, size: 16, color: cs.outline),
+    };
+
+/// Header above the first paragraph of a translated part, with its own actions.
+class PartHeader extends StatelessWidget {
+  final AppService service;
+  final ImproveController controller;
+  final TranslationPart part;
+  const PartHeader(
+      {super.key,
+      required this.service,
+      required this.controller,
+      required this.part});
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final failed = part.status == PartStatus.failed;
+    return Container(
+      margin: const EdgeInsets.only(top: 8),
+      padding: const EdgeInsets.only(left: 8),
+      color: failed ? cs.errorContainer : cs.surfaceContainerHighest,
+      child: Row(children: [
+        Text(tr(service, 'Part ${part.number}', 'Часть ${part.number}'),
+            style: const TextStyle(fontWeight: FontWeight.w600)),
+        if (failed) Text('  ·  ${_errorText(service, controller)}'.split('\n').first),
+        const Spacer(),
+        if (failed && controller.canResume)
+          TextButton.icon(
+              icon: const Icon(Icons.refresh, size: 16),
+              onPressed: () => controller.resume(),
+              label: Text(tr(service, 'Retry', 'Повторить'))),
+        if (part.status == PartStatus.ready) ...[
+          TextButton(
+              onPressed: () => controller.rejectPart(part.number),
+              child: Text(tr(service, 'Reject', 'Отклонить'))),
+          FilledButton(
+              onPressed: () => controller.acceptPart(part.number),
+              child: Text(tr(service, 'Accept', 'Принять'))),
+        ],
+      ]),
+    );
+  }
+}
+
+/// A translated paragraph beside its original (two columns).
+class TranslationPair extends StatelessWidget {
+  final String before;
+  final String after;
+  final TextStyle style;
+  const TranslationPair(
+      {super.key, required this.before, required this.after, required this.style});
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 6),
+        child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Expanded(child: Text(before, style: style.copyWith(color: cs.outline))),
+          const SizedBox(width: 12),
+          Expanded(child: Text(after, style: style)),
+        ]));
   }
 }

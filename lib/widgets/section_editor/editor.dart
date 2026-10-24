@@ -654,11 +654,23 @@ class _SectionEditorState extends State<SectionEditor>
         final t = tile(context, i);
         if (i >= paragraphs.length) return t;
         final cs = Theme.of(context).colorScheme;
+        final part = _improve.parts
+            .where((p) => p.paragraphs.isNotEmpty && p.paragraphs.first == i)
+            .firstOrNull;
+        final pair = _improve.translating && _improve.suggestions.containsKey(i);
         return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-          _improve.inRange(i)
-              ? ColoredBox(color: cs.primaryContainer.withValues(alpha: .5), child: t)
-              : t,
-          if (_improve.suggestions.containsKey(i))
+          if (part != null && part.status != PartStatus.handled)
+            PartHeader(service: widget.service, controller: _improve, part: part),
+          if (pair)
+            TranslationPair(
+                before: _paragraphText(paragraphs[i]),
+                after: _improve.suggestions[i] ?? '',
+                style: TextStyle(fontSize: fontSize))
+          else
+            _improve.inRange(i)
+                ? ColoredBox(color: cs.primaryContainer.withValues(alpha: .5), child: t)
+                : t,
+          if (_improve.suggestions.containsKey(i) && !pair)
             SuggestionCard(
                 service: widget.service,
                 controller: _improve,

@@ -417,5 +417,51 @@ void main() {
       c.undo();
       expect(section.p[0], '<p>one</p>');
     });
+
+    test('parts follow the run: ready, failed, waiting, then handled', () async {
+      section.p = [for (var i = 0; i < 3; i++) '<p>${'$i' * 13000}</p>'];
+      var calls = 0;
+      final c = make((r) => ++calls == 2 ? http.Response('', 429) : _ok(echo(r)));
+      await c.toggle(0);
+      c.selectAll();
+      await c.translate('German', 'de', yes);
+      expect([for (final p in c.parts) p.status],
+          [PartStatus.ready, PartStatus.failed, PartStatus.waiting]);
+      c.acceptPart(1);
+      expect(section.p[0], startsWith('<p>T:'));
+      expect(c.parts.first.status, PartStatus.handled);
+      await c.resume();
+      c.rejectPart(2);
+      expect(c.parts[1].status, PartStatus.handled);
+      expect(c.parts[2].status, PartStatus.ready);
+    });
+
+    test('cancel drops the parts that never ran', () async {
+      section.p = [for (var i = 0; i < 3; i++) '<p>${'$i' * 13000}</p>'];
+      final gate = Completer<void>();
+      var calls = 0;
+      final c = ImproveController(
+          store: store,
+          section: section,
+          bookId: 'book',
+          bookInfo: () => (title: 'T', lang: 'en', genre: ''),
+          flush: () {},
+          afterApply: () {},
+          httpFactory: () => MockClient((r) async {
+                if (++calls == 2) await gate.future;
+                return _ok(echo(r));
+              }));
+      await c.toggle(0);
+      c.selectAll();
+      final pending = c.translate('German', 'de', yes);
+      while (calls < 2) {
+        await Future<void>.delayed(Duration.zero);
+      }
+      c.cancel();
+      gate.complete();
+      await pending;
+      expect(c.parts.length, 1);
+      expect(c.parts.single.status, PartStatus.ready);
+    });
   });
 }

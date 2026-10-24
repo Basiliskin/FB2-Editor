@@ -17,6 +17,12 @@ enum ImproveError {
   tooLarge
 }
 
+/// Where one Chunk of a translation stands.
+enum PartStatus { running, ready, failed, waiting, handled }
+
+/// One Chunk of a translation run: its paragraphs and its state.
+typedef TranslationPart = ({int number, PartStatus status, List<int> paragraphs});
+
 typedef BookInfo = ({String title, String lang, String genre});
 typedef ConfirmSend = Future<bool> Function(
     Provider provider, int paragraphs, int tokens, int requests);
@@ -78,6 +84,48 @@ class ImproveController extends ChangeNotifier {
   // What a stopped run still has to do, so [resume] can carry on after a failure.
   _Run? _stopped;
 
+  // The translation run on screen, for the per-part view.
+  _Run? _current;
+
+  /// The Chunks of the translation on screen, in order. Empty for other runs.
+  List<TranslationPart> get parts {
+    final run = _current;
+    if (run == null || run.translateCode == null) return const [];
+    return [
+      for (var i = 0; i < run.groups.length; i++)
+        (
+          number: i + 1,
+          paragraphs: [for (final k in run.groups[i]) run.indexes[k]],
+          status: i < run.done
+              ? (run.groups[i].any((k) => suggestions.containsKey(run.indexes[k]))
+                  ? PartStatus.ready
+                  : PartStatus.handled)
+              : i == run.done
+                  ? (busy
+                      ? PartStatus.running
+                      : _stopped != null
+                          ? PartStatus.failed
+                          : PartStatus.waiting)
+                  : PartStatus.waiting
+        )
+    ];
+  }
+
+  bool get translating => parts.isNotEmpty;
+
+  /// Accepts every pending Suggestion of one part.
+  void acceptPart(int number) {
+    final part = parts.firstWhere((p) => p.number == number);
+    accept(part.paragraphs);
+  }
+
+  void rejectPart(int number) {
+    final part = parts.firstWhere((p) => p.number == number);
+    suggestions = Map.of(suggestions)..removeWhere((k, _) => part.paragraphs.contains(k));
+    _finishTranslation();
+    notifyListeners();
+  }
+
   bool get canUndo => _undo.isNotEmpty;
 
   /// A failed or cancelled run can carry on from the Chunk where it stopped.
@@ -115,6 +163,7 @@ class ImproveController extends ChangeNotifier {
     cancel();
     open = false;
     _stopped = null;
+    _current = null;
     titleSuggestion = null;
     suggestions = {};
     error = null;
@@ -153,6 +202,7 @@ class ImproveController extends ChangeNotifier {
     suggestions = {};
     titleSuggestion = null;
     _stopped = null;
+    _current = null;
     error = null;
     if (i < start) {
       start = i;
@@ -168,6 +218,7 @@ class ImproveController extends ChangeNotifier {
     suggestions = {};
     titleSuggestion = null;
     _stopped = null;
+    _current = null;
     error = null;
     start = 0;
     end = section.p.isEmpty ? 0 : section.p.length - 1;
@@ -206,7 +257,7 @@ class ImproveController extends ChangeNotifier {
     _lastTranslation = null;
     suggestions = {};
     titleSuggestion = null;
-    await _go(_Run(
+    await _go(_current = _Run(
         provider: provider,
         instruction: instruction,
         indexes: indexes,
@@ -321,6 +372,11 @@ class ImproveController extends ChangeNotifier {
     _client?.close();
     busy = false;
     chunks = chunk = 0;
+    // parts that never ran are gone; what arrived stays to be reviewed
+    final run = _current;
+    if (run != null && run.done < run.groups.length) {
+      run.groups.removeRange(run.done, run.groups.length);
+    }
     notifyListeners();
   }
 
