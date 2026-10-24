@@ -1,21 +1,61 @@
-MIT License
+FB2 Editor Source-Available License
 
-Copyright (c) 2026 Dimitry Katz
+Copyright (c) 2026 Dimitry Katz. All rights reserved.
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+The source code of FB2 Editor (the "Software") is published so that anyone can
+read it, verify what the app does, build it for themselves and suggest changes.
+It is not open-source software and is not licensed under the MIT License as of
+the date above. Earlier versions of the Software that were distributed under
+the MIT License remain available under that license.
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+1. Permitted uses
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+   You may, free of charge:
+
+   a. view, download and study the source code;
+   b. compile and run the Software on devices you own or control, for your own
+      personal, non-commercial use;
+   c. modify the Software for the purposes in (b);
+   d. submit changes back to the author (for example as a pull request). By
+      doing so you grant the author a perpetual, worldwide, royalty-free licence
+      to use, modify, relicense and distribute your contribution as part of
+      the Software.
+
+2. Prohibited uses
+
+   Without the prior written permission of the copyright holder, you may not:
+
+   a. distribute, publish or make available the Software, or any modified or
+      rebranded version of it, in source or binary form, to anyone else;
+   b. publish the Software, or any application derived from it, on Google
+      Play, the Apple App Store or any other app store, website or download
+      service;
+   c. sell, sublicense, rent or lease the Software, or use it to provide a
+      paid or commercial service;
+   d. remove or alter this licence, the copyright notice or the app's name.
+
+   Forking the repository on GitHub for the purposes of section 1 is allowed.
+
+3. Trademarks
+
+   "FB2 Editor" and the application logo are used to identify the author's
+   application. This licence grants no right to use them for any other
+   application.
+
+4. Permission requests
+
+   To ask for permission to redistribute or publish the Software, or for any
+   other use not covered above, write to dima.icmega@gmail.com.
+
+5. No warranty
+
+   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+   IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+   FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+   AUTHOR BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN
+   ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+   WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+6. Termination
+
+   Your rights under this licence end automatically if you breach it.

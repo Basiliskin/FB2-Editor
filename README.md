@@ -2,7 +2,7 @@
   <img src="images/logo.png" alt="FB2 Editor" width="160"/>
   <h1>FB2 Editor</h1>
   <p>
-    <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="MIT License"/></a>
+    <a href="LICENSE"><img src="https://img.shields.io/badge/license-source--available-blue.svg" alt="Source-available license"/></a>
     <img src="https://img.shields.io/badge/version-1.0.4-blue.svg" alt="Version 1.0.4"/>
     <a href="https://play.google.com/store/apps/details?id=com.caragulak.fb2editor"><img src="https://img.shields.io/badge/Google%20Play-get%20it%20on-green.svg" alt="Get it on Google Play"/></a>
     <a href="https://fb2-editor.surge.sh"><img src="https://img.shields.io/badge/web%20demo-try%20it%20online-8A2BE2.svg" alt="Web demo"/></a>
@@ -109,4 +109,8 @@ you think.
 
 ## License
 
-FB2 Editor is licensed under the [MIT License](LICENSE).
+FB2 Editor is **source-available**, not open source. You are welcome to read the code, build it for
+yourself and send pull requests. Publishing the app, or anything derived from it, on Google Play or
+anywhere else requires my written permission. See [LICENSE](LICENSE) for the exact terms.
+
+Versions published before this change remain under the MIT License they were released with.
