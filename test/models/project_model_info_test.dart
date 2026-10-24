@@ -109,6 +109,14 @@ void main() {
       expect([m.id, m.lang], ['doc-1', 'en']);
     });
 
+    test('list fields the form has not built yet keep their values', () async {
+      final m = await _model();
+      final before = [m.genre, m.sequence, m.annotation];
+      m.updateInfo({..._values(), 'genre': null, 'sequence': null, 'annotation': null});
+      expect([m.genre, m.sequence, m.annotation], before);
+      expect(m.bookTitle, 'New title');
+    });
+
     test('values with markup characters are escaped', () async {
       final m = (await _model())
         ..updateInfo({..._values(), 'bookKeywords': 'a<b & c', 'bookId': 'x&y'});

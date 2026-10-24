@@ -455,9 +455,10 @@ class ProjectModel {
       coverpage.href = "#${json["id"]}";
       binaryResource.add(json);
     }
-    genre = [..._genre.items];
-    sequence = [..._sequence.items];
-    annotation = [..._annotation.items];
+    // a list field the form has not built yet (scrolled off) is missing; keep it
+    if (_genre != null) genre = [..._genre.items];
+    if (_sequence != null) sequence = [..._sequence.items];
+    if (_annotation != null) annotation = [..._annotation.items];
     print(annotation);
     bookTitle = _bookTitle;
     author.load({

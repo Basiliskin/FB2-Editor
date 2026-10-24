@@ -45,16 +45,18 @@ class _BookComponentState extends State<BookComponent> {
     setState(() {
       isLoading = true;
     });
-    widget.book.updateInfo(values);
-    await widget.service.saveProject(widget.book);
-    if (!mounted) return;
-    final snackBar = SnackBar(
-        content: Text(
-            '${widget.book.bookTitle}: ${widget.service.translate(LangTranslateItems.messageSavedInApp)}'));
-    ScaffoldMessenger.of(context).showSnackBar(snackBar);
-    setState(() {
-      isLoading = false;
-    });
+    try {
+      widget.book.updateInfo(values);
+      await widget.service.saveProject(widget.book);
+      if (!mounted) return;
+      final snackBar = SnackBar(
+          content: Text(
+              '${widget.book.bookTitle}: ${widget.service.translate(LangTranslateItems.messageSavedInApp)}'));
+      ScaffoldMessenger.of(context).showSnackBar(snackBar);
+    } finally {
+      // never leave the spinner up, even when saving fails
+      if (mounted) setState(() => isLoading = false);
+    }
   }
 
   _saved(
