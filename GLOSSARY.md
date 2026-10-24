@@ -37,7 +37,7 @@ _Avoid_: Part, volume
 ## AI assistance
 
 **Provider**:
-A user-defined connection to an LLM service: a vendor type (Gemini, OpenAI or Anthropic), an API key, a model name and an optional custom base URL. A user may save several; one is the default.
+A user-defined connection to an LLM service: a vendor type (Gemini, OpenAI or Anthropic), an API key, a model name, an optional custom base URL and a Chunk limit. A user may save several; one is the default.
 _Avoid_: Account, backend, integration
 
 **Improvement**:
@@ -55,3 +55,27 @@ _Avoid_: Persona, system prompt
 **Suggestion**:
 The Provider's proposed replacement text, shown before and after the original. It changes the book only when the user accepts it.
 _Avoid_: Result, output, patch
+
+**Chunk**:
+A group of consecutive paragraphs from one Section sent to a Provider in a single request. A whole-Section Improvement is split into several Chunks.
+_Avoid_: Batch, page
+
+**Chunk limit**:
+The most text a Provider is sent in one Chunk. Each Provider has its own, with a default for its vendor that the user can change.
+_Avoid_: Context window, max tokens
+
+**Review queue**:
+The Suggestions from a whole-Section Improvement, one per Chunk, waiting for the user to accept or reject each. A Chunk that failed stays in the queue marked for retry. It is not kept if the app is closed.
+_Avoid_: Inbox, backlog
+
+**Analysis**:
+A read-only request to a Provider about the book's text, such as a consistency check, a summary or a question. It never changes the book. Its result is Findings or an Answer.
+_Avoid_: Query, scan, AI action
+
+**Finding**:
+One problem an Analysis reports, such as a name spelled two ways, with links to the Sections and paragraphs where it occurs. It can hand a fix to an Improvement, which then goes through the Review queue.
+_Avoid_: Issue, error, warning
+
+**Answer**:
+The text an Analysis returns for a question or summary. It is shown, not applied.
+_Avoid_: Response, output

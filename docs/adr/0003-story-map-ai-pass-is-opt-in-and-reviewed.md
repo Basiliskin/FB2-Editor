@@ -1,0 +1,5 @@
+# The story map may get an opt-in AI pass; the local heuristic stays the default
+
+Amends [0002](0002-story-map-saved-inside-the-fb2.md). The Story map is still built from the text on the device and works offline. On top of it the user can run an "Improve with AI" pass that sends Sections to their Provider and returns proposals: places, events and lore to add, People to merge (nicknames, titles, a surname shared by two first names) and labels for Ties. Each proposal is accepted or rejected one by one, like a Suggestion, so nothing reaches the map unreviewed. Nothing is sent until the user starts the pass and confirms the size shown.
+
+We kept 0002's rejection of a Provider-built map as the default because the first open must stay offline, fast and free. We rejected replacing the heuristic outright because the user's own API credit and book text would then be spent just to open a book. The cost is a second path to maintain and a prompt that must return the same map shape the editor already saves.
