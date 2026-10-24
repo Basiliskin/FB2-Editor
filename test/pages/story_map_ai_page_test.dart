@@ -92,7 +92,6 @@ void main() {
     expect(find.text('библиотека'), findsOneWidget);
     expect(find.text('Атлантида'), findsNothing);
     expect(find.text('Артур Рэйм — библиотека'), findsOneWidget);
-    expect(find.textContaining('add both names first'), findsOneWidget);
 
     final before = map.cast.length;
     await tester.tap(find.byTooltip('Accept').first); // the entity
@@ -100,7 +99,6 @@ void main() {
     expect(map.cast.length, before + 1);
     expect(map.cast.last.kind, EntityKind.place);
     expect(_changes, 1);
-    expect(find.textContaining('add both names first'), findsNothing);
 
     await tester.tap(find.byTooltip('Accept').first); // the tie, now resolvable
     await tester.pumpAndSettle();
@@ -119,6 +117,55 @@ void main() {
     expect(find.text('библиотека'), findsNothing);
     expect(map.cast.length, before);
     expect(_changes, 0);
+  });
+
+  testWidgets('accepting a tie also adds the place it names', (tester) async {
+    await provider();
+    final (_, map) = await _open(tester, http: () => _answering(_answer));
+    await tester.tap(find.text('Send'));
+    await tester.pumpAndSettle();
+    final before = map.cast.length;
+    await tester.tap(find.byTooltip('Accept').at(1)); // the tie under the place
+    await tester.pumpAndSettle();
+    expect(map.cast.length, before + 1);
+    expect(map.tieBetween(0, map.cast.length - 1)!.label, 'works at');
+    expect(find.text('библиотека'), findsNothing);
+  });
+
+  testWidgets('rejecting a place takes its ties along', (tester) async {
+    await provider();
+    await _open(tester, http: () => _answering(_answer));
+    await tester.tap(find.text('Send'));
+    await tester.pumpAndSettle();
+    expect(find.text('Артур Рэйм — библиотека'), findsOneWidget);
+    await tester.tap(find.byTooltip('Reject').first);
+    await tester.pumpAndSettle();
+    expect(find.text('Артур Рэйм — библиотека'), findsNothing);
+    expect(find.text('Nothing more to propose.'), findsOneWidget);
+  });
+
+  testWidgets('filter chips narrow the list, and Accept all applies only to what shows', (tester) async {
+    await provider();
+    const two = '## entity\nname: библиотека\nkind: place\nnote: Books.\n\n'
+        '## entity\nname: гостиная\nkind: event\nnote: A party.\n\n'
+        '## tie\na: Артур Рэйм\nb: библиотека\nlabel: works at';
+    final (_, map) = await _open(tester, http: () => _answering(two));
+    await tester.tap(find.text('Send'));
+    await tester.pumpAndSettle();
+    expect(find.text('Accept all (3)'), findsOneWidget);
+    await tester.tap(find.text('Events 1'));
+    await tester.pumpAndSettle();
+    expect(find.text('гостиная'), findsNothing);
+    expect(find.text('Accept all (2)'), findsOneWidget);
+    await tester.tap(find.text('Ties 1'));
+    await tester.pumpAndSettle();
+    expect(find.text('Артур Рэйм — библиотека'), findsNothing);
+    expect(find.text('Accept all (1)'), findsNothing); // a single row has its own ✓
+    await tester.tap(find.byTooltip('Accept').first);
+    await tester.pumpAndSettle();
+    expect(map.cast.any((e) => e.name == 'библиотека'), isTrue);
+    expect(map.cast.any((e) => e.name == 'гостиная'), isFalse); // filtered out, so left alone
+    expect(map.ties.any((t) => t.label == 'works at'), isFalse);
   });
 
   testWidgets('Accept all adds the entity and then labels the tie', (tester) async {
