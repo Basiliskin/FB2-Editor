@@ -122,6 +122,28 @@ class _SectionEditorState extends State<SectionEditor>
     super.initState();
     currentIndex = 0;
     _improve.addListener(_onImprove);
+    _takeSnapshot();
+  }
+
+  // the section and pictures as they were when the editor opened, for "Don't save"
+  late String _savedTitle;
+  late List<String> _savedP;
+  late List<String> _savedImages;
+  late List<Resource> _savedResources;
+
+  void _takeSnapshot() {
+    _savedTitle = widget.section.title;
+    _savedP = List.of(widget.section.p);
+    _savedImages = List.of(widget.section.images);
+    _savedResources = List.of(widget.book.binaryResource.resources);
+  }
+
+  void _restoreSnapshot() {
+    widget.section
+      ..title = _savedTitle
+      ..p = List.of(_savedP)
+      ..images = List.of(_savedImages);
+    widget.book.binaryResource.resources = List.of(_savedResources);
   }
 
   /// Editable text of one stored paragraph (inline markup shows as its own lines).
@@ -604,7 +626,9 @@ class _SectionEditorState extends State<SectionEditor>
 
   _navigateBack(BuildContext context) async {
     _flushActive();
-    if (await confirmLeave(context, widget.service, widget.book) && mounted) {
+    if (await confirmLeave(context, widget.service, widget.book,
+            onDiscard: _restoreSnapshot) &&
+        mounted) {
       Navigator.of(context).pop();
     }
   }

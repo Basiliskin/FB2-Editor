@@ -105,7 +105,11 @@ class AppService {
     final path = await _localPath;
     String currentProjectPath = '$path/${model.projectId}$BOOK_EXT';
     final params = SaveFileDialogParams(
-        sourceFilePath: currentProjectPath, fileName: model.exportFileName);
+        sourceFilePath: currentProjectPath,
+        fileName: model.exportFileName,
+        // Android does not know .fb2, so a repeated name still gets " (1)" after
+        // the extension; the type at least labels the file for other apps
+        mimeTypesFilter: ['application/x-fictionbook+xml']);
     return FlutterFileDialog.saveFile(params: params);
   }
 
@@ -122,7 +126,11 @@ class AppService {
     final file = File('${await _localPath}/${model.projectId}.txt');
     await file.writeAsString(text);
     return FlutterFileDialog.saveFile(
-        params: SaveFileDialogParams(sourceFilePath: file.path, fileName: name));
+        params: SaveFileDialogParams(
+            sourceFilePath: file.path,
+            fileName: name,
+            // with a known type a repeated name becomes "name (1).txt"
+            mimeTypesFilter: ['text/plain']));
   }
 
   /// Saves the book as an .epub file wherever the user chooses (a download on
@@ -139,7 +147,10 @@ class AppService {
     final file = File('${await _localPath}/${model.projectId}.epub');
     await file.writeAsBytes(bytes);
     return FlutterFileDialog.saveFile(
-        params: SaveFileDialogParams(sourceFilePath: file.path, fileName: name));
+        params: SaveFileDialogParams(
+            sourceFilePath: file.path,
+            fileName: name,
+            mimeTypesFilter: ['application/epub+zip']));
   }
 
   // fingerprint of each book as last written to the app, to detect unsaved edits

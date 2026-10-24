@@ -129,12 +129,27 @@ void main() {
     expect(service.saves, 1);
   });
 
-  testWidgets('swipe to dismiss removes the section', (tester) async {
+  testWidgets('swipe to dismiss asks, then removes the section', (tester) async {
     await pump(tester);
     await tester.fling(
         find.text('2 paragraphs').first, const Offset(700, 0), 2000);
     await tester.pumpAndSettle();
+    expect(find.text('Delete section?'), findsOneWidget);
+    await tester.tap(find.text('Delete'));
+    await tester.pumpAndSettle();
     expect(book.section.length, 2);
+  });
+
+  testWidgets('cancelling the swipe keeps the section', (tester) async {
+    await pump(tester);
+    final before = book.section.length;
+    await tester.fling(
+        find.text('2 paragraphs').first, const Offset(700, 0), 2000);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Cancel'));
+    await tester.pumpAndSettle();
+    expect(book.section.length, before);
+    expect(find.text('2 paragraphs'), findsWidgets);
   });
 
   testWidgets('edit button opens the editor and returns', (tester) async {

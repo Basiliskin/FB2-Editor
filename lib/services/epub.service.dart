@@ -439,9 +439,13 @@ Uint8List projectToEpub(ProjectModel book) {
     try {
       final bytes = decode64Image(r.data);
       final sniffed = sniffImageType(bytes);
-      final type = r.contentType.startsWith('image/') && r.contentType != 'image/jpg'
-          ? r.contentType
-          : sniffed.contentType;
+      // the bytes win over the declared type: books often call a PNG image/jpeg.
+      // Only when the bytes are not a known format (sniff falls back to jpeg)
+      // is a declared type such as image/svg+xml kept.
+      final known = sniffed.contentType != 'image/jpeg' || _isJpeg(bytes);
+      final type = known || !r.contentType.startsWith('image/') || r.contentType == 'image/jpg'
+          ? sniffed.contentType
+          : r.contentType;
       final base = r.id.replaceAll(RegExp(r'[^A-Za-z0-9._-]'), '_');
       final ext = sniffed.ext;
       final name = base.toLowerCase().endsWith('.$ext') ? base : '$base.$ext';
@@ -724,3 +728,5 @@ class _Fb2ToXhtml {
     }
   }
 }
+
+bool _isJpeg(List<int> b) => b.length > 2 && b[0] == 0xFF && b[1] == 0xD8 && b[2] == 0xFF;

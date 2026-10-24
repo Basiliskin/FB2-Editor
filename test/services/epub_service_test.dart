@@ -108,6 +108,15 @@ void main() {
       expect(opf, contains('properties="cover-image"'));
     });
 
+    test('declares a picture by its bytes, not by a wrong content-type', () async {
+      final xml = newBookXml('Book', '').replaceFirst('</FictionBook>',
+          '<binary id="pic.jpg" content-type="image/jpeg">$_png</binary></FictionBook>');
+      final book = await _model(xml);
+      final zip = ZipDecoder().decodeBytes(projectToEpub(book));
+      final opf = utf8.decode(zip.findFile('OEBPS/content.opf')!.content as List<int>);
+      expect(opf, contains('href="images/pic.jpg.png" media-type="image/png"'));
+    });
+
     test('keeps text, formatting and footnote links through a round trip', () async {
       final fb2 = '''<?xml version="1.0" encoding="UTF-8"?>
 <FictionBook xmlns="http://www.gribuser.ru/xml/fictionbook/2.0" xmlns:l="http://www.w3.org/1999/xlink">

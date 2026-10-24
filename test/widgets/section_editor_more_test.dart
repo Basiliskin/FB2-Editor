@@ -301,6 +301,9 @@ void main() {
       await tester.pumpAndSettle();
       expect(service.saves, 0);
       expect(find.byType(SectionEditor), findsNothing);
+      // the edit is dropped, so the book no longer counts as changed
+      expect(section.p[1], isNot(contains('Ypara')));
+      expect(service.hasUnsavedChanges(book), isFalse);
     });
 
     testWidgets('Cancel stays in the editor', (tester) async {

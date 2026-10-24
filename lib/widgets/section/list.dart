@@ -5,6 +5,7 @@ import 'package:quill_fb2/models/project.model.dart';
 import 'package:quill_fb2/models/section.model.dart';
 import 'package:quill_fb2/services/app.service.dart';
 import 'package:quill_fb2/utils/common.dart';
+import 'package:quill_fb2/utils/consts.dart';
 import 'package:quill_fb2/widgets/section_editor/editor.dart';
 import 'package:quill_fb2/ui/widgets.dart';
 
@@ -95,6 +96,27 @@ class _SectionListState extends State<SectionList> with WidgetsBindingObserver {
     // widget.service.saveProject(widget.book);
   }
 
+  // a swipe while scrolling must not silently remove a whole chapter
+  Future<bool> _confirmDelete(Section item) async {
+    final name = trimSpecialChar(item.title, ' ').trim();
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(tr(widget.service, 'Delete section?', 'Удалить раздел?')),
+        content: name.isEmpty ? null : Text(name),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: Text('${widget.service.translate(LangTranslateItems.buttonCancel)}')),
+          FilledButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: Text(tr(widget.service, 'Delete', 'Удалить'))),
+        ],
+      ),
+    );
+    return ok ?? false;
+  }
+
   Widget _tile(Section item, int index) {
     final t = Theme.of(context);
     final marked = _isDeleted.containsKey(item.sectionId);
@@ -118,6 +140,7 @@ class _SectionListState extends State<SectionList> with WidgetsBindingObserver {
 
     return Dismissible(
       key: Key(item.sectionId),
+      confirmDismiss: (_) => _confirmDelete(item),
       onDismissed: (direction) => setState(() => items.removeAt(index)),
       background: Container(
           margin: const EdgeInsets.only(bottom: 8),

@@ -6,8 +6,10 @@ import 'package:quill_fb2/utils/consts.dart';
 
 /// Called before leaving a screen that edits [book]. Saves silently when
 /// auto-save is on, otherwise asks. Returns false when the user chose to stay.
+/// [onDiscard] runs when the user chose not to save, to undo the edits in memory.
 Future<bool> confirmLeave(
-    BuildContext context, AppService service, ProjectModel book) async {
+    BuildContext context, AppService service, ProjectModel book,
+    {VoidCallback? onDiscard}) async {
   final autoSave = stringToBool(service.getSettings()["auto-save"]) ?? false;
   if (autoSave) {
     await service.saveProject(book);
@@ -33,7 +35,11 @@ Future<bool> confirmLeave(
     ),
   );
   if (choice == null) return false; // dismissed or Cancel: stay
-  if (choice) await service.saveProject(book);
+  if (choice) {
+    await service.saveProject(book);
+  } else {
+    onDiscard?.call();
+  }
   return true;
 }
 
