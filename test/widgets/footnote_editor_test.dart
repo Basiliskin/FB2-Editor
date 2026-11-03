@@ -42,8 +42,10 @@ void main() {
   QuillController controller(WidgetTester tester) =>
       tester.widget<QuillEditor>(find.byType(QuillEditor)).controller;
 
+  /// Taps the closed paragraph showing [text]; its note labels are set apart
+  /// by thin spaces.
   Future<void> activate(WidgetTester tester, String text) async {
-    await tester.tap(find.text(text));
+    await tester.tap(find.text(text.replaceAll('[1]', '\u2009[1]\u2009')));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 200));
   }
@@ -136,7 +138,7 @@ void main() {
 
   testWidgets('a link that is not a footnote shows as a chip but opens nothing', (tester) async {
     await pump(tester, ['<p>see<a l:href="#ch2">here</a></p>']);
-    await activate(tester, 'seehere');
+    await activate(tester, 'see\u2009here\u2009');
     controller(tester).updateSelection(const TextSelection.collapsed(offset: 4), ChangeSource.local);
     await tapFootnote(tester);
     expect(find.byType(AlertDialog), findsNothing);

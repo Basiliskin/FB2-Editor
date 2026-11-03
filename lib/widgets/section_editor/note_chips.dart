@@ -38,9 +38,25 @@ String serializeNotes(Document doc) {
   return out.toString().replaceFirst(RegExp(r'\n$'), '');
 }
 
-/// [text] with every in-book link shown as just its label, for paragraphs
-/// that are not open.
-String showNoteLabels(String text) => text.replaceAllMapped(_linkTag, (m) => m.group(1)!);
+/// [text] as spans for a paragraph that is not open: plain text in [style],
+/// each in-book link as its label, highlighted like a chip and set apart from
+/// the words around it.
+List<InlineSpan> noteLabelSpans(String text, TextStyle style, ColorScheme cs) {
+  final spans = <InlineSpan>[];
+  var at = 0;
+  for (final m in _linkTag.allMatches(text)) {
+    if (m.start > at) spans.add(TextSpan(text: text.substring(at, m.start)));
+    spans.add(TextSpan(
+        text: '\u2009${noteChipLabel(m.group(0)!)}\u2009',
+        style: style.copyWith(
+            color: cs.onPrimaryContainer,
+            backgroundColor: cs.primaryContainer,
+            fontSize: (style.fontSize ?? 14) * 0.85)));
+    at = m.end;
+  }
+  if (at < text.length) spans.add(TextSpan(text: text.substring(at)));
+  return spans;
+}
 
 /// The id a chip's XML points at.
 String noteChipId(String xml) => _idOf.firstMatch(xml)?.group(1) ?? '';

@@ -705,13 +705,14 @@ class _SectionEditorState extends State<SectionEditor>
             padding: const EdgeInsets.symmetric(vertical: 4),
             child: SizedBox(
                 width: double.infinity,
-                child: BaseText.Text(
-                    paragraphs[i].startsWith('<poem')
-                        ? widget.section.displayText(paragraphs[i])
-                        : showNoteLabels(_paragraphText(paragraphs[i])),
-                    style: paragraphs[i].startsWith('<poem')
-                        ? style.copyWith(fontStyle: FontStyle.italic)
-                        : style)),
+                child: paragraphs[i].startsWith('<poem')
+                    ? BaseText.Text(widget.section.displayText(paragraphs[i]),
+                        style: style.copyWith(fontStyle: FontStyle.italic))
+                    : BaseText.Text.rich(
+                        TextSpan(
+                            children: noteLabelSpans(_paragraphText(paragraphs[i]), style,
+                                Theme.of(context).colorScheme)),
+                        style: style)),
           ),
         );
     }
