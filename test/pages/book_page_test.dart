@@ -328,6 +328,25 @@ void main() {
     expect(find.textContaining('Created'), findsNothing);
   });
 
+  testWidgets('tapping outside or Back closes the name prompt', (tester) async {
+    await pump(tester);
+    await openSectionsTab(tester);
+    final before = book.section.length;
+    await tester.tap(find.text('New section'));
+    await tester.pumpAndSettle();
+    expect(find.byType(AlertDialog), findsOneWidget);
+    await tester.tapAt(const Offset(5, 5));
+    await tester.pumpAndSettle();
+    expect(find.byType(AlertDialog), findsNothing);
+
+    await tester.tap(find.text('New section'));
+    await tester.pumpAndSettle();
+    await tester.binding.handlePopRoute();
+    await tester.pumpAndSettle();
+    expect(find.byType(AlertDialog), findsNothing);
+    expect(book.section.length, before);
+  });
+
   testWidgets('selected sections are deleted with the FAB', (tester) async {
     await pump(tester);
     await openSectionsTab(tester);

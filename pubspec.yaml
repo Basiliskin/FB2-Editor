@@ -47,7 +47,7 @@ dependencies:
   # easy_form_kit: ^1.0.9
   flutter_file_dialog: ^3.3.3
   # bubble_bottom_bar: ^1.2.0
-  prompt_dialog: ^1.0.0
+  prompt_dialog: ^1.0.18
   intl: ^0.20.2
   flutter_archive: ^6.0.3
   archive: ^4.0.0

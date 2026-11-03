@@ -215,6 +215,9 @@ class _BookPageState extends State<BookPage>
       autoFocus: true,
       obscureText: false,
       obscuringCharacter: '•',
+      // like prompt_dialog 1.0.0: tapping outside or Back cancels
+      barrierDismissible: true,
+      canPop: true,
       textCapitalization: TextCapitalization.words,
     );
     if (title != null) {

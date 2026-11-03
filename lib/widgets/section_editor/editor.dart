@@ -391,12 +391,15 @@ class _SectionEditorState extends State<SectionEditor>
       _controller.replaceText(baseOffset, (extentOffset - baseOffset), "", selection);
     } else {
       // wrap by adding the tags at both ends, so footnote chips inside stay chips
-      final String wrapped = cb != null ? await cb('\u0000') : '<$tag>\u0000</$tag>';
-      final cut = wrapped.indexOf('\u0000');
-      final before = wrapped.substring(0, cut), after = wrapped.substring(cut + 1);
-      _controller.replaceText(extentOffset, 0, after, null);
-      _controller.replaceText(baseOffset, 0, before,
-          TextSelection.collapsed(offset: extentOffset + before.length + after.length));
+      final String? wrapped = cb != null ? await cb('\u0000') : '<$tag>\u0000</$tag>';
+      // a cancelled prompt (the cite author) leaves the text as it was
+      if (wrapped != null) {
+        final cut = wrapped.indexOf('\u0000');
+        final before = wrapped.substring(0, cut), after = wrapped.substring(cut + 1);
+        _controller.replaceText(extentOffset, 0, after, null);
+        _controller.replaceText(baseOffset, 0, before,
+            TextSelection.collapsed(offset: extentOffset + before.length + after.length));
+      }
     }
     // print({extentOffset, baseOffset, previousText});
     // Clipboard.setData(new ClipboardData(text: previousText));
@@ -506,11 +509,17 @@ class _SectionEditorState extends State<SectionEditor>
             textOK: BaseText.Text('Save'),
             textCancel: BaseText.Text('Cancel'),
             autoFocus: true,
+            initialValue: '', // Save on an empty field gives '', only Cancel gives null
             obscureText: false,
             obscuringCharacter: '•',
+            // like prompt_dialog 1.0.0: tapping outside or Back cancels
+            barrierDismissible: true,
+            canPop: true,
             textCapitalization: TextCapitalization.words,
           );
-          return author!.isEmpty
+          // Cancel leaves the text as it was
+          if (author == null) return null;
+          return author.isEmpty
               ? "<cite><p>$value</p></cite>"
               : "<cite><p>$value</p><text-author>$author</text-author></cite>";
         });

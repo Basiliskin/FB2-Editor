@@ -429,6 +429,67 @@ void main() {
     await dispose(tester);
   });
 
+  testWidgets('cancelling the cite author prompt leaves the text unchanged', (tester) async {
+    await pump(tester, paras(2));
+    await activate(tester, 'para 1');
+    final c = controller(tester);
+    c.updateSelection(
+        const TextSelection(baseOffset: 0, extentOffset: 4), ChangeSource.local);
+    await tester.pump();
+    final before = c.document.toPlainText();
+    await tester.tap(toolbarIcon(Icons.format_quote));
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.tap(find.text('Cancel'));
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(tester.takeException(), isNull);
+    expect(c.document.toPlainText(), before);
+    expect(c.document.toPlainText(), isNot(contains('<cite>')));
+    await dispose(tester);
+  });
+
+  testWidgets('tapping outside or Back closes the cite prompt unchanged', (tester) async {
+    await pump(tester, paras(2));
+    await activate(tester, 'para 1');
+    final c = controller(tester);
+    final before = c.document.toPlainText();
+    for (final close in [
+      () => tester.tapAt(const Offset(5, 5)),
+      () => tester.binding.handlePopRoute(),
+    ]) {
+      c.updateSelection(
+          const TextSelection(baseOffset: 0, extentOffset: 4), ChangeSource.local);
+      await tester.pump();
+      await tester.tap(toolbarIcon(Icons.format_quote));
+      await tester.pump(const Duration(milliseconds: 300));
+      expect(find.text('Enter Author Name:'), findsOneWidget);
+      await close();
+      await tester.pump(const Duration(milliseconds: 300));
+      await tester.pump(const Duration(milliseconds: 300));
+      expect(find.text('Enter Author Name:'), findsNothing);
+      expect(tester.takeException(), isNull);
+      expect(c.document.toPlainText(), before);
+    }
+    await dispose(tester);
+  });
+
+  testWidgets('cite with an untouched author field still makes a cite', (tester) async {
+    await pump(tester, paras(2));
+    await activate(tester, 'para 1');
+    final c = controller(tester);
+    c.updateSelection(
+        const TextSelection(baseOffset: 0, extentOffset: 4), ChangeSource.local);
+    await tester.pump();
+    await tester.tap(toolbarIcon(Icons.format_quote));
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(find.text('Enter Author Name:'), findsOneWidget);
+    await tester.tap(find.text('Save'));
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(c.document.toPlainText(), contains('<cite><p>para</p></cite>'));
+    await dispose(tester);
+  });
+
   testWidgets('add section from the clipboard', (tester) async {
     await pump(tester, paras(2));
     // empty clipboard: nothing happens
