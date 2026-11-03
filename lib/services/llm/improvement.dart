@@ -210,10 +210,14 @@ class ImprovementService {
 
   static List<String>? _tags(String inline) {
     try {
+      // a tag's name plus where a link points, so swapping footnote marks counts too
       final names = XmlDocument.parse('<p>$inline</p>')
           .rootElement
           .descendantElements
-          .map((e) => e.name.local)
+          .map((e) => [
+                e.name.local,
+                ...e.attributes.where((a) => a.name.local == 'href').map((a) => a.value)
+              ].join(' '))
           .toList()
         ..sort();
       return names;

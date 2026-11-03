@@ -113,3 +113,13 @@ _Avoid_: Setup, model loading
 **Speech Language**:
 The language a Dictation is transcribed in: Russian, Hebrew or English. The app works it out from each recording (Auto), so the user may speak any of the three in any book. The book's own language is not used, because forcing a language makes the engine translate speech spoken in another one. Speech is kept in the language it was spoken and is never translated.
 _Avoid_: Locale, input language
+
+## Footnotes
+
+**Footnote**:
+A note for readers, kept apart from the main text and pointed to from one spot in a Section by a Note mark. It belongs to the book and is saved in the FB2 file.
+_Avoid_: Comment, annotation, writer's note
+
+**Note mark**:
+The small label in the text, such as [1], that leads the reader to its Footnote.
+_Avoid_: Reference, anchor, link
