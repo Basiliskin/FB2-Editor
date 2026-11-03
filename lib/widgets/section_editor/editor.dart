@@ -22,6 +22,9 @@ import 'package:quill_fb2/utils/consts.dart';
 import 'package:quill_fb2/widgets/leave_dialog.dart';
 import 'package:quill_fb2/widgets/loading.dialog.dart';
 import 'package:quill_fb2/widgets/section_editor/toolbar.dart';
+import 'package:quill_fb2/widgets/section_editor/footnote_dialog.dart';
+import 'package:quill_fb2/models/footnotes.dart';
+import 'package:quill_fb2/widgets/section_editor/note_chips.dart';
 import 'package:quill_fb2/pages/settings_page.dart';
 import 'package:quill_fb2/widgets/section_editor/improve_bar.dart';
 import 'package:quill_fb2/widgets/section_editor/improve_controller.dart';
@@ -188,12 +191,14 @@ class _SectionEditorState extends State<SectionEditor>
   late List<String> _savedP;
   late List<String> _savedImages;
   late List<Resource> _savedResources;
+  late List<String> _savedBodies;
 
   void _takeSnapshot() {
     _savedTitle = widget.section.title;
     _savedP = List.of(widget.section.p);
     _savedImages = List.of(widget.section.images);
     _savedResources = List.of(widget.book.binaryResource.resources);
+    _savedBodies = List.of(widget.book.extraBodies);
   }
 
   void _restoreSnapshot() {
@@ -202,6 +207,51 @@ class _SectionEditorState extends State<SectionEditor>
       ..p = List.of(_savedP)
       ..images = List.of(_savedImages);
     widget.book.binaryResource.resources = List.of(_savedResources);
+    widget.book.extraBodies = List.of(_savedBodies);
+  }
+
+  /// Inserts a footnote at the cursor, or edits the one whose chip the cursor
+  /// is next to.
+  Future<void> _footnote() async {
+    if (_active < 0) return; // the toolbar only shows while a paragraph is open
+    final sel = _controller.selection;
+    final chip = sel.isValid ? noteChipNear(_controller.document, sel.baseOffset) : null;
+    await _openNote(chip, sel);
+  }
+
+  /// A chip was tapped: open its note.
+  void _tapChip(int offset) {
+    final chip = noteChipNear(_controller.document, offset);
+    if (chip != null) _openNote(chip, _controller.selection);
+  }
+
+  Future<void> _openNote(({int offset, String xml})? chip, TextSelection sel) async {
+    final book = widget.book;
+    final id = chip == null ? null : noteChipId(chip.xml);
+    final note = id == null ? null : book.footnote(id);
+    // a chip that is not a footnote (a link to elsewhere in the book) is left alone
+    if (chip != null && note == null) return;
+    final action = await showFootnoteDialog(context, widget.service,
+        note: note, label: nextFootnoteLabel(book.footnotes));
+    if (action == null || !mounted) return;
+    setState(() {
+      switch (action) {
+        case DeleteFootnote():
+          book.deleteFootnote(id!);
+          _controller.replaceText(chip!.offset, 1, '', TextSelection.collapsed(offset: chip.offset));
+        case SaveFootnote(:final label, :final text):
+          if (chip != null) {
+            book.updateFootnote(id!, label, text);
+            _controller.replaceText(chip.offset, 1, Embeddable(noteEmbedType, noteMarkXml(id, label)),
+                TextSelection.collapsed(offset: chip.offset + 1));
+          } else {
+            final newId = book.addFootnote(label, text);
+            final at = sel.isValid ? sel.end : _controller.document.length - 1;
+            _controller.replaceText(at, 0, Embeddable(noteEmbedType, noteMarkXml(newId, label)),
+                TextSelection.collapsed(offset: at + 1));
+          }
+      }
+    });
   }
 
   /// Editable text of one stored paragraph (inline markup shows as its own lines).
@@ -216,7 +266,7 @@ class _SectionEditorState extends State<SectionEditor>
   /// occupies (1 when its structure is unchanged).
   int _commitActive() {
     if (_active < 0) return 1;
-    final text = _controller.document.toPlainText().replaceFirst(RegExp(r'\n$'), '');
+    final text = serializeNotes(_controller.document);
     if (text == _activeText && text.isNotEmpty) return 1;
     final count = widget.section.replaceParagraph(_active, text);
     _activeText = text;
@@ -249,10 +299,10 @@ class _SectionEditorState extends State<SectionEditor>
       _active = target;
       _activeText = text;
       _controller = QuillController(
-          document: Document.fromJson([
-            {"insert": "$text\n"}
-          ]),
-          selection: TextSelection.collapsed(offset: text.length));
+          document: Document.fromJson(noteOps(text)),
+          selection: const TextSelection.collapsed(offset: 0));
+      _controller.updateSelection(
+          TextSelection.collapsed(offset: _controller.document.length - 1), ChangeSource.local);
     });
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final ctx = _activeKey.currentContext;
@@ -337,15 +387,17 @@ class _SectionEditorState extends State<SectionEditor>
         .copyWith(baseOffset: baseOffset, extentOffset: extentOffset);
     // _controller.updateSelection(selection, ChangeSource.LOCAL);
     final previousText = docText.substring(baseOffset, extentOffset);
-    _controller.replaceText(
-        baseOffset,
-        (extentOffset - baseOffset),
-        tag.isEmpty
-            ? ""
-            : cb != null
-                ? await cb(previousText)
-                : "<$tag>$previousText</$tag>",
-        selection);
+    if (tag.isEmpty) {
+      _controller.replaceText(baseOffset, (extentOffset - baseOffset), "", selection);
+    } else {
+      // wrap by adding the tags at both ends, so footnote chips inside stay chips
+      final String wrapped = cb != null ? await cb('\u0000') : '<$tag>\u0000</$tag>';
+      final cut = wrapped.indexOf('\u0000');
+      final before = wrapped.substring(0, cut), after = wrapped.substring(cut + 1);
+      _controller.replaceText(extentOffset, 0, after, null);
+      _controller.replaceText(baseOffset, 0, before,
+          TextSelection.collapsed(offset: extentOffset + before.length + after.length));
+    }
     // print({extentOffset, baseOffset, previousText});
     // Clipboard.setData(new ClipboardData(text: previousText));
     // final snackBar = SnackBar(
@@ -506,10 +558,14 @@ class _SectionEditorState extends State<SectionEditor>
         if (mounted) setState(() => _dictating = busy);
       },
     );
+    final footnote = defaultToggleStyleButtonBuilderHandler(
+        context, Attribute.unchecked, Icons.superscript, false, _footnote,
+        tooltip: tr(widget.service, 'Insert footnote', 'Вставить сноску'));
     return [
       strongButton,
       emphasisSection,
       citySection,
+      footnote,
       dictate,
     ];
   }
@@ -627,6 +683,7 @@ class _SectionEditorState extends State<SectionEditor>
               scrollController: _innerScroll,
               config: QuillEditorConfig(
                 autoFocus: true,
+                embedBuilders: [NoteChipBuilder(onTap: _tapChip)],
                 scrollable: false,
                 padding: const EdgeInsets.symmetric(vertical: 4),
                 customStyles: DefaultStyles(
@@ -651,7 +708,7 @@ class _SectionEditorState extends State<SectionEditor>
                 child: BaseText.Text(
                     paragraphs[i].startsWith('<poem')
                         ? widget.section.displayText(paragraphs[i])
-                        : _paragraphText(paragraphs[i]),
+                        : showNoteLabels(_paragraphText(paragraphs[i])),
                     style: paragraphs[i].startsWith('<poem')
                         ? style.copyWith(fontStyle: FontStyle.italic)
                         : style)),

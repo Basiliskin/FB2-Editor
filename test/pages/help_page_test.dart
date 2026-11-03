@@ -144,4 +144,57 @@ void main() {
       expect(find.text(helpTopics.first.title.$1), findsOneWidget);
     });
   });
+
+  group('search', () {
+    testWidgets('typing keeps only matching tips, opened', (tester) async {
+      await _pump(tester, HelpScreen(service));
+      await tester.enterText(find.byKey(const ValueKey('help-search')), 'FOOTNOTE');
+      await tester.pumpAndSettle();
+      expect(find.textContaining('Footnote (x²'), findsOneWidget);
+      expect(find.text('Library'), findsNothing);
+      expect(find.text('Text editor'), findsOneWidget);
+      // other tips of the same topic are hidden
+      expect(find.textContaining('Poem from copied'), findsNothing);
+    });
+
+    testWidgets('Russian words match too, and clear brings everything back', (tester) async {
+      await _pump(tester, HelpScreen(service));
+      await tester.enterText(find.byKey(const ValueKey('help-search')), 'сноск');
+      await tester.pumpAndSettle();
+      expect(find.textContaining('Footnote (x²'), findsOneWidget);
+      await tester.tap(find.byTooltip('Clear'));
+      await tester.pumpAndSettle();
+      for (final t in helpTopics) {
+        expect(find.text(t.title.$1), findsOneWidget);
+      }
+    });
+
+    testWidgets('no match says so', (tester) async {
+      await _pump(tester, HelpScreen(service));
+      await tester.enterText(find.byKey(const ValueKey('help-search')), 'zzqx');
+      await tester.pumpAndSettle();
+      expect(find.text('Nothing found.'), findsOneWidget);
+    });
+
+    test('a matching title keeps all of its tips', () {
+      final t = helpTopics.first;
+      expect(matchingTips(t, t.title.$1.toUpperCase()), t.tips);
+      expect(matchingTips(t, '  '), t.tips);
+    });
+  });
+
+  testWidgets('a tip about a button shows that button\'s icon', (tester) async {
+    await _pump(tester, HelpScreen(service));
+    await tester.enterText(find.byKey(const ValueKey('help-search')), 'footnote');
+    await tester.pumpAndSettle();
+    expect(find.byIcon(Icons.superscript), findsOneWidget);
+  });
+
+  test('every tip icon points at a real tip', () {
+    for (final t in helpTopics) {
+      for (final i in t.icons.keys) {
+        expect(i, lessThan(t.tips.length), reason: t.title.$1);
+      }
+    }
+  });
 }

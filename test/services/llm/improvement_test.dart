@@ -60,6 +60,21 @@ void main() {
           throwsA(isA<ImprovementException>()));
     });
 
+    test('rejects a footnote mark that was dropped or pointed elsewhere', () {
+      const marks = ['tea<a l:href="#n1" type="note">[1]</a> and<a l:href="#n2" type="note">[2]</a>'];
+      expect(() => ImprovementService.parse('[1] TEA and<a l:href="#n2" type="note">[2]</a>', marks),
+          throwsA(isA<ImprovementException>()));
+      expect(
+          () => ImprovementService.parse(
+              '[1] TEA<a l:href="#n2" type="note">[1]</a> and<a l:href="#n2" type="note">[2]</a>', marks),
+          throwsA(isA<ImprovementException>()));
+      // moving a mark within the sentence is fine
+      expect(
+          ImprovementService.parse(
+              '[1] and<a l:href="#n2" type="note">[2]</a> TEA<a l:href="#n1" type="note">[1]</a>', marks),
+          hasLength(1));
+    });
+
     test('rejects malformed XML', () {
       expect(() => ImprovementService.parse('[1] a <strong>b\n[2] c', orig),
           throwsA(isA<ImprovementException>()));

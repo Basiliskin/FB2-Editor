@@ -8,6 +8,7 @@ import 'package:xml/xml.dart';
 import 'package:quill_fb2/utils/common.dart';
 import 'package:quill_fb2/utils/consts.dart';
 
+import 'footnotes.dart';
 import 'section.model.dart';
 
 copyTo(list, dest, key) {
@@ -264,6 +265,63 @@ class ProjectModel {
     if (coverpage.href.isEmpty && binaryResource.resources.length > 0) {
       coverpage.href = "#${binaryResource.resources[0].id}";
     }
+    if (extraBodies.isNotEmpty) _trackMarkedNotes(section.expand((s) => s.p));
+  }
+
+  // ---- footnotes ----
+
+  /// Footnotes that had a Note mark at some point (at load, or made here). Only
+  /// these are dropped on save once no mark points at them: a note the book
+  /// already had without any mark is left alone.
+  final Set<String> _trackedNotes = {};
+
+  void _trackMarkedNotes(Iterable<String> blocks) {
+    final ids = footnoteIds;
+    for (final b in blocks) {
+      _trackedNotes.addAll(linkedIds(b).where(ids.contains));
+    }
+  }
+
+  List<Footnote> get footnotes => readFootnotes(extraBodies);
+
+  Set<String> get footnoteIds => {for (final n in footnotes) n.id};
+
+  Footnote? footnote(String id) => findFootnote(extraBodies, id);
+
+  /// Adds a footnote and returns its new id.
+  String addFootnote(String label, String text) {
+    final taken = {
+      ...binaryResource.resources.map((r) => r.id),
+      ...extraBodies.expand((b) => _idAttr.allMatches(b).map((m) => m.group(2)!)),
+      for (final s in section) ...s.p.expand((b) => _idAttr.allMatches(b).map((m) => m.group(2)!)),
+    };
+    final id = newFootnoteId(taken);
+    extraBodies = putFootnote(extraBodies, id, label, text);
+    _trackedNotes.add(id);
+    return id;
+  }
+
+  /// Rewrites an editable footnote; one with formatting the app can't edit is left as is.
+  bool updateFootnote(String id, String label, String text) {
+    if (footnote(id)?.editable != true) return false;
+    extraBodies = putFootnote(extraBodies, id, label, text);
+    return true;
+  }
+
+  void deleteFootnote(String id) => extraBodies = removeFootnotes(extraBodies, {id});
+
+  /// The extra bodies as saved: footnotes whose last mark is gone are dropped.
+  List<String> get _bodiesToSave {
+    if (_trackedNotes.isEmpty) return extraBodies;
+    final used = {
+      for (final s in section) for (final b in s.p) ...linkedIds(b),
+      for (final b in annotation) ...linkedIds(b),
+    };
+    // a note pointed at only from another note still counts
+    for (final b in extraBodies) {
+      used.addAll(linkedIds(b));
+    }
+    return removeFootnotes(extraBodies, _trackedNotes.difference(used));
   }
   factory ProjectModel.fromJson(json, [String projId = '']) {
     return ProjectModel(json, projId);
@@ -544,7 +602,7 @@ class ProjectModel {
       xml.add(element.toXml());
     });
     xml.add('</body>');
-    xml.addAll(extraBodies);
+    xml.addAll(_bodiesToSave);
     xml.add(binaryResource.toXml());
     xml.add('</FictionBook>');
     return xml.join('\n');
@@ -672,6 +730,7 @@ class ProjectModel {
     }
     section.addAll(added);
     extraBodies = [...extraBodies, ...bodies.map(rewrite)];
+    _trackMarkedNotes(added.expand((s) => s.p));
     return added.length;
   }
 
